@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+.vercel/
+*.tsbuildinfo
+.env
+.env*.local
+!.env.example
+.DS_Store
+npm-debug.log*
+CLAUDE.md
+AGENTS.md

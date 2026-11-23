@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+/*
+ * Eatpl 디자인 토큰
+ * 참고: Figma "Planto." 템플릿 (진한 녹색 + 유리 카드 스타일)
+ * 색상·모서리·그림자는 아래 토큰만 사용하세요. (hex 값 직접 쓰지 않기)
+ */
+@theme {
+  /* 배경 */
+  --color-background: #1b2316;
+  --color-surface: #222c1d;
+
+  /* 글자 */
+  --color-foreground: #ffffff;
+  --color-muted: rgb(255 255 255 / 0.75);
+
+  /* 강조 (녹색) */
+  --color-accent: #55b000;
+  --color-accent-dark: #50790b;
+
+  /* 별점 */
+  --color-star: #fff84e;
+
+  /* 유리 카드 */
+  --color-glass: rgb(255 255 255 / 0.05);
+  --color-glass-border: rgb(255 255 255 / 0.2);
+
+  /* 모서리 */
+  --radius-input: 8px;
+  --radius-button: 12px;
+  --radius-card: 32px;
+
+  /* 그림자 */
+  --shadow-card: 0 9px 18px rgb(0 0 0 / 0.25);
+  --shadow-avatar: 0 12px 10px rgb(0 0 0 / 0.08), 0 42px 33px rgb(0 0 0 / 0.11);
+  --text-shadow-title: 0 4px 4px rgb(0 0 0 / 0.13), 0 12px 10px rgb(0 0 0 / 0.18),
+    0 30px 24px rgb(0 0 0 / 0.23);
+
+  /* 폰트 */
+  --font-sans: var(--font-inter), system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 유리 효과: 반투명 채움 + 배경 흐림 + 대각선 그라데이션 테두리 */
+@utility glass {
+  position: relative;
+  background-color: var(--color-glass);
+  backdrop-filter: blur(12.5px);
+  -webkit-backdrop-filter: blur(12.5px);
+  box-shadow: var(--shadow-card);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--color-glass-border),
+      transparent 52%,
+      var(--color-glass-border)
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
