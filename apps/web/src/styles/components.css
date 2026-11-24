@@ -1,0 +1,308 @@
+/* 토큰(색·모서리·그림자)은 tokens.css 한 곳에서. 이 파일은 그 토큰을 쓰는 공용 모양만 정의한다. */
+@import "./tokens.css";
+
+/*
+ * EatsMine 공용 부품 유틸리티 (docs/DESIGN.md §4, toss-ux-design §4).
+ * 토스 TDS·당근 SEED처럼 모양은 한 번만 정의하고 모든 화면이 같은 이름을 쓴다.
+ * 색·모서리는 globals.css @theme 토큰만 쓴다. 새 모양이 필요하면 여기에 더하고 화면 파일에 복사하지 않는다.
+ */
+
+/* 눌리는 모든 요소의 같은 반응: 마우스 올림, 누르는 동안, 키보드 포커스, 비활성 */
+@utility pressable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+  &:active {
+    background-color: color-mix(in oklab, var(--color-foreground) 10%, transparent);
+  }
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--color-foreground) 5%, transparent);
+    }
+  }
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+/* 행 사이 1px 선만. 이미 면(유리 카드 등) 안에 있을 때 쓴다. */
+@utility list-divided {
+  display: flex;
+  flex-direction: column;
+  & > * + * {
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+/* 행 묶음: 위아래와 행 사이 1px 선. 카드로 감싸지 않는다. */
+@utility list-group {
+  display: flex;
+  flex-direction: column;
+  border-block: 1px solid var(--color-line);
+  & > * + * {
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+/* 한 줄 행: 왼쪽 이름, 오른쪽 값·컨트롤. 높이 56px(조작 44px 이상). */
+@utility list-row {
+  display: flex;
+  min-height: 3.5rem;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: left;
+  font-size: var(--text-lg);
+  line-height: 1.625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-foreground);
+}
+
+/*
+ * 글자 단계 (Pretendard Variable). docs/DESIGN.md §3.
+ * 굵기는 400·500·600·700만 쓴다(100~300 금지). 숫자는 tabular-nums를 따로 붙인다.
+ */
+@utility type-title {
+  font-size: var(--text-2xl);
+  line-height: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@utility type-section {
+  font-size: var(--text-xl);
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+@utility type-row {
+  font-size: var(--text-lg);
+  line-height: 1.625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+@utility type-body {
+  font-size: var(--text-base);
+  line-height: 1.5rem;
+  font-weight: 400;
+}
+
+@utility type-caption {
+  font-size: var(--text-sm);
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+/*
+ * 떠 있는 유리 바(상단 제목, 하단 주 버튼). 내용이 아래로 지나가며 흐려진다.
+ * 토스처럼 유리는 탐색·조작이 떠 있는 층에 쓴다. 지원하지 않거나 투명도 줄이기면 불투명 면.
+ */
+@utility glass-bar {
+  background-color: color-mix(in oklab, var(--color-background) 58%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  backdrop-filter: blur(24px) saturate(1.8);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--color-background);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-background);
+  }
+}
+
+/*
+ * 스크롤바: em-theme 화면에서만 얇게, 평소엔 숨기고 스크롤하는 동안만 보인다(2026-11-24 사용자 지시).
+ * 스크롤 중 표시는 components/scroll/ScrollActivity.tsx가 html에 data-scrolling을 1초 붙인다.
+ */
+:root:has(.em-theme),
+:root:has(.em-theme) body {
+  color-scheme: light dark;
+  background-color: light-dark(oklch(0.968 0.006 150), oklch(0.17 0.008 150));
+}
+:root:has(.em-theme[data-scheme="light"]),
+:root:has(.em-theme[data-scheme="light"]) body {
+  color-scheme: light;
+}
+:root:has(.em-theme[data-scheme="dark"]),
+:root:has(.em-theme[data-scheme="dark"]) body {
+  color-scheme: dark;
+}
+:root:has(.em-theme) {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+:root:has(.em-theme)[data-scrolling] {
+  scrollbar-color: color-mix(in oklab, var(--color-foreground) 28%, transparent) transparent;
+}
+:root:has(.em-theme)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+:root:has(.em-theme)::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+:root:has(.em-theme)[data-scrolling]::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-foreground) 28%, transparent);
+}
+
+
+/* em-theme 안의 유리 패널: blur를 키우고 안쪽 위 1px 하이라이트로 iOS·macOS 재질처럼 */
+.em-theme .glass {
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 light-dark(oklch(1 0 0 / 0.7), oklch(1 0 0 / 0.08)),
+    var(--shadow-card);
+}
+
+/* 마이페이지의 기록 패널: 같은 재질과 안쪽 기준선을 공유한다. */
+.my-page .glass {
+  background: linear-gradient(145deg,
+    color-mix(in oklab, var(--color-surface) 76%, transparent),
+    color-mix(in oklab, var(--color-surface) 55%, transparent));
+  border: 1px solid color-mix(in oklab, var(--color-foreground) 20%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-surface) 85%, transparent);
+}
+.my-page .glass::before { content: none; }
+
+/* em-theme의 모든 유리: 투명도 줄이기·미지원이면 불투명 면 */
+@media (prefers-reduced-transparency: reduce) {
+  .em-theme .glass {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .em-theme .glass { background: var(--color-surface); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .my-page .glass {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .my-page .glass { background: var(--color-surface); }
+}
+
+/* iOS 큰 제목 → 스크롤하면 바 가운데 작은 제목 */
+@utility type-large-title {
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/*
+ * iOS·macOS 재질 (2026-11-24 사용자 지시: "그라데이션·글래스모피즘, iOS랑 맥 기반 웹사이트").
+ * HIG Materials: 유리는 탐색·조작 층(사이드바, 상단·하단 바, 시트, 토스트)에만 쓰고 내용 층에는 쓰지 않는다.
+ * 재질은 층마다 하나. 투명도 줄이기·대비 높이기·미지원이면 불투명.
+ */
+@utility material-sidebar {
+  background-color: color-mix(in oklab, var(--color-surface) 62%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--color-surface);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-surface);
+  }
+}
+
+/* 시트·토스트처럼 글이 있는 층: HIG Materials의 regular(글이 많은 곳)에 맞춰 거의 불투명 */
+@utility material-thick {
+  background-color: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-surface) 60%, transparent),
+    0 0 0 1px var(--color-line),
+    var(--shadow-float);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--color-surface);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-surface);
+  }
+}
+
+/* 입력칸 공통: 약한 면 + 포커스 때 강조색 2px 고리. 오류는 aria-invalid로 */
+@utility field {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: var(--radius-input);
+  background-color: var(--color-fill);
+  color: var(--color-foreground);
+  font-size: var(--text-base);
+  line-height: 1.5rem;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  &::placeholder {
+    color: var(--color-muted);
+  }
+  /* 오류(안쪽 빨간 선)와 포커스(바깥 강조색 고리)를 다른 층에 그려 둘 다 보이게 한다 */
+  &[aria-invalid="true"],
+  &:has([aria-invalid="true"]) {
+    box-shadow: inset 0 0 0 2px var(--color-danger);
+  }
+  &:focus-visible,
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 키보드 포커스 고리. 바깥쪽 2px, 강조색 */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 시트·서랍 뒤 어둡게 */
+dialog.em-dialog::backdrop {
+  background: oklch(0.17 0.008 150 / 0.36);
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.em-dialog[open] {
+    animation: em-sheet-in 180ms ease-out;
+  }
+}
+/* 위치만 움직인다. 투명도를 움직이면 애니메이션이 멈춘 환경(백그라운드 탭 등)에서 시트가 반투명하게 남는다 */
+@keyframes em-sheet-in {
+  from {
+    transform: translateY(12px);
+  }
+}
+
