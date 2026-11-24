@@ -42,16 +42,16 @@ export function MyPageView({ data, member }: MyPageViewProps) {
             </GlassCard>
           </div>
           <div className="mx-4 lg:col-start-1 lg:row-start-3 lg:mx-0 lg:mt-8">
-            <RecordLinks regionCount={regionVisits.length} foodCount={foodCollection.length} reviewCount={reviews.length} member={member} />
+            <RecordLinks regionCount={regionVisits.length} foodCount={foodCollection.length} member={member} />
           </div>
           <div className="mx-4 lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:mx-0 lg:[&_h2]:min-h-10">
             <ReviewList reviews={reviews} />
+            <div className="mt-8"><ThemeSettings /></div>
           </div>
           <section aria-labelledby="privacy-title" className="mx-4 flex flex-col gap-2 lg:col-start-1 lg:row-start-4 lg:mx-0 lg:mt-8">
             <h2 id="privacy-title" className="scroll-mt-20 type-section">공개 범위</h2>
             <p className="type-body text-muted">공개 설정과 기록 공유를 준비하고 있어요</p>
           </section>
-          <div className="mx-4 lg:col-start-1 lg:row-start-5 lg:mx-0 lg:mt-8"><ThemeSettings /></div>
         </div>
       </main>
     </div>
