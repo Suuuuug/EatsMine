@@ -11,5 +11,6 @@ import { ReviewsService } from './reviews.service.js';
   imports: [EatplModule, RegionsModule, ProfilesModule],
   controllers: [ReviewsController, MeRecordsController],
   providers: [ReviewsService, MeRecordsService],
+  exports: [MeRecordsService],
 })
 export class ReviewsModule {}

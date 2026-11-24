@@ -1,0 +1,187 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "fee18694-761b-47fd-a543-7fefec892f09",
+  "prevIds": [
+    "4f928468-d5d5-49bd-9cb8-d3a02cd05bd0"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "share_links"
+      ],
+      "writes": [
+        "s|tbl|public.share_links",
+        "n|tbl|public.share_links",
+        "e|tbl|public.share_links",
+        "n|rel|public.share_links",
+        "n|type|public.share_links",
+        "n|rel|public.share_links_pkey",
+        "n|rel|public.share_links_user_type_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "share_links"
+      ],
+      "writes": [
+        "s|fk|public.share_links.share_links_user_id_profiles_id_fkey",
+        "n|fk|public.share_links.share_links_user_id_profiles_id_fkey",
+        "e|fk|public.share_links.share_links_user_id_profiles_id_fkey",
+        "n|con|public.share_links.share_links_user_id_profiles_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.share_links",
+        "n|sch|public",
+        "n|tbl|public.profiles",
+        "n|sch|public",
+        "n|col|public.share_links.user_id",
+        "n|col|public.profiles.id",
+        "e|uniqueness|public.profiles.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "share_links",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "id",
+        "type": "varchar(10)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "share_type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "share_links_user_id_profiles_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "profiles",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "share_links_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "share_links_user_type_unique",
+        "nameExplicit": true,
+        "columns": [
+          "user_id",
+          "share_type"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "share_links",
+        "name": "share_links_type_check",
+        "value": "\"share_type\" IN ('territory', 'collection')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

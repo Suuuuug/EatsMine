@@ -279,3 +279,30 @@ export const userFoodCollection = pgTable.withRLS(
   },
   (t) => [primaryKey({ columns: [t.userId, t.foodId] })],
 );
+
+/**
+ * 내 영토·도감 공유 링크 (D9). 사용자당 종류별 1개 — 다시 공유하면 같은 링크, 공유 취소 시 행 삭제.
+ * id는 추측할 수 없는 무작위 10자 (순번 ID 금지).
+ */
+export const shareLinks = pgTable.withRLS(
+  'share_links',
+  {
+    id: varchar({ length: 10 }).primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    shareType: text('share_type', {
+      enum: ['territory', 'collection'],
+    }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique('share_links_user_type_unique').on(t.userId, t.shareType),
+    check(
+      'share_links_type_check',
+      sql`${t.shareType} IN ('territory', 'collection')`,
+    ),
+  ],
+);
