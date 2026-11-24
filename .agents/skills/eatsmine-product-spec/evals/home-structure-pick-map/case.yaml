@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: home-structure-pick-map
+expected_outcome: |
+  기획서의 컴포넌트·폴더·라우트 이름을 그대로 쓰고, 기획서에 없는 지도 제공자 결정은 임의로 확정하지 않고 후보와 트레이드오프를 제시하며 사용자 결정을 요청.

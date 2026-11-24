@@ -1,0 +1,2 @@
+# contest-idea-forge runtime deps (intentionally tiny — everything else is stdlib).
+PyYAML>=6.0   # only needed if you use --config config.yaml

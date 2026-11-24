@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contest-idea-forge"
+version = "0.1.0"
+description = "공모전 링크 하나로 데모 가능한 아이디어를 뽑아내는 파이프라인 (코드 자동화 + 분석만 Claude)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "pokochy" }]
+keywords = ["claude", "skill", "contest", "ideation", "research", "공모전"]
+dependencies = ["PyYAML>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/pokochy/contest-idea-forge"
+Repository = "https://github.com/pokochy/contest-idea-forge"
+
+[project.scripts]
+contest-idea-forge = "contest_idea_forge.run:main"
+
+[tool.setuptools]
+packages = ["contest_idea_forge"]
+
+[tool.setuptools.package-data]
+contest_idea_forge = ["prompts/*.md"]

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: card-with-tracking-param
+expected_outcome: |
+  merUrl을 변형하지 않고(추적 파라미터 거부), 클릭 기록이 이동을 막지 않게 하며, 백분위·영업 예상 시간 표현 규칙을 지키는 코드와 설명.

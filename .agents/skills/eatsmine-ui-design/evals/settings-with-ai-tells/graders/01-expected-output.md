@@ -1,0 +1,7 @@
+---
+type: llm
+focus: trace
+weight: 1
+---
+
+The result matches this description: 사용자가 싫어하는 회색 부연, 장식 상태 배지, 왼쪽 굵은 띠를 그대로 넣지 않고 이유를 설명하며 대안(행+스위치, 설명은 필요한 한 곳만, aria-checked)을 구현.

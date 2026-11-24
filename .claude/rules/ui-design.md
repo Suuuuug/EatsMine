@@ -1,0 +1,3 @@
+# 화면 디자인
+`apps/web` 화면을 만들거나 고칠 때는 `docs/DESIGN.md`를 정본으로 따르고 `eatsmine-ui-design` 스킬을 먼저 읽는다. 판단 순서는 사용자 지시 > 팀 토큰·공통 컴포넌트 > DESIGN 금지 목록 > 토스·당근 관행. 사용자가 직접 싫다고 한 것(쓸데없는 회색 설명 글자, 장식용 상태 칩, 한쪽만 굵은 테두리)은 예외 없이 쓰지 않는다. 흐름·구조는 `toss-ux-design`, 문구는 `toss-ux-writing`. 화면을 바꾼 배치는 커밋 전에 `ui-review-loop`(결론을 모르는 독립 평가자 8점 이상, 실제 클릭 순서 검증)를 돈다. 팀원 소유 공통 UI(`@/components/ui`, `globals.css`)는 고치기 전에 사용자에게 알린다.
+토큰은 `apps/web/src/styles/tokens.css` 한 곳, 앱 화면 부품은 `@/components/em`(예시 `/styleguide`). 근거 규칙은 Apple HIG(재질·버튼·사이드바·시트·탭 바), Material 3 내비게이션 바, 당근 SEED(DESIGN.md §9). 2026-11-24 사용자 지시로 바탕 빛번짐 + 떠 있는 층 유리(글래스모피즘)를 쓰고, 모바일 이동은 햄버거 없이 하단 탭 바.

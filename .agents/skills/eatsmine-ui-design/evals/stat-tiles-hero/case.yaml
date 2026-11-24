@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: stat-tiles-hero
+expected_outcome: |
+  큰 숫자+작은 라벨 통계 타일 3개, 영어 ALL-CAPS 라벨, 색 원 아이콘 같은 AI 티를 피하고 숫자를 기준과 함께 문장이나 행으로 보여 주며, 팀 토큰을 쓴다. 요청과 다르게 한 부분은 이유를 말한다.

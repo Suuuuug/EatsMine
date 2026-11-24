@@ -1,0 +1,17 @@
+# contest-idea-forge — optional config. Copy to config.yaml and pass --config config.yaml.
+# CLI flags always override these values.
+
+# Models for the headless `claude -p` analysis steps.
+# Leave unset to use your Claude CLI's default model.
+extract_model: null        # e.g. sonnet   (page -> structured fields)
+analysis_model: null       # e.g. opus     (ideate / verify / select)
+
+# Defaults (mirrored by CLI flags; CLI wins)
+# candidates: 6            # how many candidate ideas to generate
+# n_ideas: 3               # how many to keep after verification
+# team_size: 4             # team headcount cap used in feasibility checks
+# demo_period: "약 2개월"   # demo timeframe phrasing
+# from_year: 2023          # minimum paper year for retrieval
+
+# Notion export (optional): set these in the environment instead, for safety:
+#   NOTION_TOKEN, NOTION_PARENT_PAGE_ID

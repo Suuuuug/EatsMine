@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: login-wall-before-eatpl
+expected_outcome: |
+  로그인 장벽과 이동 직전 모달이 기획 원칙에 어긋난다고 지적하고, 리뷰가 P1이며 P0가 먼저라는 점, 기획서 §11의 이벤트 이름을 사용.
