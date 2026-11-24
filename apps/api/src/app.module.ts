@@ -5,7 +5,9 @@ import { createObserveModule } from '@nestjs/observe';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AuthModule } from './auth/auth.module.js';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module.js';
+import { ProfilesModule } from './profiles/profiles.module.js';
 import { type Env, validateEnv } from './config/env.js';
 import * as schema from './db/schema.js';
 import { EventsModule } from './events/events.module.js';
@@ -27,6 +29,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       }),
     }),
     RateLimitModule,
+    AuthModule,
+    ProfilesModule,
     RegionsModule,
     RestaurantsModule,
     GenresModule,

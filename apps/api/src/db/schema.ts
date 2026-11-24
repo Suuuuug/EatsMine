@@ -9,8 +9,10 @@ import {
   pgTable,
   text,
   timestamp,
+  uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { RANK_KEYS } from '../profiles/ranks.js';
 
 // 모든 테이블은 RLS를 켜고 정책은 두지 않는다 (D2).
 // → 브라우저에서 Supabase anon key로 Data API 직접 접근 차단. api는 관리자 권한 연결이라 영향 없음.
@@ -77,3 +79,33 @@ export const outboundEvents = pgTable.withRLS(
     ),
   ],
 );
+
+/**
+ * 회원 프로필 (D6). id = Supabase auth.users.id.
+ * auth.users FK(ON DELETE CASCADE)는 drizzle이 auth 스키마를 건드리지 않도록 _manual_ 마이그레이션으로 추가한다.
+ */
+export const profiles = pgTable.withRLS(
+  'profiles',
+  {
+    id: uuid().primaryKey(),
+    /** 가입 시 자동 생성(미식탐험가0000), 중복 허용 */
+    nickname: text().notNull(),
+    /** 리뷰 수 기준 등급. 리뷰 작성·삭제 시 api가 재계산 */
+    rank: text({ enum: RANK_KEYS }).notNull().default('rookie'),
+    avatarUrl: text('avatar_url'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      'profiles_rank_check',
+      sql`${t.rank} IN ('rookie', 'local', 'conqueror', 'master')`,
+    ),
+  ],
+);
+
+export type Profile = typeof profiles.$inferSelect;
