@@ -11,7 +11,7 @@ type DocSectionProps = {
 /** 스타일 가이드 한 구역: 제목, 쓰는 규칙, 실제로 조작되는 예시 */
 export function DocSection({ id, title, rules, children }: DocSectionProps) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-32 flex-col gap-6 lg:scroll-mt-20">
+    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-32 flex-col gap-6">
       <div className="flex flex-col gap-3">
         <h2 id={`${id}-title`} tabIndex={-1} className="type-title outline-none">
           {title}

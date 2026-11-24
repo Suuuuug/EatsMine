@@ -18,7 +18,7 @@ const SchemeContext = createContext<{ scheme: Scheme; setScheme: (scheme: Scheme
   setScheme: () => {},
 });
 
-/** 화면 밝기 전환. 떠 있는 상단 바에 두지 않고 사이드바 아래와 '색' 구역 안에 둔다(사용자 지시 2026-11-24). */
+/** 화면 밝기 전환. 떠 있는 상단 바에 두지 않고 '색' 구역 안에 둔다(사용자 지시 2026-11-24). */
 export function SchemeSwitch({ className = "" }: { className?: string }) {
   const { scheme, setScheme } = useContext(SchemeContext);
   return <SegmentedControl label="화면 밝기" options={schemes} value={scheme} onValueChange={setScheme} className={className} />;
@@ -41,8 +41,7 @@ const groupOf = (id: string) => styleguideNav.find((group) => group.items.some((
 
 /**
  * 스타일 가이드 틀(성대공지 플랫폼과 같은 구조).
- * - 1024px 이상: macOS처럼 왼쪽 반투명 사이드바가 늘 보인다(HIG 사이드바: 기본으로 숨기지 않는다, 두 단계까지).
- * - 그보다 좁으면: 햄버거 없이 아래 유리 탭 바로 묶음(기초·컴포넌트·EatsMine·참고)을 고르고,
+ * - 모든 화면에서: 햄버거 없이 아래 유리 탭 바로 묶음(기초·컴포넌트·EatsMine·참고)을 고르고,
  *   위쪽 칩 줄로 묶음 안의 항목을 고른다(HIG 탭 바·Material 내비게이션 바: 같은 단계 목적지 3~5개, 아이콘 + 짧은 라벨,
  *   SEED Tabs: 1차는 탭, 2차는 칩). 밝기 전환은 이동이 아니라 동작이라 탭 바에 두지 않는다.
  */
@@ -125,50 +124,14 @@ export function StyleguideShell({ children }: { children: ReactNode }) {
 
   return (
     <SchemeContext.Provider value={{ scheme, setScheme }}>
-    <div className="em-theme min-h-dvh max-lg:[--em-bottom-bar:4rem]" data-scheme={scheme === "system" ? undefined : scheme}>
-      <aside className="material-sidebar fixed inset-y-0 left-0 z-30 hidden w-64 flex-col gap-6 overflow-y-auto border-r border-line px-3 pt-6 pb-10 lg:flex">
-        <Brand label="EatsMine 디자인" className="px-3" />
-        <nav aria-label="스타일 가이드 목차" className="flex flex-col gap-5">
-          {styleguideNav.map((group) => (
-            <div key={group.label} className="flex flex-col gap-0.5">
-              <p className="px-3 pb-1 text-xs font-semibold text-muted">{group.label}</p>
-              <ul className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
-                  const active = current === item.id;
-                  return (
-                    <li key={item.id}>
-                      <a
-                        href={`#${item.id}`}
-                        aria-current={active ? "true" : undefined}
-                        onClick={(event) => goTo(event, item.id)}
-                        className={
-                          "flex h-11 items-center gap-2.5 rounded-input px-3 text-base focus-ring pointer-fine:h-9 pointer-fine:text-sm " +
-                          (active ? "bg-accent-weak font-semibold text-foreground" : "pressable font-medium text-foreground")
-                        }
-                      >
-                        <Icon name={item.icon} size={18} className="shrink-0 text-accent-dark" />
-                        {item.label}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </nav>
-        <div className="mt-auto flex flex-col gap-2 px-1 pt-4">
-          <p className="px-2 text-xs font-semibold text-muted">화면 밝기</p>
-          <SchemeSwitch />
-        </div>
-      </aside>
-
-      <div className="lg:pl-64">
-        <header className="glass-bar sticky top-0 z-20 border-b border-line lg:hidden">
-          <div className="mx-auto flex h-14 max-w-4xl items-center gap-3 px-4 md:px-8 lg:hidden">
-            <Brand label={currentGroup.label} className="lg:hidden" />
+    <div className="em-theme min-h-dvh [--em-bottom-bar:4rem]" data-scheme={scheme === "system" ? undefined : scheme}>
+      <div>
+        <header className="glass-bar sticky top-0 z-20 border-b border-line">
+          <div className="mx-auto flex h-14 max-w-4xl items-center gap-3 px-4 md:px-8">
+            <Brand label={currentGroup.label} />
           </div>
-          {/* 좁은 화면: 지금 묶음 안의 항목(2차 이동) */}
-          <nav aria-label={`${currentGroup.label} 항목`} className="lg:hidden">
+          {/* 지금 묶음 안의 항목(2차 이동) */}
+          <nav aria-label={`${currentGroup.label} 항목`}>
             <div ref={chipRowRef} className="mx-auto flex max-w-4xl gap-2 overflow-x-auto px-4 pb-2.5 scrollbar-none md:px-8">
               {currentGroup.items.map((item) => {
                 const active = current === item.id;
@@ -197,10 +160,10 @@ export function StyleguideShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* 좁은 화면: 아래 탭 바(1차 이동). 엄지가 닿는 곳 */}
+      {/* 아래 탭 바(1차 이동). 엄지가 닿는 곳 */}
       <nav
         aria-label="스타일 가이드 묶음"
-        className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom,0px)] select-none lg:hidden"
+        className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t border-line pb-[env(safe-area-inset-bottom,0px)] select-none"
       >
         <ul className="mx-auto flex h-16 max-w-xl">
           {styleguideNav.map((group) => {
