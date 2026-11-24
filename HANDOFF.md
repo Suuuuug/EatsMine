@@ -93,3 +93,8 @@
 - 재개 지점: 커밋·push는 메인이 진행. 프로토타입 HTML과 Claude Design System 아티팩트(https://claude.ai/artifact/CfahhRk5J9p868swYuryLN) 내용은 메인이 채움.
 - 미검증: 실기기, 768px 독립 평가 점수, 카카오 지도 연동, 정식 경계(rebuild_maps.py 미실행), 팀원 도감·지도 화면 미병합.
 - 후속(같은 날): 검토 반영 후 코드·문서 커밋·push. 아티팩트 링크는 docs/plans/active/design-system.md. 팀 공유는 아티팩트 Share 메뉴에서 사용자가 직접.
+
+## 2026-11-24 PR 흐름 확정, PR #1
+- 사용자 결정: 각자 브랜치 → 리뷰어 지정 PR → 리뷰어가 머지. AI 문서·스킬은 main에 넣지 않음(feat/mypage에만).
+- PR #1 https://github.com/Suuuuug/EatsMine/pull/1 (`feat/mypage-design-system`, 리뷰어 Suuuuug·peter030125): Supabase CLI 마이그레이션, Pretendard, 마이페이지, 디자인 시스템·스타일 가이드, docs/DESIGN.md·plan.md. lint/build 통과.
+- 다음: 리뷰 의견 대응(코드는 feat/mypage-design-system에 추가 커밋), db:migrate 방식 팀 합의.

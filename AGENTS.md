@@ -36,6 +36,7 @@ package.json  npm workspaces. npm run dev(둘 다) / build / lint / db:generate�
 
 ## Git
 - 저장소 https://github.com/Suuuuug/EatsMine (공개, 기본 브랜치 `main`, 팀원이 관리). `main` 직접 커밋 금지, `feat/*`·`fix/*`·`chore/*` 브랜치 → PR.
+- **PR 흐름(2026-11-24 사용자 결정)**: 각자 브랜치에서 작업 → 끝나면 리뷰어를 지정해 `main`으로 PR(`gh pr create --reviewer Suuuuug,peter030125`) → **머지는 리뷰어가 한다(우리가 머지하지 않음)**. PR에는 코드와 팀 공용 문서(`docs/DESIGN.md`, `docs/plan.md`)만 넣는다. AI 활용 문서·스킬(AGENTS·CLAUDE·GOAL·HANDOFF·`.claude/`·`.agents/`·`research/`·작업 기록)은 본인 작업 브랜치 `feat/mypage`에만 두고 `main`에 넣지 않는다. 그래서 PR은 `main`에서 새 브랜치를 만들어 코드 커밋을 cherry-pick해 올린다(예: PR #1 `feat/mypage-design-system`).
 - **AI 활용 문서도 커밋·push한다(2026-11-24 사용자 결정 변경, ignore로 막지 않음).** 대상: AGENTS.md, CLAUDE.md, GOAL.md, HANDOFF.md, `.claude/`, `.agents/`, `docs/`, `research/`. 단 비밀·개인정보·서명 문서·타인(팀원) 문서는 제외하고, 커밋 전 `/usr/bin/grep` 비밀값 검사를 한다. 팀 `.gitignore`가 루트 CLAUDE.md·AGENTS.md를 무시하므로 `git add -f`로 올린다(팀 `.gitignore`는 바꾸지 않는다). `.claude/settings.local.json`·런타임 파일은 계속 제외.
 - push는 사용자가 요청한 턴에만. `--force`·이력 재작성 금지. Conventional Commits. Claude 공동 작성자·생성 표기를 넣지 않는다. 세부: `.claude/rules/git-commit.md`.
 
