@@ -10,7 +10,8 @@ export const envSchema = z.object({
     ),
   /** CORS 허용 도메인. 여러 개면 쉼표로 구분 */
   WEB_ORIGIN: z.string().min(1).default('http://localhost:3000'),
-  PORT: z.coerce.number().int().positive().default(4000),
+  /** Vercel NestJS 문서 기본값과 같은 3000. 로컬은 .env의 PORT=4000 (프론트 3000과 분리) */
+  PORT: z.coerce.number().int().positive().default(3000),
   /** 잇플 검색 API 주소 (D3: k-skill 프록시, 공식 API 전환 시 교체) */
   EATPL_BASE_URL: z.url().default('https://k-skill-proxy.nomadamas.org'),
   EATPL_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
