@@ -1,4 +1,11 @@
-import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  type ArgumentsHost,
+  Catch,
+  type ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AppException, type ErrorCode } from './app-exception.js';
 
@@ -28,13 +35,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const { status, body } = toErrorResponse(exception);
     if (status >= 500) {
-      this.logger.error(exception instanceof Error ? (exception.stack ?? exception.message) : String(exception));
+      this.logger.error(
+        exception instanceof Error
+          ? (exception.stack ?? exception.message)
+          : String(exception),
+      );
     }
     host.switchToHttp().getResponse<Response>().status(status).json(body);
   }
 }
 
-export function toErrorResponse(exception: unknown): { status: number; body: ErrorBody } {
+export function toErrorResponse(exception: unknown): {
+  status: number;
+  body: ErrorBody;
+} {
   if (exception instanceof AppException) {
     return {
       status: exception.getStatus(),
@@ -44,14 +58,24 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
 
   if (exception instanceof HttpException) {
     const status = exception.getStatus();
-    const code = CODE_BY_STATUS[status] ?? (status >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST');
-    const message = status >= 500 && !CODE_BY_STATUS[status] ? DEFAULT_MESSAGE.INTERNAL_ERROR! : extractMessage(exception, code);
+    const code =
+      CODE_BY_STATUS[status] ??
+      (status >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST');
+    const message =
+      status >= 500 && !CODE_BY_STATUS[status]
+        ? DEFAULT_MESSAGE.INTERNAL_ERROR!
+        : extractMessage(exception, code);
     return { status, body: { error: { code, message } } };
   }
 
   return {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
-    body: { error: { code: 'INTERNAL_ERROR', message: DEFAULT_MESSAGE.INTERNAL_ERROR! } },
+    body: {
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: DEFAULT_MESSAGE.INTERNAL_ERROR!,
+      },
+    },
   };
 }
 

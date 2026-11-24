@@ -4,7 +4,9 @@ import type { ThrottlerStorage } from '@nestjs/throttler';
 import { sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
-type ThrottlerStorageRecord = Awaited<ReturnType<ThrottlerStorage['increment']>>;
+type ThrottlerStorageRecord = Awaited<
+  ReturnType<ThrottlerStorage['increment']>
+>;
 
 type Row = { hits: number; ttl_s: string | number; block_s: string | number };
 
@@ -22,7 +24,12 @@ export class DbThrottlerStorage implements ThrottlerStorage {
 
   constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {}
 
-  async increment(key: string, ttl: number, limit: number, blockDuration: number): Promise<ThrottlerStorageRecord> {
+  async increment(
+    key: string,
+    ttl: number,
+    limit: number,
+    blockDuration: number,
+  ): Promise<ThrottlerStorageRecord> {
     // 윈도우를 새로 시작하는 조건: 차단이 끝났거나, 차단 없이 윈도우가 만료됨
     const reset = sql`((t.blocked_until IS NOT NULL AND t.blocked_until <= now()) OR (t.blocked_until IS NULL AND t.expires_at <= now()))`;
     const ttlInterval = sql`(${ttl}::float8 * interval '1 millisecond')`;

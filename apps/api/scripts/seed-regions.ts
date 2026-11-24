@@ -24,7 +24,10 @@ try {
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL이 없습니다');
 
 const regions: RegionJson[] = JSON.parse(
-  readFileSync(join(import.meta.dirname, '..', 'data', 'regions.json'), 'utf-8'),
+  readFileSync(
+    join(import.meta.dirname, '..', 'data', 'regions.json'),
+    'utf-8',
+  ),
 );
 // FK(parent_code) 때문에 시·도 먼저
 regions.sort((a, b) => (a.level === b.level ? 0 : a.level === 'sido' ? -1 : 1));
@@ -42,14 +45,25 @@ try {
          parent_code = EXCLUDED.parent_code, level = EXCLUDED.level, name = EXCLUDED.name,
          full_name = EXCLUDED.full_name, eatpl_query = EXCLUDED.eatpl_query,
          address_aliases = EXCLUDED.address_aliases`,
-      [r.code, r.parentCode, r.level, r.name, r.fullName, r.eatplQuery, r.addressAliases],
+      [
+        r.code,
+        r.parentCode,
+        r.level,
+        r.name,
+        r.fullName,
+        r.eatplQuery,
+        r.addressAliases,
+      ],
     );
   }
   await client.query('COMMIT');
   const { rows } = await client.query<{ level: string; count: string }>(
     'SELECT level, count(*) FROM regions GROUP BY level ORDER BY level',
   );
-  console.log('regions 반영 완료:', rows.map((r) => `${r.level} ${r.count}`).join(', '));
+  console.log(
+    'regions 반영 완료:',
+    rows.map((r) => `${r.level} ${r.count}`).join(', '),
+  );
 } catch (e) {
   await client.query('ROLLBACK');
   throw e;

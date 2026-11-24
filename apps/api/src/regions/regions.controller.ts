@@ -16,7 +16,10 @@ export class RegionsController {
 
   /** GET /regions?q=수원 — 시·군·구 자동완성 */
   @Get()
-  async search(@Query({ schema: searchQuerySchema }) query: z.infer<typeof searchQuerySchema>) {
+  async search(
+    @Query({ schema: searchQuerySchema })
+    query: z.infer<typeof searchQuerySchema>,
+  ) {
     return { items: await this.regionsService.search(query.q) };
   }
 

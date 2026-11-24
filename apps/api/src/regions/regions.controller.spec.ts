@@ -1,4 +1,7 @@
-import { type INestApplication, StandardSchemaValidationPipe } from '@nestjs/common';
+import {
+  type INestApplication,
+  StandardSchemaValidationPipe,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
@@ -27,7 +30,10 @@ describe('RegionsController', () => {
 
   it('GET /regions?q= 는 공백을 제거한 검색어로 조회해 items로 감싼다', async () => {
     service.search.mockResolvedValue([{ code: '41110', name: '수원시' }]);
-    const res = await request(app.getHttpServer()).get('/regions').query({ q: ' 수원 ' }).expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/regions')
+      .query({ q: ' 수원 ' })
+      .expect(200);
     expect(service.search).toHaveBeenCalledWith('수원');
     expect(res.body).toEqual({ items: [{ code: '41110', name: '수원시' }] });
   });
@@ -39,12 +45,17 @@ describe('RegionsController', () => {
   });
 
   it('검색어가 20자를 넘으면 400', async () => {
-    await request(app.getHttpServer()).get('/regions').query({ q: '가'.repeat(21) }).expect(400);
+    await request(app.getHttpServer())
+      .get('/regions')
+      .query({ q: '가'.repeat(21) })
+      .expect(400);
   });
 
   it('GET /regions/popular', async () => {
     service.popular.mockResolvedValue([{ code: '11140' }]);
-    const res = await request(app.getHttpServer()).get('/regions/popular').expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/regions/popular')
+      .expect(200);
     expect(res.body).toEqual({ items: [{ code: '11140' }] });
   });
 });

@@ -35,7 +35,10 @@ const SIDO: Record<string, { short: string; aliases: string[] }> = {
   '28': { short: '인천', aliases: ['인천', '인천시', '인천광역시'] },
   '30': { short: '대전', aliases: ['대전', '대전시', '대전광역시'] },
   '31': { short: '울산', aliases: ['울산', '울산시', '울산광역시'] },
-  '36': { short: '세종특별자치시', aliases: ['세종', '세종시', '세종특별자치시'] },
+  '36': {
+    short: '세종특별자치시',
+    aliases: ['세종', '세종시', '세종특별자치시'],
+  },
   '41': { short: '경기', aliases: ['경기', '경기도'] },
   '43': { short: '충북', aliases: ['충북', '충청북도'] },
   '44': { short: '충남', aliases: ['충남', '충청남도'] },
@@ -47,32 +50,57 @@ const SIDO: Record<string, { short: string; aliases: string[] }> = {
   // 2026-07 출범. 잇플 주소는 대부분 예전 이름("전남 여수시", "광주 서구")
   '12': {
     short: '전남',
-    aliases: ['전남', '전라남도', '광주', '광주시', '광주광역시', '전남광주', '전남광주통합특별시'],
+    aliases: [
+      '전남',
+      '전라남도',
+      '광주',
+      '광주시',
+      '광주광역시',
+      '전남광주',
+      '전남광주통합특별시',
+    ],
   },
 };
 
 /** 전남광주통합특별시 중 옛 광주광역시 자치구 → 잇플 조회 시 "광주 ○구" */
 const FORMER_GWANGJU_GU = new Set(['동구', '서구', '남구', '북구', '광산구']);
 
-const lines = readFileSync(csvPath, 'utf-8').replace(/^﻿/, '').trim().split(/\r?\n/);
+const lines = readFileSync(csvPath, 'utf-8')
+  .replace(/^﻿/, '')
+  .trim()
+  .split(/\r?\n/);
 const header = lines[0].split(',');
 const col = (name: string) => {
   const i = header.indexOf(name);
-  if (i < 0) throw new Error(`CSV에 '${name}' 컬럼이 없습니다: ${header.join(',')}`);
+  if (i < 0)
+    throw new Error(`CSV에 '${name}' 컬럼이 없습니다: ${header.join(',')}`);
   return i;
 };
-const [C_CODE, C_SIDO, C_SGG, C_EMD, C_RI] = ['법정동코드', '시도명', '시군구명', '읍면동명', '리명'].map(col);
+const [C_CODE, C_SIDO, C_SGG, C_EMD, C_RI] = [
+  '법정동코드',
+  '시도명',
+  '시군구명',
+  '읍면동명',
+  '리명',
+].map(col);
 const rows = lines.slice(1).map((l) => l.split(','));
 
-const sidoRows = rows.filter((r) => r[C_SGG] === '' && r[C_EMD] === '' && r[C_CODE].endsWith('00000000'));
-const sggRows = rows.filter((r) => r[C_SGG] !== '' && r[C_EMD] === '' && r[C_RI] === '');
+const sidoRows = rows.filter(
+  (r) => r[C_SGG] === '' && r[C_EMD] === '' && r[C_CODE].endsWith('00000000'),
+);
+const sggRows = rows.filter(
+  (r) => r[C_SGG] !== '' && r[C_EMD] === '' && r[C_RI] === '',
+);
 
 const regions: Region[] = [];
 
 for (const r of sidoRows) {
   const code = r[C_CODE].slice(0, 2);
   const meta = SIDO[code];
-  if (!meta) throw new Error(`보정 규칙에 없는 시·도: ${code} ${r[C_SIDO]} — SIDO 표에 추가하세요`);
+  if (!meta)
+    throw new Error(
+      `보정 규칙에 없는 시·도: ${code} ${r[C_SIDO]} — SIDO 표에 추가하세요`,
+    );
   regions.push({
     code,
     parentCode: null,
@@ -90,7 +118,11 @@ const isGeneralGu = (r: string[]) => {
   const code = r[C_CODE].slice(0, 5);
   if (code.endsWith('0') || !r[C_SGG].endsWith('구')) return false;
   const parent = sggByCode.get(code.slice(0, 4) + '0');
-  return !!parent && parent[C_SGG].endsWith('시') && r[C_SGG].startsWith(parent[C_SGG]);
+  return (
+    !!parent &&
+    parent[C_SGG].endsWith('시') &&
+    r[C_SGG].startsWith(parent[C_SGG])
+  );
 };
 
 let skippedGeneralGu = 0;
@@ -116,11 +148,21 @@ for (const r of sggRows) {
     eatplQuery = `${meta.short} ${name}`;
   }
 
-  regions.push({ code, parentCode: sidoCode, level: 'sigungu', name, fullName, eatplQuery, addressAliases: null });
+  regions.push({
+    code,
+    parentCode: sidoCode,
+    level: 'sigungu',
+    name,
+    fullName,
+    eatplQuery,
+    addressAliases: null,
+  });
 }
 
 regions.sort((a, b) => a.code.localeCompare(b.code));
 writeFileSync(outPath, JSON.stringify(regions, null, 2) + '\n');
 
 const sigungu = regions.filter((r) => r.level === 'sigungu').length;
-console.log(`시·도 ${regions.length - sigungu}개, 시·군·구 ${sigungu}개 (일반구 ${skippedGeneralGu}개 합침) → ${outPath}`);
+console.log(
+  `시·도 ${regions.length - sigungu}개, 시·군·구 ${sigungu}개 (일반구 ${skippedGeneralGu}개 합침) → ${outPath}`,
+);

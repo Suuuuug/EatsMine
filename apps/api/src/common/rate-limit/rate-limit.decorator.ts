@@ -7,4 +7,7 @@ import { AppThrottlerGuard } from './app-throttler.guard.js';
  * 예: @RateLimit(10, 60_000) → IP당 1분에 10번
  */
 export const RateLimit = (limit: number, ttlMs: number) =>
-  applyDecorators(UseGuards(AppThrottlerGuard), Throttle({ default: { limit, ttl: ttlMs } }));
+  applyDecorators(
+    UseGuards(AppThrottlerGuard),
+    Throttle({ default: { limit, ttl: ttlMs } }),
+  );

@@ -8,8 +8,11 @@ import { ThrottlerGuard } from '@nestjs/throttler';
  */
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
-  protected override async getTracker(req: Record<string, any>): Promise<string> {
-    const headers: Record<string, string | string[] | undefined> = req.headers ?? {};
+  protected override async getTracker(
+    req: Record<string, any>,
+  ): Promise<string> {
+    const headers: Record<string, string | string[] | undefined> =
+      req.headers ?? {};
     const forwarded = headers['x-vercel-forwarded-for'] ?? headers['x-real-ip'];
     const value = Array.isArray(forwarded) ? forwarded[0] : forwarded;
     const ip = value?.split(',')[0]?.trim();

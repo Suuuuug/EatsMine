@@ -12,7 +12,10 @@ async function bootstrap() {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
   app.enableCors({
-    origin: config.get('WEB_ORIGIN', { infer: true }).split(',').map((o) => o.trim()),
+    origin: config
+      .get('WEB_ORIGIN', { infer: true })
+      .split(',')
+      .map((o) => o.trim()),
     credentials: true,
   });
   // @Body({ schema }) / @Query({ schema }) 로 선언한 파라미터만 검증

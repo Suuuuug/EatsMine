@@ -49,7 +49,10 @@ describe('RateLimit', () => {
     await request(server).get('/limited').expect(200);
     const res = await request(server).get('/limited').expect(429);
     expect(res.body).toEqual({
-      error: { code: 'RATE_LIMITED', message: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' },
+      error: {
+        code: 'RATE_LIMITED',
+        message: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.',
+      },
     });
   });
 
@@ -60,8 +63,18 @@ describe('RateLimit', () => {
 
   it('x-vercel-forwarded-for 기준으로 사용자(IP)를 구분한다', async () => {
     const server = app.getHttpServer();
-    for (let i = 0; i < 2; i++) await request(server).get('/limited').set('x-vercel-forwarded-for', '1.1.1.1').expect(200);
-    await request(server).get('/limited').set('x-vercel-forwarded-for', '1.1.1.1').expect(429);
-    await request(server).get('/limited').set('x-vercel-forwarded-for', '2.2.2.2').expect(200);
+    for (let i = 0; i < 2; i++)
+      await request(server)
+        .get('/limited')
+        .set('x-vercel-forwarded-for', '1.1.1.1')
+        .expect(200);
+    await request(server)
+      .get('/limited')
+      .set('x-vercel-forwarded-for', '1.1.1.1')
+      .expect(429);
+    await request(server)
+      .get('/limited')
+      .set('x-vercel-forwarded-for', '2.2.2.2')
+      .expect(200);
   });
 });

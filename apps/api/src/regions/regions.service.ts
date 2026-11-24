@@ -3,7 +3,10 @@ import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { regions } from '../db/schema.js';
-import { DEFAULT_POPULAR_REGION_CODES, POPULAR_REGION_COUNT } from './popular-regions.js';
+import {
+  DEFAULT_POPULAR_REGION_CODES,
+  POPULAR_REGION_COUNT,
+} from './popular-regions.js';
 
 /** API로 내보내는 지역 정보 (잇플 검색어·별칭 같은 내부 값은 제외) */
 export type RegionDto = {
@@ -41,7 +44,11 @@ export class RegionsService {
       .where(
         and(
           eq(regions.level, 'sigungu'),
-          or(ilike(regions.name, pattern), ilike(regions.fullName, pattern), ilike(regions.eatplQuery, pattern)),
+          or(
+            ilike(regions.name, pattern),
+            ilike(regions.fullName, pattern),
+            ilike(regions.eatplQuery, pattern),
+          ),
         ),
       )
       .orderBy(
@@ -62,7 +69,10 @@ export class RegionsService {
    */
   async popular(): Promise<RegionDto[]> {
     const codes = DEFAULT_POPULAR_REGION_CODES.slice(0, POPULAR_REGION_COUNT);
-    const rows = await this.db.select(dtoColumns).from(regions).where(inArray(regions.code, codes));
+    const rows = await this.db
+      .select(dtoColumns)
+      .from(regions)
+      .where(inArray(regions.code, codes));
     const byCode = new Map(rows.map((r) => [r.code, r]));
     return codes.flatMap((c) => byCode.get(c) ?? []);
   }

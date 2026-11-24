@@ -1,11 +1,21 @@
-import { BadRequestException, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
 import { AppException } from './app-exception.js';
 import { toErrorResponse } from './http-exception.filter.js';
 
 describe('toErrorResponse', () => {
   it('AppException은 지정한 코드·메시지·상태를 그대로 쓴다', () => {
-    const res = toErrorResponse(new AppException('EATPL_UNAVAILABLE', '잇플 응답 없음', HttpStatus.BAD_GATEWAY));
+    const res = toErrorResponse(
+      new AppException(
+        'EATPL_UNAVAILABLE',
+        '잇플 응답 없음',
+        HttpStatus.BAD_GATEWAY,
+      ),
+    );
     expect(res).toEqual({
       status: 502,
       body: { error: { code: 'EATPL_UNAVAILABLE', message: '잇플 응답 없음' } },
@@ -13,7 +23,9 @@ describe('toErrorResponse', () => {
   });
 
   it('검증 실패(메시지 배열)는 BAD_REQUEST로 메시지를 합친다', () => {
-    const res = toErrorResponse(new BadRequestException(['q: 필수', 'month: 1~12']));
+    const res = toErrorResponse(
+      new BadRequestException(['q: 필수', 'month: 1~12']),
+    );
     expect(res).toEqual({
       status: 400,
       body: { error: { code: 'BAD_REQUEST', message: 'q: 필수, month: 1~12' } },
@@ -21,7 +33,9 @@ describe('toErrorResponse', () => {
   });
 
   it('상태 코드에 맞는 에러 코드를 붙인다', () => {
-    expect(toErrorResponse(new NotFoundException('없는 음식')).body.error).toEqual({
+    expect(
+      toErrorResponse(new NotFoundException('없는 음식')).body.error,
+    ).toEqual({
       code: 'NOT_FOUND',
       message: '없는 음식',
     });
@@ -35,10 +49,14 @@ describe('toErrorResponse', () => {
   });
 
   it('알 수 없는 에러는 내부 내용을 숨기고 500 INTERNAL_ERROR', () => {
-    const res = toErrorResponse(new Error('connection string leaked: postgres://secret'));
+    const res = toErrorResponse(
+      new Error('connection string leaked: postgres://secret'),
+    );
     expect(res).toEqual({
       status: 500,
-      body: { error: { code: 'INTERNAL_ERROR', message: '서버 오류가 발생했어요.' } },
+      body: {
+        error: { code: 'INTERNAL_ERROR', message: '서버 오류가 발생했어요.' },
+      },
     });
   });
 });
