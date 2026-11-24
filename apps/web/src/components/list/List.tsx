@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icon/Icon";
+import { SwitchTrack } from "@/components/em/Switch";
 
 // 공용 목록 부품. 마이페이지·설정·목록 화면이 같이 쓴다(docs/DESIGN.md §4).
 // 모양은 styles/components.css의 list-group, list-row, pressable 유틸리티 하나에서 온다.
@@ -76,20 +77,5 @@ export function ListSwitchRow({ label, checked, disabled = false, onChange }: Li
         </span>
       </button>
     </li>
-  );
-}
-
-function SwitchTrack({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={
-        checked
-          ? "flex h-7 w-12 items-center justify-end rounded-full bg-accent p-0.5"
-          : "flex h-7 w-12 items-center justify-start rounded-full bg-foreground/20 p-0.5"
-      }
-    >
-      <span className="size-6 rounded-full bg-on-accent shadow-sm" />
-    </span>
   );
 }
