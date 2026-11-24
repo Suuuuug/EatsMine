@@ -52,6 +52,7 @@ npm run db:sync -w api
 - RLS 정책·함수처럼 Drizzle이 만들지 않는 SQL은 `supabase migration new manual_<이름>`으로 만들고 파일 이름에 `_manual_`이 들어가게 합니다. 이 표시가 없으면 검사가 막습니다.
 - 셸에 `SUPABASE_YES`가 남아 있어도 스크립트가 지워서 확인 질문을 건너뛰지 않습니다.
 - `drizzle-kit push`, `drizzle-kit migrate`는 쓰지 않습니다(`npm run db:push -w api`는 막아 둠). Supabase 이력과 어긋납니다.
-- 기준선: 2026-11-24 확인 시점에 원격 `public` 스키마는 비어 있었고 Drizzle·Supabase 어느 쪽 이력도 없었습니다. 그래서 첫 마이그레이션부터 이 흐름으로 시작하며 `supabase migration repair`가 필요 없습니다. 누군가 이 흐름 밖에서 테이블을 만들었다면 먼저 팀에 알리고 `supabase migration repair`로 이력을 맞춥니다.
+- 기준선: `20261124025351_init`(rate_limit_hits, regions)과 `20261124030454_outbound_events`는 이 흐름을 도입하기 전에 `drizzle-kit migrate`로 원격에 적용됐습니다. 2026-11-24에 `supabase migration repair --status applied`로 Supabase 이력에 맞췄고, 그 뒤 `db:migrate:dry`가 "Remote database is up to date"임을 확인했습니다. 이후 마이그레이션은 이 흐름만 씁니다. 누군가 이 흐름 밖에서 테이블을 만들었다면 먼저 팀에 알리고 `supabase migration repair --remote`로 이력을 맞춥니다.
+- Supabase CLI v3는 기본 대상이 로컬 DB라 직접 CLI를 쓸 때는 `--remote`를 붙입니다(`db:migrate`, `db:status` 스크립트는 자동으로 붙임).
 - API는 postgres 계정으로 DB에 붙어 RLS를 우회합니다. 사용자별 데이터 접근 제한은 NestJS 코드에서 검사합니다.
 - `DATABASE_URL`, DB 비밀번호, `.env`는 커밋하지 않습니다.
