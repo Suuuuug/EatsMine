@@ -11,7 +11,7 @@ describe('validateEnv', () => {
       DATABASE_URL: 'postgresql://u:p@host:5432/db',
       SUPABASE_URL: 'https://abcd.supabase.co',
       WEB_ORIGIN: 'http://localhost:3000',
-      PORT: 4000,
+      PORT: 3000,
       EATPL_BASE_URL: 'https://k-skill-proxy.nomadamas.org',
       EATPL_TIMEOUT_MS: 8000,
     });
