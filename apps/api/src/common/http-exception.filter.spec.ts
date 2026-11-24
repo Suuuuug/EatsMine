@@ -1,9 +1,9 @@
 import {
   BadRequestException,
+  HttpException,
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
-import { ThrottlerException } from '@nestjs/throttler';
 import { AppException } from './app-exception.js';
 import { toErrorResponse } from './http-exception.filter.js';
 
@@ -41,8 +41,10 @@ describe('toErrorResponse', () => {
     });
   });
 
-  it('rate limit 초과는 RATE_LIMITED와 안내 문구', () => {
-    const res = toErrorResponse(new ThrottlerException());
+  it('429는 RATE_LIMITED와 안내 문구', () => {
+    const res = toErrorResponse(
+      new HttpException('Too Many Requests', HttpStatus.TOO_MANY_REQUESTS),
+    );
     expect(res.status).toBe(429);
     expect(res.body.error.code).toBe('RATE_LIMITED');
     expect(res.body.error.message).toContain('잠시 후');

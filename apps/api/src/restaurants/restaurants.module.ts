@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { EatplModule } from '../eatpl/eatpl.module.js';
+import { FoodsModule } from '../foods/foods.module.js';
 import { RegionsModule } from '../regions/regions.module.js';
 import { RestaurantsController } from './restaurants.controller.js';
 import { RestaurantsService } from './restaurants.service.js';
 
 @Module({
-  imports: [EatplModule, RegionsModule],
+  imports: [EatplModule, RegionsModule, FoodsModule],
   controllers: [RestaurantsController],
   providers: [RestaurantsService],
 })

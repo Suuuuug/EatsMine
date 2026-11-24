@@ -1,25 +1,12 @@
-import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { DbThrottlerStorage } from './db-throttler.storage.js';
+import { Global, Module } from '@nestjs/common';
+import { DbRateLimitStorage } from './db-rate-limit.storage.js';
+import { RateLimitGuard } from './rate-limit.guard.js';
+import { RateLimitStorage } from './rate-limit.storage.js';
 
+/** 어느 모듈의 컨트롤러에서든 @RateLimit()을 쓸 수 있게 전역 모듈로 둔다. */
+@Global()
 @Module({
-  providers: [DbThrottlerStorage],
-  exports: [DbThrottlerStorage],
-})
-class RateLimitStorageModule {}
-
-/** rate limit 설정. 실제 제한 값은 각 라우트의 @RateLimit()에서 지정한다. */
-@Module({
-  imports: [
-    ThrottlerModule.forRootAsync({
-      imports: [RateLimitStorageModule],
-      inject: [DbThrottlerStorage],
-      useFactory: (storage: DbThrottlerStorage) => ({
-        // @RateLimit()이 덮어쓰는 기본값
-        throttlers: [{ name: 'default', ttl: 60_000, limit: 60 }],
-        storage,
-      }),
-    }),
-  ],
+  providers: [{ provide: RateLimitStorage, useClass: DbRateLimitStorage }, RateLimitGuard],
+  exports: [RateLimitStorage, RateLimitGuard],
 })
 export class RateLimitModule {}

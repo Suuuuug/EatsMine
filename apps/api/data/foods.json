@@ -1,0 +1,1014 @@
+[
+  {
+    "name": "방어회",
+    "months": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "description": "겨울이면 기름이 올라 고소해지는 대표 겨울 회.",
+    "genres": [
+      "일식회집",
+      "스시/초밥"
+    ],
+    "searchKeyword": "방어",
+    "regions": [
+      {
+        "code": "50130",
+        "name": "제주특별자치도 서귀포시",
+        "reason": "모슬포항 방어축제"
+      },
+      {
+        "code": "11590",
+        "name": "서울특별시 동작구",
+        "reason": "노량진수산시장"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "굴",
+    "months": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "description": "찬바람 불 때 살이 차오르는 바다의 우유. 굴국밥·굴보쌈·굴찜으로.",
+    "genres": [
+      "해산물구이/찜",
+      "찜/탕/찌개",
+      "일반한식"
+    ],
+    "searchKeyword": "굴",
+    "regions": [
+      {
+        "code": "48220",
+        "name": "경상남도 통영시",
+        "reason": "국내 대표 굴 산지"
+      },
+      {
+        "code": "44180",
+        "name": "충청남도 보령시",
+        "reason": "천북 굴단지"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "과메기",
+    "months": [
+      12,
+      1
+    ],
+    "description": "겨울 바닷바람에 꽁치를 얼렸다 녹이며 말린 별미.",
+    "genres": [
+      "일식회집",
+      "주점"
+    ],
+    "searchKeyword": "과메기",
+    "regions": [
+      {
+        "code": "47110",
+        "name": "경상북도 포항시",
+        "reason": "구룡포 과메기"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "대게",
+    "months": [
+      1,
+      2,
+      3
+    ],
+    "description": "살이 꽉 차는 겨울~초봄이 제철인 동해의 게.",
+    "genres": [
+      "해산물구이/찜",
+      "일식회집"
+    ],
+    "searchKeyword": "대게",
+    "regions": [
+      {
+        "code": "47770",
+        "name": "경상북도 영덕군",
+        "reason": "영덕 대게"
+      },
+      {
+        "code": "47930",
+        "name": "경상북도 울진군",
+        "reason": "울진 대게"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "아귀찜",
+    "months": [
+      12,
+      1,
+      2
+    ],
+    "description": "겨울 아귀를 콩나물과 매콤하게 쪄낸 찜.",
+    "genres": [
+      "해산물구이/찜",
+      "찜/탕/찌개"
+    ],
+    "searchKeyword": "아구",
+    "regions": [
+      {
+        "code": "48120",
+        "name": "경상남도 창원시",
+        "reason": "마산 아귀찜거리"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "꼬막",
+    "months": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "description": "겨울에 살이 오르는 쫄깃한 조개. 꼬막무침·꼬막비빔밥으로.",
+    "genres": [
+      "일반한식",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "꼬막",
+    "regions": [
+      {
+        "code": "12750",
+        "name": "전남광주통합특별시 보성군",
+        "reason": "벌교 꼬막"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "매생이국",
+    "months": [
+      12,
+      1,
+      2
+    ],
+    "description": "한겨울에만 나는 매생이로 끓인 부드러운 국.",
+    "genres": [
+      "일반한식",
+      "찜/탕/찌개"
+    ],
+    "searchKeyword": "매생이",
+    "regions": [
+      {
+        "code": "12770",
+        "name": "전남광주통합특별시 장흥군",
+        "reason": "매생이 산지"
+      },
+      {
+        "code": "12850",
+        "name": "전남광주통합특별시 완도군",
+        "reason": "매생이 산지"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "주꾸미",
+    "months": [
+      3,
+      4
+    ],
+    "description": "알이 꽉 차는 봄 주꾸미. 샤브샤브·볶음으로.",
+    "genres": [
+      "해산물구이/찜",
+      "일반한식"
+    ],
+    "searchKeyword": "쭈꾸미",
+    "regions": [
+      {
+        "code": "44770",
+        "name": "충청남도 서천군",
+        "reason": "동백꽃 주꾸미축제"
+      },
+      {
+        "code": "44180",
+        "name": "충청남도 보령시",
+        "reason": "무창포 주꾸미"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "도다리쑥국",
+    "months": [
+      3,
+      4
+    ],
+    "description": "봄 도다리와 햇쑥으로 끓이는 남해안의 봄맞이 국.",
+    "genres": [
+      "일식회집",
+      "찜/탕/찌개"
+    ],
+    "searchKeyword": "도다리",
+    "regions": [
+      {
+        "code": "48220",
+        "name": "경상남도 통영시",
+        "reason": "통영 봄 도다리쑥국"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "딸기 디저트",
+    "months": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "description": "겨울~봄 딸기 철에만 나오는 딸기 케이크·빙수·라떼.",
+    "genres": [
+      "카페",
+      "빵/도넛"
+    ],
+    "searchKeyword": "딸기",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "멍게비빔밥",
+    "months": [
+      4,
+      5
+    ],
+    "description": "향이 가장 진한 봄 멍게를 밥에 비벼 먹는 남해안 별미.",
+    "genres": [
+      "일식회집",
+      "일반한식"
+    ],
+    "searchKeyword": "멍게",
+    "regions": [
+      {
+        "code": "48220",
+        "name": "경상남도 통영시",
+        "reason": "국내 대표 멍게 산지"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "바지락칼국수",
+    "months": [
+      3,
+      4,
+      5
+    ],
+    "description": "봄에 살이 통통한 바지락으로 국물을 낸 칼국수.",
+    "genres": [
+      "국수/면/만두"
+    ],
+    "searchKeyword": "칼국수",
+    "regions": [
+      {
+        "code": "41270",
+        "name": "경기도 안산시",
+        "reason": "대부도 바지락칼국수"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "꽃게",
+    "months": [
+      4,
+      5,
+      6,
+      9,
+      10
+    ],
+    "description": "봄엔 알 찬 암꽃게, 가을엔 살 찬 수꽃게. 꽃게탕·간장게장으로.",
+    "genres": [
+      "해산물구이/찜",
+      "찜/탕/찌개",
+      "일반한식"
+    ],
+    "searchKeyword": "꽃게",
+    "regions": [
+      {
+        "code": "44825",
+        "name": "충청남도 태안군",
+        "reason": "안면도 꽃게"
+      },
+      {
+        "code": "28200",
+        "name": "인천광역시 남동구",
+        "reason": "소래포구"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "멸치쌈밥",
+    "months": [
+      4,
+      5,
+      6
+    ],
+    "description": "봄 멸치를 시래기와 졸여 쌈 싸 먹는 남해 별미.",
+    "genres": [
+      "일반한식",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "멸치",
+    "regions": [
+      {
+        "code": "48840",
+        "name": "경상남도 남해군",
+        "reason": "남해 멸치쌈밥"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "장어구이",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "더위에 지친 여름 기력 보충의 대표 보양식.",
+    "genres": [
+      "해산물구이/찜",
+      "고기구이"
+    ],
+    "searchKeyword": "장어",
+    "regions": [
+      {
+        "code": "52790",
+        "name": "전북특별자치도 고창군",
+        "reason": "고창 풍천장어"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "전복",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "여름에 살이 오르는 전복. 전복죽·전복구이로.",
+    "genres": [
+      "해산물구이/찜",
+      "도시락/죽"
+    ],
+    "searchKeyword": "전복",
+    "regions": [
+      {
+        "code": "12850",
+        "name": "전남광주통합특별시 완도군",
+        "reason": "국내 대표 전복 산지"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "냉면",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "여름의 상징. 평양냉면·함흥냉면·진주냉면.",
+    "genres": [
+      "국수/면/만두",
+      "갈비전문점"
+    ],
+    "searchKeyword": "냉면",
+    "regions": [
+      {
+        "code": "11140",
+        "name": "서울특별시 중구",
+        "reason": "을지로·오장동 냉면 노포"
+      },
+      {
+        "code": "48170",
+        "name": "경상남도 진주시",
+        "reason": "진주냉면"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "밀면",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "밀가루로 만든 부산식 냉면.",
+    "genres": [
+      "국수/면/만두"
+    ],
+    "searchKeyword": "밀면",
+    "regions": [
+      {
+        "code": "26230",
+        "name": "부산광역시 부산진구",
+        "reason": "부산 밀면 노포"
+      },
+      {
+        "code": "26290",
+        "name": "부산광역시 남구",
+        "reason": "부산 밀면"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "막국수",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "메밀로 만든 시원한 강원도식 국수.",
+    "genres": [
+      "국수/면/만두"
+    ],
+    "searchKeyword": "막국수",
+    "regions": [
+      {
+        "code": "51110",
+        "name": "강원특별자치도 춘천시",
+        "reason": "춘천 막국수"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "콩국수",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "고소한 콩물에 말아 먹는 여름 국수.",
+    "genres": [
+      "국수/면/만두"
+    ],
+    "searchKeyword": "콩국수",
+    "regions": [
+      {
+        "code": "11140",
+        "name": "서울특별시 중구",
+        "reason": "시청 일대 콩국수 노포"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "삼계탕",
+    "months": [
+      7,
+      8
+    ],
+    "description": "복날의 대표 보양식.",
+    "genres": [
+      "찜/탕/찌개",
+      "일반한식"
+    ],
+    "searchKeyword": "삼계",
+    "regions": [
+      {
+        "code": "11110",
+        "name": "서울특별시 종로구",
+        "reason": "서촌 삼계탕"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "빙수",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "여름 디저트의 왕. 팥빙수부터 과일빙수까지.",
+    "genres": [
+      "아이스크림/요거트/빙수",
+      "카페"
+    ],
+    "searchKeyword": "빙수",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "민어",
+    "months": [
+      7,
+      8
+    ],
+    "description": "여름 보양 생선. 민어회·민어탕으로.",
+    "genres": [
+      "일식회집",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "민어",
+    "regions": [
+      {
+        "code": "12110",
+        "name": "전남광주통합특별시 목포시",
+        "reason": "목포 민어거리"
+      },
+      {
+        "code": "11140",
+        "name": "서울특별시 중구",
+        "reason": "을지로 민어골목"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "하모(갯장어)",
+    "months": [
+      7,
+      8
+    ],
+    "description": "여름 갯장어를 샤브샤브로 즐기는 남해안 별미.",
+    "genres": [
+      "해산물구이/찜",
+      "일식회집"
+    ],
+    "searchKeyword": "하모",
+    "regions": [
+      {
+        "code": "12130",
+        "name": "전남광주통합특별시 여수시",
+        "reason": "여수 하모 샤브샤브"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "물회",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "얼음 육수에 회를 말아 먹는 여름 바닷가 별미.",
+    "genres": [
+      "일식회집",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "물회",
+    "regions": [
+      {
+        "code": "51210",
+        "name": "강원특별자치도 속초시",
+        "reason": "속초 물회"
+      },
+      {
+        "code": "47110",
+        "name": "경상북도 포항시",
+        "reason": "포항 물회"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "한치",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "여름 제주 바다의 별미. 한치물회·한치회로.",
+    "genres": [
+      "일식회집"
+    ],
+    "searchKeyword": "한치",
+    "regions": [
+      {
+        "code": "50110",
+        "name": "제주특별자치도 제주시",
+        "reason": "제주 여름 한치"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "성게",
+    "months": [
+      5,
+      6,
+      7
+    ],
+    "description": "초여름이 제철인 고소한 성게. 성게미역국·성게비빔밥·우니초밥.",
+    "genres": [
+      "스시/초밥",
+      "일식회집"
+    ],
+    "searchKeyword": "성게",
+    "regions": [
+      {
+        "code": "50110",
+        "name": "제주특별자치도 제주시",
+        "reason": "제주 성게미역국"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "냉모밀",
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "description": "차가운 쯔유에 메밀면을 적셔 먹는 여름 면.",
+    "genres": [
+      "국수/면/만두",
+      "일식돈가스"
+    ],
+    "searchKeyword": "모밀",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "해물파전",
+    "months": [
+      6,
+      7
+    ],
+    "description": "장마철 빗소리에 막걸리와 함께.",
+    "genres": [
+      "전/부침개",
+      "주점"
+    ],
+    "searchKeyword": "파전",
+    "regions": [
+      {
+        "code": "26260",
+        "name": "부산광역시 동래구",
+        "reason": "동래파전"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "전어",
+    "months": [
+      9,
+      10
+    ],
+    "description": "'집 나간 며느리도 돌아온다'는 가을 전어구이·전어회.",
+    "genres": [
+      "일식회집",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "전어",
+    "regions": [
+      {
+        "code": "44770",
+        "name": "충청남도 서천군",
+        "reason": "홍원항 전어축제"
+      },
+      {
+        "code": "12190",
+        "name": "전남광주통합특별시 광양시",
+        "reason": "망덕포구 전어축제"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "대하구이",
+    "months": [
+      9,
+      10,
+      11
+    ],
+    "description": "가을 서해에서 잡히는 큰 새우를 소금에 구워.",
+    "genres": [
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "대하",
+    "regions": [
+      {
+        "code": "44800",
+        "name": "충청남도 홍성군",
+        "reason": "남당항 대하축제"
+      },
+      {
+        "code": "44825",
+        "name": "충청남도 태안군",
+        "reason": "백사장항 대하"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "낙지",
+    "months": [
+      9,
+      10,
+      11
+    ],
+    "description": "가을 낙지는 보약. 연포탕·낙지볶음·탕탕이로.",
+    "genres": [
+      "해산물구이/찜",
+      "일반한식"
+    ],
+    "searchKeyword": "낙지",
+    "regions": [
+      {
+        "code": "12810",
+        "name": "전남광주통합특별시 무안군",
+        "reason": "무안 세발낙지"
+      },
+      {
+        "code": "12110",
+        "name": "전남광주통합특별시 목포시",
+        "reason": "목포 낙지"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "추어탕",
+    "months": [
+      9,
+      10
+    ],
+    "description": "가을 미꾸라지로 끓이는 보양 탕.",
+    "genres": [
+      "찜/탕/찌개"
+    ],
+    "searchKeyword": "추어",
+    "regions": [
+      {
+        "code": "52190",
+        "name": "전북특별자치도 남원시",
+        "reason": "남원 추어탕"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "고등어구이",
+    "months": [
+      10,
+      11,
+      12
+    ],
+    "description": "가을부터 기름이 오르는 고등어.",
+    "genres": [
+      "해산물구이/찜",
+      "일반한식"
+    ],
+    "searchKeyword": "고등어",
+    "regions": [
+      {
+        "code": "50110",
+        "name": "제주특별자치도 제주시",
+        "reason": "제주 고등어"
+      },
+      {
+        "code": "26110",
+        "name": "부산광역시 중구",
+        "reason": "자갈치시장"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "홍어",
+    "months": [
+      12,
+      1,
+      2
+    ],
+    "description": "겨울이 제철인 홍어. 홍어삼합으로.",
+    "genres": [
+      "일반한식",
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "홍어",
+    "regions": [
+      {
+        "code": "12170",
+        "name": "전남광주통합특별시 나주시",
+        "reason": "영산포 홍어거리"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "도루묵구이",
+    "months": [
+      11,
+      12
+    ],
+    "description": "초겨울 알이 꽉 찬 동해안 도루묵.",
+    "genres": [
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "도루묵",
+    "regions": [
+      {
+        "code": "51210",
+        "name": "강원특별자치도 속초시",
+        "reason": "동명항 도루묵"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "양미리",
+    "months": [
+      11,
+      12,
+      1
+    ],
+    "description": "초겨울 연탄불에 굽는 동해안 겨울 별미.",
+    "genres": [
+      "해산물구이/찜"
+    ],
+    "searchKeyword": "양미리",
+    "regions": [
+      {
+        "code": "51210",
+        "name": "강원특별자치도 속초시",
+        "reason": "속초 양미리축제"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "곰치국",
+    "months": [
+      12,
+      1,
+      2
+    ],
+    "description": "묵은지와 곰치로 끓인 동해안 해장국.",
+    "genres": [
+      "찜/탕/찌개"
+    ],
+    "searchKeyword": "곰치",
+    "regions": [
+      {
+        "code": "51170",
+        "name": "강원특별자치도 동해시",
+        "reason": "동해 곰치국"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "곱창전골",
+    "months": [
+      11,
+      12,
+      1
+    ],
+    "description": "추운 날 보글보글 끓여 먹는 곱창전골.",
+    "genres": [
+      "곱창전골/구이"
+    ],
+    "searchKeyword": "곱창",
+    "regions": [
+      {
+        "code": "11200",
+        "name": "서울특별시 성동구",
+        "reason": "왕십리 곱창골목"
+      },
+      {
+        "code": "27200",
+        "name": "대구광역시 남구",
+        "reason": "안지랑 곱창골목"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "어묵탕",
+    "months": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "description": "찬바람 불 때 생각나는 뜨끈한 어묵 국물.",
+    "genres": [
+      "주점",
+      "분식"
+    ],
+    "searchKeyword": "어묵",
+    "regions": [
+      {
+        "code": "26110",
+        "name": "부산광역시 중구",
+        "reason": "부산어묵·부평깡통시장"
+      }
+    ],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "굴짬뽕",
+    "months": [
+      11,
+      12,
+      1
+    ],
+    "description": "겨울 굴을 듬뿍 넣은 하얀 짬뽕.",
+    "genres": [
+      "중국음식"
+    ],
+    "searchKeyword": "짬뽕",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "라멘",
+    "months": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "description": "추운 날 진한 국물이 생각나는 일본식 라멘.",
+    "genres": [
+      "일식라멘"
+    ],
+    "searchKeyword": "라멘",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  },
+  {
+    "name": "팥죽",
+    "months": [
+      12
+    ],
+    "description": "동짓날 먹는 붉은 팥죽.",
+    "genres": [
+      "도시락/죽",
+      "떡/한과"
+    ],
+    "searchKeyword": "팥죽",
+    "regions": [],
+    "imageUrl": null,
+    "sourceUrl": null
+  }
+]

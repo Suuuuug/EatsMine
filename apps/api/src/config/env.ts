@@ -14,6 +14,13 @@ export const envSchema = z.object({
   /** 잇플 검색 API 주소 (D3: k-skill 프록시, 공식 API 전환 시 교체) */
   EATPL_BASE_URL: z.url().default('https://k-skill-proxy.nomadamas.org'),
   EATPL_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  /** Supabase 프로젝트 주소 (https://<ref>.supabase.co) — 로그인 토큰 검증용 공개 키·발급자 (D6) */
+  SUPABASE_URL: z
+    .url({
+      protocol: /^https$/,
+      error: 'https://<프로젝트 ref>.supabase.co 형식이어야 합니다',
+    })
+    .transform((url) => url.replace(/\/+$/, '')),
 });
 
 export type Env = z.infer<typeof envSchema>;

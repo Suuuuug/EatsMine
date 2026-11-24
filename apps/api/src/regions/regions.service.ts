@@ -1,11 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  max,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { regions } from '../db/schema.js';
+import { regions, restaurants, reviews } from '../db/schema.js';
 import {
   DEFAULT_POPULAR_REGION_CODES,
   POPULAR_REGION_COUNT,
+  POPULAR_WINDOW_DAYS,
 } from './popular-regions.js';
 
 /** API로 내보내는 지역 정보 (잇플 검색어·별칭 같은 내부 값은 제외) */
@@ -64,11 +77,33 @@ export class RegionsService {
   }
 
   /**
-   * 인기 지역 (D5). 지금은 기본 목록만 사용.
-   * TODO(8단계 리뷰): 최근 30일 리뷰 수 상위 지역을 먼저 넣고 부족분을 기본 목록으로 채운다.
+   * 인기 지역 (D5): 최근 30일 리뷰 수 상위 지역 → 부족하면 기본 목록으로 채움.
+   * 동점이면 더 최근에 리뷰가 달린 지역이 앞.
    */
   async popular(): Promise<RegionDto[]> {
-    const codes = DEFAULT_POPULAR_REGION_CODES.slice(0, POPULAR_REGION_COUNT);
+    const ranked = await this.db
+      .select({ code: restaurants.regionCode })
+      .from(reviews)
+      .innerJoin(restaurants, eq(restaurants.id, reviews.restaurantId))
+      .where(
+        and(
+          isNotNull(restaurants.regionCode),
+          gte(
+            reviews.createdAt,
+            sql`now() - make_interval(days => ${POPULAR_WINDOW_DAYS})`,
+          ),
+        ),
+      )
+      .groupBy(restaurants.regionCode)
+      .orderBy(desc(count()), desc(max(reviews.createdAt)))
+      .limit(POPULAR_REGION_COUNT);
+
+    const codes = [
+      ...new Set([
+        ...ranked.map((r) => r.code!),
+        ...DEFAULT_POPULAR_REGION_CODES,
+      ]),
+    ].slice(0, POPULAR_REGION_COUNT);
     const rows = await this.db
       .select(dtoColumns)
       .from(regions)

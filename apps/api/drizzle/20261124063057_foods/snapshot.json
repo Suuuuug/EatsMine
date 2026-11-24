@@ -1,0 +1,610 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "0334bdf7-77f3-4946-b075-0ad9a21bfcaa",
+  "prevIds": [
+    "c6665398-104b-4077-a326-de6c8c88827b"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_genres"
+      ],
+      "writes": [
+        "s|tbl|public.food_genres",
+        "n|tbl|public.food_genres",
+        "e|tbl|public.food_genres",
+        "n|rel|public.food_genres",
+        "n|type|public.food_genres",
+        "n|rel|public.food_genres_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_regions"
+      ],
+      "writes": [
+        "s|tbl|public.food_regions",
+        "n|tbl|public.food_regions",
+        "e|tbl|public.food_regions",
+        "n|rel|public.food_regions",
+        "n|type|public.food_regions",
+        "n|rel|public.food_regions_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_seasons"
+      ],
+      "writes": [
+        "s|tbl|public.food_seasons",
+        "n|tbl|public.food_seasons",
+        "e|tbl|public.food_seasons",
+        "n|rel|public.food_seasons",
+        "n|type|public.food_seasons",
+        "n|rel|public.food_seasons_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "foods"
+      ],
+      "writes": [
+        "s|tbl|public.foods",
+        "n|tbl|public.foods",
+        "e|tbl|public.foods",
+        "n|rel|public.foods",
+        "n|type|public.foods",
+        "n|rel|public.foods_pkey",
+        "n|rel|public.foods_name_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_genres"
+      ],
+      "writes": [
+        "s|fk|public.food_genres.food_genres_food_id_foods_id_fkey",
+        "n|fk|public.food_genres.food_genres_food_id_foods_id_fkey",
+        "e|fk|public.food_genres.food_genres_food_id_foods_id_fkey",
+        "n|con|public.food_genres.food_genres_food_id_foods_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.food_genres",
+        "n|sch|public",
+        "n|tbl|public.foods",
+        "n|sch|public",
+        "n|col|public.food_genres.food_id",
+        "n|col|public.foods.id",
+        "e|uniqueness|public.foods.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_regions"
+      ],
+      "writes": [
+        "s|fk|public.food_regions.food_regions_food_id_foods_id_fkey",
+        "n|fk|public.food_regions.food_regions_food_id_foods_id_fkey",
+        "e|fk|public.food_regions.food_regions_food_id_foods_id_fkey",
+        "n|con|public.food_regions.food_regions_food_id_foods_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.food_regions",
+        "n|sch|public",
+        "n|tbl|public.foods",
+        "n|sch|public",
+        "n|col|public.food_regions.food_id",
+        "n|col|public.foods.id",
+        "e|uniqueness|public.foods.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_regions"
+      ],
+      "writes": [
+        "s|fk|public.food_regions.food_regions_region_code_regions_code_fkey",
+        "n|fk|public.food_regions.food_regions_region_code_regions_code_fkey",
+        "e|fk|public.food_regions.food_regions_region_code_regions_code_fkey",
+        "n|con|public.food_regions.food_regions_region_code_regions_code_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.food_regions",
+        "n|sch|public",
+        "n|tbl|public.regions",
+        "n|sch|public",
+        "n|col|public.food_regions.region_code",
+        "n|col|public.regions.code",
+        "e|uniqueness|public.regions.code"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "food_seasons"
+      ],
+      "writes": [
+        "s|fk|public.food_seasons.food_seasons_food_id_foods_id_fkey",
+        "n|fk|public.food_seasons.food_seasons_food_id_foods_id_fkey",
+        "e|fk|public.food_seasons.food_seasons_food_id_foods_id_fkey",
+        "n|con|public.food_seasons.food_seasons_food_id_foods_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.food_seasons",
+        "n|sch|public",
+        "n|tbl|public.foods",
+        "n|sch|public",
+        "n|col|public.food_seasons.food_id",
+        "n|col|public.foods.id",
+        "e|uniqueness|public.foods.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "food_genres",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "food_regions",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "food_seasons",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "foods",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_genres",
+        "name": "food_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_genres",
+        "name": "genre",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "food_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "region_code",
+        "type": "varchar(5)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "position",
+        "type": "smallint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "reason",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_seasons",
+        "name": "food_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_seasons",
+        "name": "month",
+        "type": "smallint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "foods_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "2147483647",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "description",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "image_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "search_keyword",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_genres",
+        "name": "food_genres_food_id_foods_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "food_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "foods",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "food_regions_food_id_foods_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "food_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "foods",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "food_regions_region_code_regions_code_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "region_code"
+        ],
+        "schemaTo": "public",
+        "tableTo": "regions",
+        "columnsTo": [
+          "code"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_seasons",
+        "name": "food_seasons_food_id_foods_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "food_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "foods",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_genres",
+        "name": "food_genres_pkey",
+        "columns": [
+          "food_id",
+          "genre"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_regions",
+        "name": "food_regions_pkey",
+        "columns": [
+          "food_id",
+          "region_code"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_seasons",
+        "name": "food_seasons_pkey",
+        "columns": [
+          "food_id",
+          "month"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "foods_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "foods",
+        "name": "foods_name_key",
+        "nameExplicit": false,
+        "columns": [
+          "name"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "food_seasons",
+        "name": "food_seasons_month_check",
+        "value": "\"month\" BETWEEN 1 AND 12",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
