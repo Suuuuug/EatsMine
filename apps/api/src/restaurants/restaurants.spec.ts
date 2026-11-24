@@ -6,7 +6,7 @@ import { getDrizzleToken } from '@nestjs/drizzle';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
-import { AppThrottlerGuard } from '../common/rate-limit/app-throttler.guard.js';
+import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { EatplClient } from '../eatpl/eatpl.client.js';
 import { FoodsService } from '../foods/foods.service.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
@@ -69,7 +69,7 @@ describe('GET /restaurants', () => {
         { provide: getDrizzleToken(), useValue: db },
       ],
     })
-      .overrideGuard(AppThrottlerGuard) // rate limit은 rate-limit.spec에서 검증
+      .overrideGuard(RateLimitGuard) // rate limit은 rate-limit.spec에서 검증
       .useValue({ canActivate: () => true })
       .compile();
     app = moduleRef.createNestApplication();

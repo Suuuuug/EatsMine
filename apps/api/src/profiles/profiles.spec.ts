@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
-import { AppThrottlerGuard } from '../common/rate-limit/app-throttler.guard.js';
+import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { MeController } from './me.controller.js';
 import { generateNickname, ProfilesService } from './profiles.service.js';
 import { rankForReviewCount, rankLabel } from './ranks.js';
@@ -45,7 +45,7 @@ describe('GET/PATCH /me', () => {
           return true;
         },
       })
-      .overrideGuard(AppThrottlerGuard)
+      .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .compile();
     app = moduleRef.createNestApplication();

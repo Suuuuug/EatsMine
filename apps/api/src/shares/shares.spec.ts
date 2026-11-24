@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
-import { AppThrottlerGuard } from '../common/rate-limit/app-throttler.guard.js';
+import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { TerritoriesController } from '../territories/territories.controller.js';
 import { TerritoriesService } from '../territories/territories.service.js';
 import { MeSharesController, SharesController } from './shares.controller.js';
@@ -45,7 +45,7 @@ describe('공유 링크·공유 영토 API', () => {
           return true;
         },
       })
-      .overrideGuard(AppThrottlerGuard)
+      .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .compile();
     app = moduleRef.createNestApplication();

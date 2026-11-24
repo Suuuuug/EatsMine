@@ -1,12 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import type { ThrottlerStorage } from '@nestjs/throttler';
 import { sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-
-type ThrottlerStorageRecord = Awaited<
-  ReturnType<ThrottlerStorage['increment']>
->;
+import { type RateLimitRecord, RateLimitStorage } from './rate-limit.storage.js';
 
 type Row = { hits: number; ttl_s: string | number; block_s: string | number };
 
@@ -14,22 +10,24 @@ type Row = { hits: number; ttl_s: string | number; block_s: string | number };
 const CLEANUP_PROBABILITY = 0.01;
 
 /**
- * rate limit 카운터를 Postgres에 저장하는 ThrottlerStorage.
+ * rate limit 카운터를 Postgres(rate_limit_hits)에 저장한다. 서버리스는 인스턴스마다 메모리가 따로라서.
  * 고정 윈도우 방식: 윈도우(ttl) 동안 횟수를 세고, limit을 넘으면 blockDuration 동안 차단한다.
  * 한 번의 upsert로 처리해서 동시 요청에도 횟수가 어긋나지 않는다.
  */
 @Injectable()
-export class DbThrottlerStorage implements ThrottlerStorage {
-  private readonly logger = new Logger(DbThrottlerStorage.name);
+export class DbRateLimitStorage extends RateLimitStorage {
+  private readonly logger = new Logger(DbRateLimitStorage.name);
 
-  constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {}
+  constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {
+    super();
+  }
 
   async increment(
     key: string,
     ttl: number,
     limit: number,
     blockDuration: number,
-  ): Promise<ThrottlerStorageRecord> {
+  ): Promise<RateLimitRecord> {
     // 윈도우를 새로 시작하는 조건: 차단이 끝났거나, 차단 없이 윈도우가 만료됨
     const reset = sql`((t.blocked_until IS NOT NULL AND t.blocked_until <= now()) OR (t.blocked_until IS NULL AND t.expires_at <= now()))`;
     const ttlInterval = sql`(${ttl}::float8 * interval '1 millisecond')`;

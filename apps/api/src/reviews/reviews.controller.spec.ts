@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
-import { AppThrottlerGuard } from '../common/rate-limit/app-throttler.guard.js';
+import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { MeRecordsController } from './me-records.controller.js';
 import { MeRecordsService } from './me-records.service.js';
 import { ReviewsController } from './reviews.controller.js';
@@ -51,7 +51,7 @@ describe('리뷰·내 기록 API', () => {
           return true;
         },
       })
-      .overrideGuard(AppThrottlerGuard)
+      .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .compile();
     app = moduleRef.createNestApplication();
