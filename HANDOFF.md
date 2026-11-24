@@ -92,3 +92,4 @@
 - AI 활용 문서도 커밋·push하기로 결정 변경(AGENTS.md Git 절). 백엔드 방식은 미정, 부품은 props만 받는다.
 - 재개 지점: 커밋·push는 메인이 진행. 프로토타입 HTML과 Claude Design System 아티팩트(https://claude.ai/artifact/CfahhRk5J9p868swYuryLN) 내용은 메인이 채움.
 - 미검증: 실기기, 768px 독립 평가 점수, 카카오 지도 연동, 정식 경계(rebuild_maps.py 미실행), 팀원 도감·지도 화면 미병합.
+- 후속(같은 날): 검토 반영 후 코드·문서 커밋·push. 아티팩트 링크는 docs/plans/active/design-system.md. 팀 공유는 아티팩트 Share 메뉴에서 사용자가 직접.

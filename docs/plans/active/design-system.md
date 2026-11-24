@@ -46,6 +46,16 @@
 - HIG·Material 3·SEED 원문 확인 후 규칙 반영(FilterChip 낮은 주목도, 토스트 4초, 세그먼트 조작 전용).
 - Codex 적대 리뷰(working-tree): SearchField onSubmit 타입 충돌, Switch 28px·지우기 36px·세그먼트 40px 누름 영역 → 모두 수정.
 
+## 진행 로그(이어서, 2026-11-24)
+- 사용자 지시 반영: 모바일 햄버거·서랍 제거 → 하단 유리 탭 바(4묶음) + 상단 칩 줄. 밝기 전환은 상단 바에서 빼서 사이드바 아래와 '색' 구역 안으로.
+- 브랜드 아이콘: 박스 유무를 독립 평가자(design-auditor)에게 결론 없이 비교시켜 박스형(B) 선택(위계·macOS 관례, 박스 없는 쪽은 탭 아이콘과 겹침). 꾸밈 색 상자가 아니라 파비콘과 같은 앱 아이콘 타일(app/icon.svg)로 통일. 탭 바 EatsMine 묶음 아이콘은 map으로 분리.
+- ui-evaluator(390/768/1440): 넘침·탭/칩·조작 예시·키보드 고리·콘솔 오류 0 통과. F1(페이지 끝 구역 aria-current) → 스크롤 위치 계산 + 마지막으로 누른 구역 유지로 수정. F3(시트 반투명) → 원인은 열림 애니메이션의 opacity가 멈춘 환경에서 남는 것, 애니메이션을 위치만 움직이게 수정 + 재질 92%.
+- design-auditor: 390 종합 7, 1440 종합 8(캡처 일부가 동시 실행된 평가자 때문에 다른 폭으로 섞임). 반영: 규칙 점 제거, 예시 라벨 본문색, 빈 화면 6카드 반복 → 큰 예시 1 + 문구 목록.
+- Codex HIG·토스 검토 11건 모두 반영: 도감 빈 결과 문구·조건 초기화, 눌리지 않던 span 버튼 → 실제 버튼·링크, 탭 바 묶음별 마지막 위치 기억, 대비 높이기 재질(glass-bar·material-thick), 출처 링크 44px 줄, 스위치 눌림 반응, 도감 계절 5개 → 단일 선택 칩, 비활성 이유 문구, '잇플에서 상세 보기', 빈 화면 문구 축약, 구역 규칙 2줄 이내.
+- 보안 검토 경고(contest-idea-forge의 claude -p에 웹 텍스트 전달): --tools ""/WebSearch·WebFetch + --strict-mcp-config로 제한, CLI 실행 확인(b89f889).
+- 아티팩트(비공개, 팀 공유는 Share 메뉴): Claude Design System https://claude.ai/artifact/CfahhRk5J9p868swYuryLN (토큰·브랜드 북·컴포넌트 7·자산 37), 팀 프로토타입 https://claude.ai/artifact/7Cvg9h1TC2GvMz2irkEBrX (지도·도감·마이 흐름, 예시 데이터).
+- lint/build 통과(수정 후 재실행).
+
 ## 결정
 - 팀 `components/ui`·`globals.css`는 고치지 않는다. 앱 화면 부품은 `components/em`, 팀 ui는 팀 소개·마케팅용.
 - 유리는 떠 있는 층에만(HIG Materials), 바탕 빛번짐 한 겹은 사용자 지시로 허용.
