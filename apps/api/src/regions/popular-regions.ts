@@ -1,6 +1,9 @@
 /** 인기 지역 개수 (D5) */
 export const POPULAR_REGION_COUNT = 6;
 
+/** 인기 지역 집계 기간: 최근 30일 리뷰 수 (D5) */
+export const POPULAR_WINDOW_DAYS = 30;
+
 /**
  * 콜드 스타트용 기본 인기 지역 (D5). 리뷰가 있는 지역이 부족할 때 이 순서로 채운다.
  * 서울 중구, 부산 해운대구, 전주시, 강릉시, 여수시, 제주시

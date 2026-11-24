@@ -45,9 +45,31 @@ const monthsOf = sql<number[]>`coalesce(
 export class FoodsService {
   constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {}
 
-  /** 도감 목록. month: 그 달이 제철인 음식만, q: 이름 부분 일치 */
-  async list(filter: { month?: number; q?: string }): Promise<FoodListItem[]> {
+  /**
+   * 도감 목록. month: 그 달이 제철인 음식만, q: 이름 부분 일치,
+   * genre: 그 업종에 연결된 음식만 (리뷰 작성 시 매장 업종에 맞는 음식 후보, D8)
+   */
+  async list(filter: {
+    month?: number;
+    q?: string;
+    genre?: string;
+  }): Promise<FoodListItem[]> {
     const conditions: SQL[] = [];
+    if (filter.genre) {
+      conditions.push(
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(foodGenres)
+            .where(
+              and(
+                eq(foodGenres.foodId, foods.id),
+                eq(foodGenres.genre, filter.genre),
+              ),
+            ),
+        ),
+      );
+    }
     if (filter.month) {
       conditions.push(
         exists(

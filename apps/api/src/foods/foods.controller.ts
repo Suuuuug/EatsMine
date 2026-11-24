@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { z } from 'zod';
+import { MAJOR_GENRES, MINOR_GENRES } from '../eatpl/genres.js';
 import { FoodsService } from './foods.service.js';
 
 const listQuerySchema = z.object({
@@ -14,6 +15,12 @@ const listQuerySchema = z.object({
     .trim()
     .min(1)
     .max(20, '검색어는 20자 이하로 입력해 주세요')
+    .optional(),
+  /** 리뷰 작성 시 매장 업종(restaurant.genre)에 맞는 음식 후보 */
+  genre: z
+    .enum([...MAJOR_GENRES, ...MINOR_GENRES], {
+      error: '지원하지 않는 업종이에요',
+    })
     .optional(),
 });
 

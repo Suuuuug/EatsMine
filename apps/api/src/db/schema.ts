@@ -3,8 +3,10 @@ import {
   type AnyPgColumn,
   bigint,
   check,
+  date,
   doublePrecision,
   index,
+  unique,
   integer,
   pgTable,
   primaryKey,
@@ -167,4 +169,113 @@ export const foodGenres = pgTable.withRLS(
     genre: text().notNull(),
   },
   (t) => [primaryKey({ columns: [t.foodId, t.genre] })],
+);
+
+/**
+ * 잇플 매장 (D4·D8). 리뷰를 남길 때만 그 매장 1건을 저장/갱신한다 (검색 결과는 저장하지 않음).
+ * id = merUrl 끝 고유값. 리뷰 작성 시 잇플에 다시 조회해 검증한 값만 저장한다 (D10).
+ */
+export const restaurants = pgTable.withRLS('restaurants', {
+  id: text().primaryKey(),
+  /** 잇플 상세 링크 — 원본 그대로 */
+  merUrl: text('mer_url').notNull(),
+  name: text().notNull(),
+  address: text().notNull(),
+  genre: text(),
+  /** 주소로 찾은 영토 지역. 매칭 실패 시 NULL */
+  regionCode: varchar('region_code', { length: 5 }).references(
+    () => regions.code,
+  ),
+  lat: doublePrecision(),
+  lng: doublePrecision(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** 리뷰 (D8). 한 매장에 1인 1리뷰, 재방문은 수정 */
+export const reviews = pgTable.withRLS(
+  'reviews',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    restaurantId: text('restaurant_id')
+      .notNull()
+      .references(() => restaurants.id),
+    /** 먹은 음식 (선택) → 도감 수집 */
+    foodId: integer('food_id').references(() => foods.id, {
+      onDelete: 'set null',
+    }),
+    rating: smallint().notNull(),
+    content: text(),
+    visitedAt: date('visited_at'),
+    visibility: text({ enum: ['private', 'public'] })
+      .notNull()
+      .default('private'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique('reviews_user_restaurant_unique').on(t.userId, t.restaurantId),
+    check('reviews_rating_check', sql`${t.rating} BETWEEN 1 AND 5`),
+    check(
+      'reviews_content_length_check',
+      sql`${t.content} IS NULL OR char_length(${t.content}) <= 500`,
+    ),
+    check(
+      'reviews_visibility_check',
+      sql`${t.visibility} IN ('private', 'public')`,
+    ),
+    index('reviews_user_id_created_at_idx').on(t.userId, t.createdAt),
+    /** 인기 지역(최근 30일) 집계용 */
+    index('reviews_created_at_idx').on(t.createdAt),
+  ],
+);
+
+/** 내 영토 (D8). 리뷰로만 획득, 뒷받침하는 리뷰가 없어지면 회수 */
+export const userRegionVisits = pgTable.withRLS(
+  'user_region_visits',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    regionCode: varchar('region_code', { length: 5 })
+      .notNull()
+      .references(() => regions.code),
+    firstVisitedAt: timestamp('first_visited_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sourceReviewId: bigint('source_review_id', { mode: 'number' }).references(
+      () => reviews.id,
+      { onDelete: 'set null' },
+    ),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.regionCode] })],
+);
+
+/** 내 도감 (D8). 리뷰에서 음식을 고르면 수집, 뒷받침하는 리뷰가 없어지면 회수 */
+export const userFoodCollection = pgTable.withRLS(
+  'user_food_collection',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    collectedAt: timestamp('collected_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sourceReviewId: bigint('source_review_id', { mode: 'number' }).references(
+      () => reviews.id,
+      { onDelete: 'set null' },
+    ),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.foodId] })],
 );
