@@ -1,0 +1,299 @@
+{
+  "type": "base",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "0a245223-0140-41c2-ad17-c5afb17ac969",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "rate_limit_hits"
+      ],
+      "writes": [
+        "s|tbl|public.rate_limit_hits",
+        "n|tbl|public.rate_limit_hits",
+        "e|tbl|public.rate_limit_hits",
+        "n|rel|public.rate_limit_hits",
+        "n|type|public.rate_limit_hits",
+        "n|rel|public.rate_limit_hits_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "regions"
+      ],
+      "writes": [
+        "s|tbl|public.regions",
+        "n|tbl|public.regions",
+        "e|tbl|public.regions",
+        "n|rel|public.regions",
+        "n|type|public.regions",
+        "n|rel|public.regions_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "regions"
+      ],
+      "writes": [
+        "s|fk|public.regions.regions_parent_code_regions_code_fkey",
+        "n|fk|public.regions.regions_parent_code_regions_code_fkey",
+        "e|fk|public.regions.regions_parent_code_regions_code_fkey",
+        "n|con|public.regions.regions_parent_code_regions_code_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.regions",
+        "n|sch|public",
+        "n|tbl|public.regions",
+        "n|sch|public",
+        "n|col|public.regions.parent_code",
+        "n|col|public.regions.code",
+        "e|uniqueness|public.regions.code"
+      ]
+    }
+  ],
+  "ddl": [
+    {
+      "schema": "public",
+      "name": "rate_limit_hits",
+      "isRlsEnabled": true,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "regions",
+      "isRlsEnabled": true,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "table": "rate_limit_hits",
+      "name": "key",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "rate_limit_hits",
+      "name": "hits",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "rate_limit_hits",
+      "name": "expires_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "rate_limit_hits",
+      "name": "blocked_until",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "code",
+      "type": "varchar(5)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "parent_code",
+      "type": "varchar(5)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "level",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "full_name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "eatpl_query",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "address_aliases",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "center_lat",
+      "type": "double precision",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "center_lng",
+      "type": "double precision",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "regions_parent_code_regions_code_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "parent_code"
+      ],
+      "schemaTo": "public",
+      "tableTo": "regions",
+      "columnsTo": [
+        "code"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "rate_limit_hits",
+      "name": "rate_limit_hits_pkey",
+      "columns": [
+        "key"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "regions_pkey",
+      "columns": [
+        "code"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "regions",
+      "name": "regions_level_check",
+      "value": "\"level\" IN ('sido', 'sigungu')",
+      "entityType": "checks"
+    }
+  ]
+}
