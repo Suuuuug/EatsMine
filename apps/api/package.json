@@ -21,10 +21,13 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "dev": "nest start --watch",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:generate": "drizzle-kit generate && node scripts/sync-supabase-migrations.mjs",
+    "db:migrate": "node scripts/supabase-db.mjs push",
+    "db:migrate:dry": "node scripts/supabase-db.mjs push --dry-run",
+    "db:push": "node -e \"console.error('drizzle-kit push는 이력 없이 DB를 바꿔서 쓰지 않습니다. supabase/README.md의 db:generate → db:migrate:dry → db:migrate를 쓰세요.'); process.exit(1)\"",
+    "db:studio": "drizzle-kit studio",
+    "db:sync": "node scripts/sync-supabase-migrations.mjs",
+    "db:status": "node scripts/supabase-db.mjs status"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
