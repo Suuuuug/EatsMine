@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { RestaurantCard } from "./RestaurantCard";
+import { Icon } from "@/components/icon/Icon";
 import { buildRestaurantUrl, parseSearch, reviewUrl, validEatplUrl, regionLabel, sortRegions, summarizeReviews } from "@/lib/map/home-contract";
 import regionSeed from "@/lib/map/region-seed.json";
+import { nearbyMapUrl } from "@/lib/map/nearby";
 import { IslandOutlines } from "@/components/map/IslandOutlines";
 
 type Region = { code: string; parentCode: string | null; name: string; fullName: string };
@@ -33,6 +35,11 @@ export function HomeMap() {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const lastHandledSearch = useRef<string | null>(null);
+  const [nearby, setNearby] = useState<string | null>(null);
+  const [sampleLocation, setSampleLocation] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const locationRequest = useRef(0);
   const [preview, setPreview] = useState<"card" | "reviews" | null>(null);
   const [province, setProvince] = useState<Region | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
@@ -112,8 +119,25 @@ export function HomeMap() {
     return () => c.abort();
   }, [initialized, region, foodId, unsupportedFood, attempt, province]);
 
+  function findNearby() {
+    const request = ++locationRequest.current;
+    setLocationError("");
+    if (!navigator.geolocation) { setLocationError("이 브라우저에서는 위치를 확인할 수 없어요. 지역을 직접 선택해 주세요."); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition((position) => {
+      if (request !== locationRequest.current) return;
+      setLocating(false);
+      const url = nearbyMapUrl(position.coords.latitude, position.coords.longitude);
+      if (!url) { setLocationError("위치를 확인할 수 없어요. 지역을 직접 선택해 주세요."); return; }
+      setSampleLocation(false); setNearby(url);
+    }, (error) => {
+      if (request !== locationRequest.current) return;
+      setLocating(false);
+      setLocationError(error.code === 1 ? "위치 권한을 허용하거나 지역을 직접 선택해 주세요." : "위치를 확인하지 못했어요. 다시 시도하거나 지역을 직접 선택해 주세요.");
+    }, { timeout: 10000, maximumAge: 60000 });
+  }
   function chooseProvince(value: Region) {
-    setHoveredRegion(null); navigated.current = true; setRegion(null); setProvince(value); setResult(null); setError("");
+    locationRequest.current++; setLocating(false); setLocationError(""); setHoveredRegion(null); navigated.current = true; setRegion(null); setProvince(value); setResult(null); setError("");
   }
   function chooseRegion(value: Region) {
     setHoveredRegion(null); navigated.current = true; setResult(null); setError(""); setLoading(Boolean(apiBase && !unsupportedFood)); setRegion(value);
@@ -132,6 +156,19 @@ export function HomeMap() {
     const url = view ? `/?preview=1${view === "reviews" ? "&view=reviews" : ""}` : "/";
     navigated.current = true; lastHandledSearch.current = new URL(url, window.location.href).searchParams.toString(); window.history.pushState(null, "", url); setPreview(view);
   }
+  if (nearby) return (
+    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-20 pb-24 md:px-8">
+      <button type="button" className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring" onClick={() => { locationRequest.current++; setNearby(null); }}>‹ 지역 찾기</button>
+      <div className="mt-4 grid gap-7 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
+        <section aria-label="주변 식당 목록"><h1 className="type-title">내 주변 식당</h1><p className="mt-2 type-caption text-muted">{sampleLocation ? "서울 지도와 식당 정보는 예시예요." : "식당 정보와 지도 표시는 예시예요."}</p><div className="mt-3 divide-y divide-line">{[1, 2].map((number) => <RestaurantCard key={number} name={`예시 식당 ${number}`} address="식당 주소 예시" genre="한식" rankNational={null} estimatedHours={null} merUrl={null} reviewsHref={null} onReviewsClick={() => { setNearby(null); showPreview("reviews"); }} photoUrl="/images/preview/restaurant-example.png" reviews={summarizeReviews(exampleReviews)} />)}</div></section>
+        <section aria-label="내 위치 지도" className="relative order-first h-[48vh] min-h-80 overflow-hidden rounded-card border border-line lg:order-last lg:h-[min(75vh,760px)]">
+          <iframe title={sampleLocation ? "서울 지도 예시" : "내 위치 주변 지도"} src={nearby} className="h-full w-full border-0" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
+          <span aria-hidden="true" className="pointer-events-none absolute top-[29%] left-[38%] rounded-button bg-surface px-3 py-2 type-caption font-semibold shadow-float">예시 식당 1</span>
+          <span aria-hidden="true" className="pointer-events-none absolute top-[60%] left-[66%] rounded-button bg-surface px-3 py-2 type-caption font-semibold shadow-float">예시 식당 2</span>
+        </section>
+      </div>
+    </main>
+  );
   if (preview) return (
     <main className="mx-auto min-h-dvh max-w-md px-5 pt-20 pb-28 md:px-8">
       <button type="button" className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring" onClick={() => showPreview(preview === "reviews" ? "card" : null)}>‹ {preview === "reviews" ? "식당 카드" : "지역 찾기"}</button>
@@ -150,6 +187,7 @@ export function HomeMap() {
           <h1 ref={titleRef} tabIndex={-1} className="type-title outline-none">{selectedTitle}</h1>
           {!region ? <>
             <p className="mt-2 type-body text-muted">{province ? "시·군·구를 선택해 주세요." : "지역을 선택해 식당을 찾아보세요."}</p>
+
             {<ul className="mt-4 divide-y divide-line">{list.map((r) => <li key={r.code}><button type="button" onClick={() => province ? chooseRegion(r) : chooseProvince(r)} className="pressable flex min-h-11 w-full items-center justify-between px-2 py-3 text-left focus-ring"><span>{regionLabel(r)}</span><span aria-hidden>›</span></button></li>)}</ul>}
           </> : <>
             {unsupportedFood ? <div className="mt-4"><p>선택한 음식으로 식당을 찾는 기능을 준비하고 있어요.</p><button type="button" onClick={clearFood} className="pressable mt-2 min-h-11 rounded-input px-3 font-semibold text-accent-dark focus-ring">음식 조건 없이 찾기</button></div> : <>
@@ -163,7 +201,8 @@ export function HomeMap() {
             </>}
           </>}
         </section>
-        <section aria-label="지역 지도" className="order-first min-h-80 rounded-card border border-line bg-surface/40 p-4 lg:order-last">
+        <section aria-label="지역 지도" className="relative order-first min-h-80 rounded-card border border-line bg-surface/40 p-4 lg:order-last">
+          {!province && <div className="absolute top-4 right-4 z-10 flex max-w-[min(19rem,80%)] flex-col items-end"><button type="button" onClick={findNearby} disabled={locating} className="glass-bar pressable focus-ring inline-flex min-h-11 items-center gap-2 rounded-button border border-line px-4 font-semibold text-foreground shadow-float"><Icon name="locate" size={18} />{locating ? "위치 확인 중…" : "내 위치"}</button>{locationError && <div className="mt-2 rounded-card border border-line bg-surface p-3 shadow-float"><p role="alert" className="type-caption text-foreground">{locationError}</p><button type="button" className="pressable focus-ring mt-1 min-h-11 px-2 font-semibold text-accent-dark" onClick={() => { setSampleLocation(true); setNearby(nearbyMapUrl(37.5665, 126.978)); }}>위치 없이 화면 보기</button></div>}</div>}
           {region ? <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><p className="type-row font-semibold">{region.fullName}</p><p className="type-body text-muted">식당 위치를 지도에 표시할 수 있도록 준비하고 있어요.</p></div> : shape?.key === shapeKey ? <svg viewBox={shape.viewBox} role="img" aria-label={`${province ? regionLabel(province) : "전국"} 지도`} className="mx-auto h-[min(36vh,320px)] max-w-full md:h-[min(42vh,420px)] lg:h-[min(82vh,900px,calc(100vh-160px))]" onPointerMove={(event) => { const code = (event.target as Element).getAttribute("data-code"); setHoveredRegion(event.pointerType !== "touch" && code && list.some((item) => item.code === code) ? { code, x: Math.min(Math.max(event.clientX, 100), window.innerWidth - 100), y: Math.max(event.clientY - 14, 45) } : null); }} onPointerLeave={() => setHoveredRegion(null)} onClick={(event) => { const code = (event.target as Element).getAttribute("data-code"); const found = children.find((r) => r.code === code); if (found) { if (province) chooseRegion(found); else chooseProvince(found); } }}>{shape.paths.map((path) => <path key={path.code} data-code={path.code} d={path.d} fillRule="evenodd" vectorEffect="non-scaling-stroke" strokeWidth="1" className={`${hoveredCode === path.code ? "fill-map-partial" : "fill-map-empty"} stroke-map-line`} />)}<IslandOutlines province={province?.code ?? null} className={hoveredCode === (province ? "47940" : "47") ? "fill-map-partial" : "fill-map-empty"} /></svg> : <p className="flex min-h-80 items-center justify-center text-muted">{shapeError === shapeKey ? "지도를 불러오지 못했어요. 지역 목록에서 선택해 주세요." : "지도를 불러오고 있어요."}</p>}
           {hoveredRegion && hoveredRegion.code !== "47940" && <div aria-hidden="true" className="glass-bar pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-input border border-line px-3 py-2 type-caption font-semibold text-foreground shadow-float" style={{ left: hoveredRegion.x, top: hoveredRegion.y }}>{regionLabel(list.find((item) => item.code === hoveredRegion.code)!)}</div>}
         </section>
