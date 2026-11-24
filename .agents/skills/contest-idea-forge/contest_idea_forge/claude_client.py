@@ -52,9 +52,15 @@ class ClaudeRunner:
         m = model if model is not None else self.model
         if m:
             cmd += ["--model", m]
+        # Prompts embed untrusted web text (contest pages, paper metadata), so the
+        # headless session must not be able to reach shell/file/MCP tools even if
+        # project permission settings would allow them. --tools limits which
+        # built-in tools exist at all; --allowedTools alone only pre-approves.
+        cmd += ["--strict-mcp-config"]
         if allow_web or self.allow_web:
-            # Restrict the headless session to read-only web tools.
-            cmd += ["--allowedTools", "WebSearch,WebFetch"]
+            cmd += ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"]
+        else:
+            cmd += ["--tools", ""]
         cmd += list(self.extra_args)
         return cmd
 
