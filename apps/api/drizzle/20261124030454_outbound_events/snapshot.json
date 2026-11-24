@@ -1,0 +1,236 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "26645b9c-1aaa-44cb-ae5f-30a29f2267a5",
+  "prevIds": [
+    "0a245223-0140-41c2-ad17-c5afb17ac969"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "outbound_events"
+      ],
+      "writes": [
+        "s|tbl|public.outbound_events",
+        "n|tbl|public.outbound_events",
+        "e|tbl|public.outbound_events",
+        "n|rel|public.outbound_events",
+        "n|type|public.outbound_events",
+        "n|rel|public.outbound_events_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "outbound_events",
+        "outbound_events_occurred_at_source_channel_idx"
+      ],
+      "writes": [
+        "s|idx|public.outbound_events_occurred_at_source_channel_idx",
+        "n|idx|public.outbound_events_occurred_at_source_channel_idx",
+        "e|idx|public.outbound_events_occurred_at_source_channel_idx",
+        "n|rel|public.outbound_events_occurred_at_source_channel_idx"
+      ],
+      "reads": [
+        "n|tbl|public.outbound_events",
+        "n|sch|public",
+        "n|col|public.outbound_events.occurred_at",
+        "n|col|public.outbound_events.source_channel"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "outbound_events",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "outbound_events_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "9223372036854775807",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "restaurant_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "region_code",
+        "type": "varchar(5)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "placement",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "source_channel",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "session_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "occurred_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "outbound_events_occurred_at_source_channel_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "occurred_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "source_channel",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "outbound_events_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbound_events",
+        "name": "outbound_events_placement_check",
+        "value": "\"placement\" IN ('list', 'map', 'share')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

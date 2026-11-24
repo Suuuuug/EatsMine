@@ -1,15 +1,19 @@
 import { StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule, ObserveInstrument } from './app.module.js';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
 import type { Env } from './config/env.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     instrument: ObserveInstrument,
   });
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+
+  // sendBeacon(text/plain JSON 문자열) 수신용 — POST /events/outbound
+  app.useBodyParser('text', { type: 'text/plain', limit: '2kb' });
 
   app.enableCors({
     origin: config

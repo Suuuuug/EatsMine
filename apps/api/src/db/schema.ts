@@ -1,8 +1,10 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  bigint,
   check,
   doublePrecision,
+  index,
   integer,
   pgTable,
   text,
@@ -44,3 +46,34 @@ export const regions = pgTable.withRLS(
 );
 
 export type Region = typeof regions.$inferSelect;
+
+/**
+ * 잇플 이동 클릭 기록 (D11). 공모전 실적과 비교하기 위한 우리 쪽 기록. 90일 보관.
+ * 개인정보 최소화: 사용자 ID 없이 브라우저 세션별 익명 값만 저장.
+ */
+export const outboundEvents = pgTable.withRLS(
+  'outbound_events',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    /** merUrl 끝 고유값 (검색 결과는 저장하지 않으므로 FK 없음) */
+    restaurantKey: text('restaurant_key').notNull(),
+    /** 분석용이라 FK 없음 (저장 실패 방지), 형식만 api에서 검증 */
+    regionCode: varchar('region_code', { length: 5 }),
+    placement: text({ enum: ['list', 'map', 'share'] }).notNull(),
+    sourceChannel: text('source_channel'),
+    sessionKey: text('session_key').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      'outbound_events_placement_check',
+      sql`${t.placement} IN ('list', 'map', 'share')`,
+    ),
+    index('outbound_events_occurred_at_source_channel_idx').on(
+      t.occurredAt,
+      t.sourceChannel,
+    ),
+  ],
+);
