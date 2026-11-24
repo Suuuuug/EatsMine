@@ -1,0 +1,21 @@
+import { z } from 'zod';
+
+/** 서버 시작 시 검증하는 환경변수. 값이 없거나 잘못되면 시작 단계에서 바로 실패한다. */
+export const envSchema = z.object({
+  DATABASE_URL: z
+    .string()
+    .regex(/^postgres(ql)?:\/\//, 'postgresql:// 로 시작하는 연결 문자열이어야 합니다'),
+  /** CORS 허용 도메인. 여러 개면 쉼표로 구분 */
+  WEB_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  PORT: z.coerce.number().int().positive().default(4000),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+export function validateEnv(config: Record<string, unknown>): Env {
+  const result = envSchema.safeParse(config);
+  if (!result.success) {
+    throw new Error(`환경변수 설정 오류:\n${z.prettifyError(result.error)}`);
+  }
+  return result.data;
+}
