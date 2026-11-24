@@ -124,7 +124,7 @@ export function StyleguideShell({ children }: { children: ReactNode }) {
 
   return (
     <SchemeContext.Provider value={{ scheme, setScheme }}>
-    <div className="em-theme min-h-dvh [--em-bottom-bar:4rem]" data-scheme={scheme === "system" ? undefined : scheme}>
+    <div className="em-theme min-h-dvh [--em-bottom-bar:4rem]" data-theme-scope="local" data-scheme={scheme === "system" ? undefined : scheme}>
       <div>
         <header className="glass-bar sticky top-0 z-20 border-b border-line">
           <div className="mx-auto flex h-14 max-w-4xl items-center gap-3 px-4 md:px-8">
