@@ -11,6 +11,7 @@ import { ProfilesModule } from './profiles/profiles.module.js';
 import { type Env, validateEnv } from './config/env.js';
 import * as schema from './db/schema.js';
 import { EventsModule } from './events/events.module.js';
+import { FoodsModule } from './foods/foods.module.js';
 import { GenresModule } from './genres/genres.module.js';
 import { RegionsModule } from './regions/regions.module.js';
 import { RestaurantsModule } from './restaurants/restaurants.module.js';
@@ -35,6 +36,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     RestaurantsModule,
     GenresModule,
     EventsModule,
+    FoodsModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com,
     // then run `npx @nestjs/observe link` to write your key pair into .env.

@@ -7,6 +7,8 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
+  smallint,
   text,
   timestamp,
   uuid,
@@ -109,3 +111,60 @@ export const profiles = pgTable.withRLS(
 );
 
 export type Profile = typeof profiles.$inferSelect;
+
+/**
+ * 제철 음식 도감 (D7). 데이터: data/foods.json (팀 직접 큐레이션) → npm run db:seed:foods
+ * 잇플에는 메뉴 정보가 없어 search_keyword(가맹점명)와 업종으로 매장을 찾는다.
+ */
+export const foods = pgTable.withRLS('foods', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: text().notNull().unique(),
+  description: text().notNull(),
+  imageUrl: text('image_url'),
+  /** 제철 근거 링크 (선택) */
+  sourceUrl: text('source_url'),
+  /** 잇플 가맹점명 검색어 (예: 방어회 → "방어") */
+  searchKeyword: text('search_keyword'),
+});
+
+export const foodSeasons = pgTable.withRLS(
+  'food_seasons',
+  {
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    month: smallint().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.foodId, t.month] }),
+    check('food_seasons_month_check', sql`${t.month} BETWEEN 1 AND 12`),
+  ],
+);
+
+export const foodRegions = pgTable.withRLS(
+  'food_regions',
+  {
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    regionCode: varchar('region_code', { length: 5 })
+      .notNull()
+      .references(() => regions.code),
+    /** foods.json 순서. 0번이 "이 음식 먹으러 가기"의 기본 지역 */
+    position: smallint().notNull().default(0),
+    reason: text().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.foodId, t.regionCode] })],
+);
+
+/** 음식 ↔ 잇플 업종 (43종만, seed·테스트에서 검증) */
+export const foodGenres = pgTable.withRLS(
+  'food_genres',
+  {
+    foodId: integer('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    genre: text().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.foodId, t.genre] })],
+);

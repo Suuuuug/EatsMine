@@ -29,7 +29,9 @@
     "db:sync": "node scripts/sync-supabase-migrations.mjs",
     "db:status": "node scripts/supabase-db.mjs status",
     "regions:build": "node scripts/build-regions.ts",
-    "db:seed": "node scripts/seed-regions.ts"
+    "db:seed": "node scripts/seed-regions.ts",
+    "db:seed:foods": "node scripts/seed-foods.ts",
+    "foods:check": "node scripts/check-foods.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
