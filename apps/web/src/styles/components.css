@@ -1,40 +1,5 @@
-/* 주 버튼 위 글자색. 팀 기본(진녹 배경)에서는 배경색, em-theme에서는 따로 정한다. */
-@theme {
-  --color-on-accent: #1b2316;
-}
-
-/*
- * em-theme: 마이페이지·로그인 범위의 색과 모서리 (2026-11-24 사용자 지시: "색조합이 말이 안 되는데",
- * "모서리 곡선이 너무 가파르다", "성대공지 플랫폼처럼"). 성대공지처럼 브랜드 색조 하나(H 150, 녹색)에서
- * OKLCH로 뽑고 light-dark()로 밝게/어둡게를 한 번에 정의한다. 순수 #000/#fff는 쓰지 않는다.
- * Tailwind 유틸리티가 이 변수들을 읽으므로 이 범위 안의 bg-background, text-muted 등이 그대로 따라온다.
- * 팀 전체 적용은 팀과 합의 뒤(globals.css @theme는 팀원 소유).
- */
-.em-theme {
-  color-scheme: light dark;
-  --color-background: light-dark(oklch(0.968 0.006 150), oklch(0.17 0.008 150));
-  --color-surface: light-dark(oklch(0.995 0.002 150), oklch(0.215 0.01 150));
-  --color-foreground: light-dark(oklch(0.24 0.014 150), oklch(0.95 0.006 150));
-  --color-muted: light-dark(oklch(0.5 0.014 150), oklch(0.74 0.012 150));
-  --color-accent: light-dark(oklch(0.52 0.12 150), oklch(0.78 0.13 150));
-  --color-accent-dark: light-dark(oklch(0.46 0.11 150), oklch(0.7 0.12 150));
-  --color-on-accent: light-dark(oklch(0.99 0.004 150), oklch(0.18 0.01 150));
-  --color-star: light-dark(oklch(0.74 0.15 75), oklch(0.83 0.14 80));
-  --color-glass: light-dark(oklch(0.995 0.002 150 / 0.6), oklch(0.26 0.012 150 / 0.55));
-  --color-glass-border: light-dark(oklch(0.24 0.014 150 / 0.08), oklch(0.95 0.006 150 / 0.12));
-  --shadow-card: light-dark(0 1px 2px oklch(0.24 0.014 150 / 0.06), 0 1px 2px oklch(0 0 0 / 0.3));
-  --radius-card: 14px;
-  --radius-button: 12px;
-  --radius-input: 10px;
-  background-color: var(--color-background);
-  /* iOS·macOS 재질처럼 유리가 보이도록 뒤에 아주 옅은 빛번짐(브랜드 녹색, 음식 호박색)을 깐다.
-     2026-11-24 사용자 지시("토스같이 글래스모피즘 티나게")로 DESIGN의 그라데이션 금지에 대한 예외. */
-  background-image:
-    radial-gradient(70% 45% at 0% 0%, light-dark(oklch(0.85 0.09 150 / 0.55), oklch(0.4 0.08 150 / 0.45)), transparent 70%),
-    radial-gradient(60% 40% at 100% 35%, light-dark(oklch(0.88 0.08 75 / 0.45), oklch(0.42 0.07 70 / 0.35)), transparent 70%);
-  background-attachment: fixed;
-  color: var(--color-foreground);
-}
+/* 토큰(색·모서리·그림자)은 tokens.css 한 곳에서. 이 파일은 그 토큰을 쓰는 공용 모양만 정의한다. */
+@import "./tokens.css";
 
 /*
  * EatsMine 공용 부품 유틸리티 (docs/DESIGN.md §4, toss-ux-design §4).
@@ -71,7 +36,7 @@
   display: flex;
   flex-direction: column;
   & > * + * {
-    border-top: 1px solid color-mix(in oklab, var(--color-foreground) 10%, transparent);
+    border-top: 1px solid var(--color-line);
   }
 }
 
@@ -79,9 +44,9 @@
 @utility list-group {
   display: flex;
   flex-direction: column;
-  border-block: 1px solid color-mix(in oklab, var(--color-foreground) 10%, transparent);
+  border-block: 1px solid var(--color-line);
   & > * + * {
-    border-top: 1px solid color-mix(in oklab, var(--color-foreground) 10%, transparent);
+    border-top: 1px solid var(--color-line);
   }
 }
 
@@ -154,6 +119,9 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-background);
+  }
 }
 
 /*
@@ -164,6 +132,14 @@
 :root:has(.em-theme) body {
   color-scheme: light dark;
   background-color: light-dark(oklch(0.968 0.006 150), oklch(0.17 0.008 150));
+}
+:root:has(.em-theme[data-scheme="light"]),
+:root:has(.em-theme[data-scheme="light"]) body {
+  color-scheme: light;
+}
+:root:has(.em-theme[data-scheme="dark"]),
+:root:has(.em-theme[data-scheme="dark"]) body {
+  color-scheme: dark;
 }
 :root:has(.em-theme) {
   scrollbar-width: thin;
@@ -204,6 +180,18 @@
 }
 .my-page .glass::before { content: none; }
 
+/* em-theme의 모든 유리: 투명도 줄이기·미지원이면 불투명 면 */
+@media (prefers-reduced-transparency: reduce) {
+  .em-theme .glass {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .em-theme .glass { background: var(--color-surface); }
+}
+
 @media (prefers-reduced-transparency: reduce) {
   .my-page .glass {
     background: var(--color-surface);
@@ -223,3 +211,98 @@
   font-weight: 700;
   letter-spacing: -0.025em;
 }
+
+/*
+ * iOS·macOS 재질 (2026-11-24 사용자 지시: "그라데이션·글래스모피즘, iOS랑 맥 기반 웹사이트").
+ * HIG Materials: 유리는 탐색·조작 층(사이드바, 상단·하단 바, 시트, 토스트)에만 쓰고 내용 층에는 쓰지 않는다.
+ * 재질은 층마다 하나. 투명도 줄이기·대비 높이기·미지원이면 불투명.
+ */
+@utility material-sidebar {
+  background-color: color-mix(in oklab, var(--color-surface) 62%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--color-surface);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-surface);
+  }
+}
+
+/* 시트·토스트처럼 글이 있는 층: HIG Materials의 regular(글이 많은 곳)에 맞춰 거의 불투명 */
+@utility material-thick {
+  background-color: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-surface) 60%, transparent),
+    0 0 0 1px var(--color-line),
+    var(--shadow-float);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--color-surface);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-contrast: more) {
+    background-color: var(--color-surface);
+  }
+}
+
+/* 입력칸 공통: 약한 면 + 포커스 때 강조색 2px 고리. 오류는 aria-invalid로 */
+@utility field {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: var(--radius-input);
+  background-color: var(--color-fill);
+  color: var(--color-foreground);
+  font-size: var(--text-base);
+  line-height: 1.5rem;
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  &::placeholder {
+    color: var(--color-muted);
+  }
+  /* 오류(안쪽 빨간 선)와 포커스(바깥 강조색 고리)를 다른 층에 그려 둘 다 보이게 한다 */
+  &[aria-invalid="true"],
+  &:has([aria-invalid="true"]) {
+    box-shadow: inset 0 0 0 2px var(--color-danger);
+  }
+  &:focus-visible,
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 키보드 포커스 고리. 바깥쪽 2px, 강조색 */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 시트·서랍 뒤 어둡게 */
+dialog.em-dialog::backdrop {
+  background: oklch(0.17 0.008 150 / 0.36);
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.em-dialog[open] {
+    animation: em-sheet-in 180ms ease-out;
+  }
+}
+/* 위치만 움직인다. 투명도를 움직이면 애니메이션이 멈춘 환경(백그라운드 탭 등)에서 시트가 반투명하게 남는다 */
+@keyframes em-sheet-in {
+  from {
+    transform: translateY(12px);
+  }
+}
+
