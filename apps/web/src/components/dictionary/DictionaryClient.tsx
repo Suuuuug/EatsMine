@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ActionButton, EmptyState, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import {
@@ -39,7 +39,7 @@ function ChevronDownIcon({ open }: { open: boolean }) {
   );
 }
 
-/** 투명 텍스트 트리거 + 유리 패널(material-thick) 기반 수집 상태 드롭다운 */
+/** 투명 텍스트 트리거 + 유리 패널(material-thick) 기반 수집 상태 드롭다운 (키보드 ↑↓/Home/End/Enter/Esc 지원) */
 function CollectionFilterDropdown({
   value,
   onChange,
@@ -48,10 +48,42 @@ function CollectionFilterDropdown({
   onChange: (next: CollectionFilter) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
+  const optionIdPrefix = useId();
+
+  const selectedIndex = Math.max(
+    0,
+    COLLECTION_OPTIONS.findIndex((option) => option.key === value),
+  );
+
+  const openMenu = (initialIndex = selectedIndex) => {
+    setActiveIndex(initialIndex);
+    setOpen(true);
+  };
+
+  const closeMenu = (restoreFocus: boolean) => {
+    setOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  };
+
+  const commitSelection = (index: number) => {
+    const target = COLLECTION_OPTIONS[index];
+    if (target) {
+      onChange(target.key);
+    }
+    closeMenu(true);
+  };
 
   useEffect(() => {
     if (!open) return;
+
+    listboxRef.current?.focus();
 
     const handleOutsideClick = (event: MouseEvent) => {
       if (
@@ -62,31 +94,82 @@ function CollectionFilterDropdown({
       }
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
     document.addEventListener("mousedown", handleOutsideClick);
-    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
-      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
 
   const currentLabel =
-    COLLECTION_OPTIONS.find((option) => option.key === value)?.label ?? "전체 상태";
+    COLLECTION_OPTIONS[selectedIndex]?.label ?? "전체 상태";
+  const activeOption = COLLECTION_OPTIONS[activeIndex] ?? COLLECTION_OPTIONS[0];
+
+  const handleTriggerKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      openMenu(selectedIndex);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu(selectedIndex);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      openMenu(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      openMenu(COLLECTION_OPTIONS.length - 1);
+    }
+  };
+
+  const handleListboxKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => {
+    const count = COLLECTION_OPTIONS.length;
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        setActiveIndex((prev) => (prev + 1) % count);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setActiveIndex((prev) => (prev - 1 + count) % count);
+        break;
+      case "Home":
+        event.preventDefault();
+        setActiveIndex(0);
+        break;
+      case "End":
+        event.preventDefault();
+        setActiveIndex(count - 1);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        commitSelection(activeIndex);
+        break;
+      case "Escape":
+        event.preventDefault();
+        closeMenu(true);
+        break;
+      case "Tab":
+        setOpen(false);
+        break;
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         aria-label="수집 상태 필터 선택"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => (open ? closeMenu(false) : openMenu(selectedIndex))}
+        onKeyDown={handleTriggerKeyDown}
         className={
           "pressable inline-flex h-9 items-center gap-1.5 rounded-input px-2.5 text-xs font-medium transition-colors " +
           (open ? "bg-fill text-foreground" : "text-muted hover:text-foreground")
@@ -99,32 +182,38 @@ function CollectionFilterDropdown({
 
       {open && (
         <div
+          ref={listboxRef}
+          id={listboxId}
           role="listbox"
+          tabIndex={-1}
           aria-label="수집 상태 목록"
-          className="material-thick absolute right-0 z-30 mt-1.5 min-w-28 rounded-input p-1"
+          aria-activedescendant={`${optionIdPrefix}-${activeOption.key}`}
+          onKeyDown={handleListboxKeyDown}
+          className="material-thick absolute right-0 z-30 mt-1.5 min-w-32 rounded-input p-1 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          {COLLECTION_OPTIONS.map((option) => {
+          {COLLECTION_OPTIONS.map((option, index) => {
             const selected = option.key === value;
+            const highlighted = index === activeIndex;
             return (
-              <button
+              <div
                 key={option.key}
-                type="button"
+                id={`${optionIdPrefix}-${option.key}`}
                 role="option"
                 aria-selected={selected}
-                onClick={() => {
-                  onChange(option.key);
-                  setOpen(false);
-                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => commitSelection(index)}
                 className={
-                  "pressable flex min-h-8 w-full items-center justify-between rounded-[7px] px-2.5 py-1 text-left text-xs transition-colors " +
+                  "flex min-h-8 w-full cursor-pointer items-center justify-between rounded-[7px] px-2.5 py-1 text-left text-xs transition-colors " +
                   (selected
                     ? "bg-accent-weak font-semibold text-accent-dark"
-                    : "text-muted hover:text-foreground")
+                    : highlighted
+                      ? "bg-fill text-foreground"
+                      : "text-muted hover:text-foreground")
                 }
               >
                 <span>{option.label}</span>
                 {selected && <Icon name="check" size={13} />}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -136,8 +225,12 @@ function CollectionFilterDropdown({
 export function DictionaryClient() {
   const [query, setQuery] = useState("");
   const [selectedSeason, setSelectedSeason] = useState<SeasonKey>("all");
-  const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>("all");
+  const [collectionFilter, setCollectionFilter] =
+    useState<CollectionFilter>("all");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabIdPrefix = useId();
+  const panelId = useId();
 
   // 백엔드(/api/me/collection) 연결 전까지는 예시 수집 상태 사용
   const collectedSet = useMemo(() => new Set(SAMPLE_COLLECTED_FOOD_IDS), []);
@@ -208,6 +301,34 @@ export function DictionaryClient() {
     setCollectionFilter("all");
   };
 
+  // 계절 탭 방향키(←/→/Home/End) 이동 및 포커스 동기화
+  const handleTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const count = SEASON_TABS.length;
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (index + 1) % count;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (index - 1 + count) % count;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = count - 1;
+    }
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextTab = SEASON_TABS[nextIndex];
+    if (nextTab) {
+      setSelectedSeason(nextTab.key);
+      tabRefs.current[nextIndex]?.focus();
+    }
+  };
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-8 md:py-12">
       {/* 1행: 1순위 페이지 제목 + 아담한 보조 검색창(h-9, 14px) */}
@@ -248,9 +369,9 @@ export function DictionaryClient() {
         </form>
       </header>
 
-      {/* 2행: 배경에 묻히지 않도록 흰 표면 카드로 감싼 수집 진행도 */}
+      {/* 2행: 흰 표면 카드(shadow-card 단일 경계)로 감싼 수집 진행도 */}
       <section aria-label="제철음식 수집 현황">
-        <div className="rounded-card border border-line bg-surface/85 px-5 py-4 shadow-card">
+        <div className="rounded-card bg-surface/85 px-5 py-4 shadow-card">
           <ProgressBar
             label={`${activeSeasonLabel}(예시)`}
             value={activeSeasonStat.collected}
@@ -262,46 +383,42 @@ export function DictionaryClient() {
       </section>
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
-      <section className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line">
+      <section className="flex flex-col gap-4 sm:gap-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:border-b sm:border-line">
           <div
-            className="flex flex-wrap items-center gap-5"
+            className="flex items-center gap-5 overflow-x-auto border-b border-line sm:gap-6 sm:overflow-visible sm:border-b-0"
             role="tablist"
             aria-label="계절 필터"
           >
-            {SEASON_TABS.map((tab) => {
+            {SEASON_TABS.map((tab, index) => {
               const active = selectedSeason === tab.key;
-              const stat = seasonStats[tab.key];
-              const isComplete = stat.total > 0 && stat.collected === stat.total;
 
               return (
                 <button
                   key={tab.key}
+                  ref={(el) => {
+                    tabRefs.current[index] = el;
+                  }}
+                  id={`${tabIdPrefix}-${tab.key}`}
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  aria-controls={panelId}
+                  tabIndex={active ? 0 : -1}
                   onClick={() => setSelectedSeason(tab.key)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={
-                    "relative inline-flex min-h-10 items-center justify-center gap-1.5 px-0.5 text-sm transition-colors focus-ring " +
+                    "relative inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center px-0.5 text-sm whitespace-nowrap transition-colors focus-ring " +
                     (active
                       ? "font-semibold text-foreground"
                       : "font-medium text-muted hover:text-foreground")
                   }
                 >
                   <span>{tab.label}</span>
-                  <span className="text-xs font-normal tabular-nums opacity-65">
-                    {stat.collected}/{stat.total}
-                  </span>
-                  {isComplete && (
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full bg-accent"
-                    />
-                  )}
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"
+                      className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent sm:-bottom-px"
                     />
                   )}
                 </button>
@@ -309,7 +426,7 @@ export function DictionaryClient() {
             })}
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 self-end sm:self-auto">
             <CollectionFilterDropdown
               value={collectionFilter}
               onChange={setCollectionFilter}
@@ -318,93 +435,103 @@ export function DictionaryClient() {
         </div>
 
         {/* 4행: 4열 컴팩트 도감 카드 그리드 (클릭 시 /?food={id} 로 지도 이동) */}
-        {filteredFoods.length === 0 ? (
-          <div className="rounded-card border border-line bg-surface/80 py-8 shadow-card">
-            <EmptyState
-              illustration="empty-search"
-              message="고른 계절과 검색어에 맞는 제철음식이 없어요."
-              action={
-                <ActionButton variant="tinted" size="sm" onClick={resetFilters}>
-                  조건 초기화
-                </ActionButton>
-              }
-            />
-          </div>
-        ) : (
-          <ul
-            aria-label="제철음식 목록"
-            className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
-          >
-            {filteredFoods.map((food) => {
-              const isCollected = collectedSet.has(food.id);
-              const regionSummary = food.regions.join(" · ");
-
-              return (
-                <li key={food.id}>
-                  <Link
-                    href={`/?food=${encodeURIComponent(food.id)}`}
-                    className="pressable group flex h-full flex-col rounded-card border border-line bg-surface/80 p-4 shadow-card transition-colors hover:border-accent/40 focus-ring"
+        <div
+          id={panelId}
+          role="tabpanel"
+          aria-labelledby={`${tabIdPrefix}-${selectedSeason}`}
+        >
+          {filteredFoods.length === 0 ? (
+            <div className="rounded-card bg-surface/85 py-8 shadow-card">
+              <EmptyState
+                illustration="empty-search"
+                message="고른 계절과 검색어에 맞는 제철음식이 없어요."
+                action={
+                  <ActionButton
+                    variant="tinted"
+                    size="sm"
+                    onClick={resetFilters}
                   >
-                    {/* 상단 공식 음식 SVG 일러스트 (수집: 원색 + ✓ / 미수집: 흑백 옅게) */}
-                    <div className="flex items-center justify-center py-4">
-                      <span className="relative inline-flex size-20 items-center justify-center">
-                        <Image
-                          src={food.src}
-                          alt=""
-                          width={76}
-                          height={76}
-                          className={
-                            "transition-transform duration-200 group-hover:scale-105 " +
-                            (isCollected ? "" : "opacity-55 grayscale")
-                          }
-                        />
-                        {isCollected && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute right-0 bottom-0 flex size-6 items-center justify-center rounded-full bg-accent text-on-accent ring-2 ring-surface"
-                          >
-                            <Icon name="check" size={14} />
-                          </span>
-                        )}
-                      </span>
-                    </div>
+                    조건 초기화
+                  </ActionButton>
+                }
+              />
+            </div>
+          ) : (
+            <ul
+              aria-label="제철음식 목록"
+              className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+            >
+              {filteredFoods.map((food) => {
+                const isCollected = collectedSet.has(food.id);
+                const regionSummary = food.regions.join(" · ");
 
-                    {/* 하단 음식명(16px) · 주요 지역(12px) · 제철 시기(12px) */}
-                    <div className="mt-auto flex flex-col gap-1 border-t border-line pt-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`text-base leading-snug font-semibold tracking-[-0.01em] ${
-                            isCollected ? "text-foreground" : "text-muted"
-                          }`}
-                        >
-                          {food.name}
-                          <span className="sr-only">
-                            {isCollected ? ", 수집함" : ", 아직 수집 안 함"}
-                          </span>
+                return (
+                  <li key={food.id}>
+                    <Link
+                      href={`/?food=${encodeURIComponent(food.id)}`}
+                      className="pressable group flex h-full flex-col rounded-card bg-surface/85 p-4 shadow-card transition-colors focus-ring"
+                    >
+                      {/* 상단 공식 음식 SVG 일러스트 (수집: 원색 + ✓ / 미수집: 흑백 옅게) */}
+                      <div className="flex items-center justify-center py-4">
+                        <span className="relative inline-flex size-20 items-center justify-center">
+                          <Image
+                            src={food.src}
+                            alt=""
+                            width={76}
+                            height={76}
+                            className={
+                              "transition-transform duration-200 group-hover:scale-105 " +
+                              (isCollected ? "" : "opacity-55 grayscale")
+                            }
+                          />
+                          {isCollected && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute right-0 bottom-0 flex size-6 items-center justify-center rounded-full bg-accent text-on-accent ring-2 ring-surface"
+                            >
+                              <Icon name="check" size={14} />
+                            </span>
+                          )}
                         </span>
-                        <Icon
-                          name="chevron-right"
-                          size={15}
-                          className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent-dark"
-                        />
                       </div>
 
-                      {regionSummary && (
-                        <p className="truncate text-xs text-muted">
-                          {regionSummary}
-                        </p>
-                      )}
+                      {/* 하단 음식명(16px) · 주요 지역(12px) · 제철 시기(12px) */}
+                      <div className="mt-auto flex flex-col gap-1 border-t border-line pt-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`text-base leading-snug font-semibold tracking-[-0.01em] ${
+                              isCollected ? "text-foreground" : "text-muted"
+                            }`}
+                          >
+                            {food.name}
+                            <span className="sr-only">
+                              {isCollected ? ", 수집함" : ", 아직 수집 안 함"}
+                            </span>
+                          </span>
+                          <Icon
+                            name="chevron-right"
+                            size={15}
+                            className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent-dark"
+                          />
+                        </div>
 
-                      <p className="mt-0.5 text-xs font-medium text-muted/80 tabular-nums">
-                        {food.seasonLabel}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                        {regionSummary && (
+                          <p className="truncate text-xs text-muted">
+                            {regionSummary}
+                          </p>
+                        )}
+
+                        <p className="mt-0.5 text-xs font-medium text-muted/80 tabular-nums">
+                          {food.seasonLabel}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </section>
     </main>
   );
