@@ -25,13 +25,16 @@ import {
   SEASONAL_FOODS,
   SEASON_TABS,
 } from "@/data/seasonal-foods";
-import { currentSeason } from "@/lib/theme/theme";
+import { orderByMonth } from "@/data/food-seasons";
+import { currentMonth, currentSeason } from "@/lib/theme/theme";
 import type { SeasonKey, SeasonalFoodItem } from "@/types/dictionary";
 
 const apiBase = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL);
 
 const subscribeToSeason = () => () => {};
 const serverSeason = (): SeasonKey => "all";
+// 서버는 날짜를 모르므로 0(순서 그대로). 브라우저에서 이번 달 제철을 탭 안 앞쪽에 둔다.
+const serverMonth = () => 0;
 
 type CollectionFilter = "all" | "collected" | "uncollected";
 
@@ -247,6 +250,7 @@ export function DictionaryClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const defaultSeason = useSyncExternalStore(subscribeToSeason, () => currentSeason(), serverSeason);
+  const month = useSyncExternalStore(subscribeToSeason, () => currentMonth(), serverMonth);
   const [seasonChoice, setSelectedSeason] = useState<SeasonKey | null>(null);
   const selectedSeason = seasonChoice ?? defaultSeason;
   useEffect(() => {
@@ -443,7 +447,8 @@ export function DictionaryClient() {
   const filteredFoods = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
-    return foods.filter((food) => {
+    // 탭(분류)은 절기, 탭 안 순서는 이번 달 제철이 먼저(달 기준)
+    return orderByMonth(foods, month).filter((food) => {
       if (selectedSeason !== "all" && !food.seasons.includes(selectedSeason)) {
         return false;
       }
@@ -470,7 +475,7 @@ export function DictionaryClient() {
 
       return haystack.includes(keyword);
     });
-  }, [foods, query, selectedSeason, collectionFilter, collectedSet]);
+  }, [foods, month, query, selectedSeason, collectionFilter, collectedSet]);
 
   const activeSeasonStat = seasonStats[selectedSeason];
   const activeSeasonLabel =

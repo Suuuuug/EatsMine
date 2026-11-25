@@ -17,7 +17,7 @@ export function MySection({ id, title, action, className = "", children }: MySec
   return (
     <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-1 ${className}`}>
       <div className="flex min-h-11 items-center justify-between gap-3">
-        <h2 id={id} className="scroll-mt-6 type-section text-foreground">{title}</h2>
+        <h2 id={id} tabIndex={-1} className="scroll-mt-6 type-section text-foreground outline-none">{title}</h2>
         {action}
       </div>
       {children}

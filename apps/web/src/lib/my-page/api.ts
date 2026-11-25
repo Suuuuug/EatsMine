@@ -3,10 +3,11 @@ import type { FoodCollectionItem, MyPageData, MyReview, Profile, RegionVisit } f
 // 우리 API(/me*)의 응답을 마이페이지 화면 모양(MyPageData)으로 바꾼다. 변환은 순수 함수라 따로 테스트한다.
 // 잇플 merUrl은 응답값 그대로 둔다.
 
-export type ProfileDto = { id: string; nickname: string; avatarUrl: string | null; createdAt: string };
+export type ProfileDto = { id: string; nickname: string; avatarUrl: string | null; createdAt: string; rankLabel?: string; reviewCount?: number };
 export type ReviewDto = {
   id: number;
-  restaurant: { id: string; name: string; merUrl: string };
+  restaurant: { id: string; name: string; merUrl: string; regionCode?: string | null };
+  food?: { id: number; name: string } | null;
   rating: number;
   content: string | null;
   visitedAt: string | null;
@@ -51,6 +52,8 @@ export function toMyReview(r: ReviewDto): MyReview {
     visited_at: r.visitedAt ?? r.createdAt.slice(0, 10),
     visibility: r.visibility,
     created_at: r.createdAt,
+    region_code: r.restaurant.regionCode ?? null,
+    food_name: r.food?.name ?? null,
   };
 }
 
@@ -60,7 +63,7 @@ export function toMyPageData(
   territories: TerritoriesDto,
   collection: CollectionDto,
 ): MyPageData {
-  const p: Profile = { id: profile.id, nickname: profile.nickname, avatar_url: profile.avatarUrl, created_at: profile.createdAt };
+  const p: Profile = { id: profile.id, nickname: profile.nickname, avatar_url: profile.avatarUrl, created_at: profile.createdAt, rank_label: profile.rankLabel, review_count: profile.reviewCount };
   const regionVisits: RegionVisit[] = territories.items.map((t) => ({
     region_id: Number(t.regionCode),
     region_name: t.regionName,
@@ -108,7 +111,7 @@ export type CreateReviewInput = { merUrl: string; restaurantName: string; rating
 export const createReview = (token: string, input: CreateReviewInput) =>
   apiFetch<{ id: number }>("/reviews", token, { method: "POST", body: JSON.stringify(input) });
 
-export type ReviewPatch = { rating?: number; content?: string; visibility?: "private" | "public" };
+export type ReviewPatch = { rating?: number; content?: string; visitedAt?: string; visibility?: "private" | "public" };
 /** 내 후기 수정. 빈 내용은 후기 글 없음으로 저장된다. */
 export const updateReview = (token: string, id: string, patch: ReviewPatch) =>
   apiFetch<ReviewDto>(`/reviews/${encodeURIComponent(id)}`, token, { method: "PATCH", body: JSON.stringify(patch) });

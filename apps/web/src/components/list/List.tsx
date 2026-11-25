@@ -65,16 +65,13 @@ type ListSwitchRowProps = {
   onChange: () => void;
 };
 
-/** 켜고 끄는 줄. 줄 전체가 스위치다. 상태는 색과 글자로 함께 보인다. */
+/** 켜고 끄는 줄. 줄 전체가 스위치다. 상태는 색과 손잡이 위치로 보이고 aria-checked로 읽힌다(토스처럼 켜짐·꺼짐 글자는 두지 않는다). */
 export function ListSwitchRow({ label, checked, disabled = false, onChange }: ListSwitchRowProps) {
   return (
     <li>
       <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={onChange} className="list-row pressable">
         <span>{label}</span>
-        <span className="flex items-center gap-3">
-          <span className="type-caption text-muted">{checked ? "켜짐" : "꺼짐"}</span>
-          <SwitchTrack checked={checked} />
-        </span>
+        <SwitchTrack checked={checked} />
       </button>
     </li>
   );

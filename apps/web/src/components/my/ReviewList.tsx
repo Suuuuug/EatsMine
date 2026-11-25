@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ActionButton, RatingStars } from "@/components/em";
+import Link from "next/link";
+import { ActionButton, EmptyState, RatingStars, actionButtonClass } from "@/components/em";
+import { Icon } from "@/components/icon/Icon";
 import { MySection } from "@/components/my/MySection";
 import { ReviewEditSheet } from "@/components/my/ReviewEditSheet";
 import { GlassCard } from "@/components/ui";
 import { formatMonthDay } from "@/lib/my-page/format";
 import type { MyReview } from "@/types/my-page";
 
-const visibilityLabel = { private: "나만 보기", public: "공개" } as const;
 /** 처음에는 최근 후기만 둔다. 같은 줄 카드와 높이가 크게 벌어지지 않게 한다. */
 const SHOWN = 2;
 
@@ -43,9 +44,15 @@ export function ReviewList({
     >
       <GlassCard className="flex-1 px-4">
         {reviews.length === 0 ? (
-          <p className="py-4 type-body text-foreground">
-            아직 남긴 후기가 없어요. 다녀온 맛집에 별점을 남기면 여기에 모여요.
-          </p>
+          <EmptyState
+            illustration="empty-reviews"
+            message="아직 남긴 후기가 없어요"
+            action={
+              <Link href="/" className={actionButtonClass({ variant: "tinted" })}>
+                후기 남길 식당 찾기
+              </Link>
+            }
+          />
         ) : (
           <>
             <ul className="list-divided">
@@ -74,6 +81,7 @@ export function ReviewList({
                         className="-mr-3.5 shrink-0"
                         disabled={busyIds.has(review.id)}
                         aria-label={`${review.restaurant_name} 후기 수정`}
+                        data-edit-review={review.id}
                         onClick={() => setEditingId(review.id)}
                       >
                         수정
@@ -83,11 +91,15 @@ export function ReviewList({
                   <div className="flex items-center gap-3">
                     <RatingStars value={review.rating} size={16} />
                     <span className="type-caption text-muted tabular-nums">
-                      {formatMonthDay(review.visited_at)}
+                      {formatMonthDay(review.visited_at)}에 다녀왔어요
                     </span>
-                    <span className="type-caption text-muted">
-                      · {visibilityLabel[review.visibility]}
-                    </span>
+                    {/* 기본값(공개)은 적지 않고, 나만 보기일 때만 자물쇠와 글자로 알린다 */}
+                    {review.visibility === "private" && (
+                      <span className="inline-flex items-center gap-1 type-caption text-muted">
+                        <Icon name="lock" size={14} />
+                        나만 보기
+                      </span>
+                    )}
                   </div>
                   {review.content && (
                     <p
@@ -138,10 +150,16 @@ export function ReviewList({
             setEditingId((current) =>
               current === updated.id ? null : current,
             );
+            // 저장 중 버튼이 잠겨 포커스가 사라진다. 고친 후기의 수정 버튼으로 돌려놓는다.
+            requestAnimationFrame(() =>
+              document.querySelector<HTMLElement>(`[data-edit-review="${updated.id}"]`)?.focus(),
+            );
           }}
           onDeleted={(id) => {
             setReviews((list) => list.filter((review) => review.id !== id));
             setEditingId((current) => (current === id ? null : current));
+            // 지운 후기의 버튼은 사라지므로 목록 제목으로 포커스를 옮긴다.
+            requestAnimationFrame(() => document.getElementById("my-reviews-title")?.focus());
             onDeleted?.();
           }}
         />
