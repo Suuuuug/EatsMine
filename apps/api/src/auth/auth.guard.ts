@@ -44,3 +44,27 @@ export class AuthGuard implements CanActivate {
     }
   }
 }
+
+/**
+ * 로그인을 선택으로 받는 공개 라우트용. 토큰이 맞으면 req.user를 채우고,
+ * 없거나 틀리면(만료 포함) 비로그인으로 통과시킨다 — 공개 화면이 만료된 토큰 때문에 막히지 않도록.
+ */
+@Injectable()
+export class OptionalAuthGuard implements CanActivate {
+  constructor(private readonly verifier: SupabaseJwtVerifier) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthUser }>();
+    const [scheme, token] = (req.headers.authorization ?? '').split(' ');
+    if (scheme?.toLowerCase() === 'bearer' && token) {
+      try {
+        req.user = await this.verifier.verify(token);
+      } catch {
+        req.user = undefined;
+      }
+    }
+    return true;
+  }
+}

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { AuthGuard } from './auth.guard.js';
+import { AuthGuard, OptionalAuthGuard } from './auth.guard.js';
 import {
   SupabaseJwtVerifier,
   supabaseJwksProvider,
@@ -8,7 +8,12 @@ import {
 /** 어느 모듈에서든 @Auth()를 쓸 수 있게 전역 모듈로 둔다. */
 @Global()
 @Module({
-  providers: [supabaseJwksProvider, SupabaseJwtVerifier, AuthGuard],
-  exports: [SupabaseJwtVerifier, AuthGuard],
+  providers: [
+    supabaseJwksProvider,
+    SupabaseJwtVerifier,
+    AuthGuard,
+    OptionalAuthGuard,
+  ],
+  exports: [SupabaseJwtVerifier, AuthGuard, OptionalAuthGuard],
 })
 export class AuthModule {}
