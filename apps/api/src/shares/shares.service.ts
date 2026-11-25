@@ -33,6 +33,7 @@ export type MySharesDto = Record<ShareType, ShareLinkDto | null>;
 /**
  * 공유 화면 데이터 (D9: 열 때마다 실시간).
  * 노출: 닉네임·등급·색칠된 지역 코드/모은 음식·칸 수 / 비노출: 리뷰 내용·방문 날짜·매장명·프로필 사진
+ * 지역·음식은 공개 후기로 얻은 것만 센다(나만 보기 후기로 칠한 기록은 공유 화면에 나오지 않는다).
  */
 export type SharedViewDto =
   | {
@@ -126,7 +127,7 @@ export class SharesService {
     };
 
     if (link.type === 'territory') {
-      const t = await this.records.territories(link.userId);
+      const t = await this.records.publicTerritories(link.userId);
       return {
         type: 'territory',
         ...owner,
@@ -135,7 +136,7 @@ export class SharesService {
         regionCodes: t.items.map((i) => i.regionCode),
       };
     }
-    const c = await this.records.collection(link.userId);
+    const c = await this.records.publicCollection(link.userId);
     return {
       type: 'collection',
       ...owner,
