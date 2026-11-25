@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ActionButton, EmptyState, SearchField } from "@/components/em";
+import { regionSearchParams, resolveRegionSelection, searchRegions } from "@/lib/map/region-navigation";
 import { RestaurantCard } from "./RestaurantCard";
 import { Icon } from "@/components/icon/Icon";
 import { buildRestaurantUrl, parseSearch, reviewUrl, validEatplUrl, regionLabel, sortRegions, summarizeReviews } from "@/lib/map/home-contract";
@@ -35,6 +37,7 @@ export function HomeMap() {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const lastHandledSearch = useRef<string | null>(null);
+  const [regionQuery, setRegionQuery] = useState("");
   const [nearby, setNearby] = useState<string | null>(null);
   const [sampleLocation, setSampleLocation] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -58,6 +61,8 @@ export function HomeMap() {
   const navigated = useRef(false);
   const children = regions.filter((r) => province ? r.parentCode === province.code : r.parentCode === null);
   const list = sortRegions(children);
+  const searchResults = searchRegions(regions, regionQuery);
+  const searching = Boolean(regionQuery.trim());
   const shapeKey = province?.code ?? "nation";
 
   useEffect(() => {
@@ -68,8 +73,10 @@ export function HomeMap() {
       setPreview(params.get("preview") === "1" ? (params.get("view") === "reviews" ? "reviews" : "card") : null);
       const query = parseSearch(search);
       setFoodId(query.foodId); setUnsupportedFood(query.unsupportedFood);
-      const match = regions.find((r) => r.code === query.regionCode && r.parentCode && r.parentCode !== "12") ?? null;
-      const parent = match ? regions.find((r) => r.code === match.parentCode) ?? null : null;
+      const { region: match, province: parent } = resolveRegionSelection(regions, params);
+      setRegionQuery("");
+      setNearby(null);
+      navigated.current = true;
       setProvince(parent); setRegion(match); setResult(null); setError("");
       setLoading(Boolean(match && apiBase && !query.unsupportedFood)); setInitialized(true);
     }, 0);
@@ -136,17 +143,30 @@ export function HomeMap() {
       setLocationError(error.code === 1 ? "위치 권한을 허용하거나 지역을 직접 선택해 주세요." : "위치를 확인하지 못했어요. 다시 시도하거나 지역을 직접 선택해 주세요.");
     }, { timeout: 10000, maximumAge: 60000 });
   }
+  function navigateRegion(nextProvince: Region | null, nextRegion: Region | null) {
+    locationRequest.current++; setLocating(false); setLocationError("");
+    setRegionQuery(""); setHoveredRegion(null); navigated.current = true;
+    // 같은 지역을 다시 고르면 기존 조회 결과를 유지해요.
+    if (nextProvince?.code !== province?.code || nextRegion?.code !== region?.code) {
+      setProvince(nextProvince); setRegion(nextRegion); setResult(null); setError("");
+      setLoading(Boolean(nextRegion && apiBase && !unsupportedFood && nextProvince?.code !== "12"));
+    } else {
+      requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
+    }
+    const url = new URL(window.location.href);
+    url.search = regionSearchParams(url.searchParams, nextProvince?.code ?? null, nextRegion?.code ?? null).toString();
+    lastHandledSearch.current = url.searchParams.toString();
+    if (url.href !== window.location.href) window.history.pushState(null, "", url);
+  }
   function chooseProvince(value: Region) {
-    locationRequest.current++; setLocating(false); setLocationError(""); setHoveredRegion(null); navigated.current = true; setRegion(null); setProvince(value); setResult(null); setError("");
+    navigateRegion(value, null);
   }
   function chooseRegion(value: Region) {
-    setHoveredRegion(null); navigated.current = true; setResult(null); setError(""); setLoading(Boolean(apiBase && !unsupportedFood)); setRegion(value);
-    const url = new URL(window.location.href); if (province?.code !== "12") url.searchParams.set("regionCode", value.code); else url.searchParams.delete("regionCode"); lastHandledSearch.current = url.searchParams.toString(); window.history.replaceState(null, "", url);
+    const parent = regions.find(item => item.code === value.parentCode) ?? null;
+    navigateRegion(parent, value);
   }
   function goBack() {
-    navigated.current = true; setError(""); setResult(null);
-    if (region) { setRegion(null); const url = new URL(window.location.href); url.searchParams.delete("regionCode"); lastHandledSearch.current = url.searchParams.toString(); window.history.replaceState(null, "", url); }
-    else setProvince(null);
+    navigateRegion(region ? province : null, null);
   }
   function clearFood() {
     setUnsupportedFood(false); setFoodId(null); setLoading(Boolean(apiBase && region));
@@ -180,11 +200,50 @@ export function HomeMap() {
   const selectedTitle = region?.fullName ?? (province ? regionLabel(province) : "어디에서 먹을까요?");
   const places = result?.items.filter((place) => validEatplUrl(place.merUrl)) ?? [];
   return (
-    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-20 pb-7 md:px-8">
+    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-20 pb-24 md:px-8 md:pb-7">
       <div className="mt-6 grid gap-7 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
         <section className="min-w-0" aria-label="지역과 식당 목록">
           {(province || region) && <button type="button" onClick={goBack} className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring">‹ {region && province ? regionLabel(province) : "전국"}</button>}
           <h1 ref={titleRef} tabIndex={-1} className="type-title outline-none">{selectedTitle}</h1>
+          <SearchField
+            className="mt-4"
+            label="시·도 또는 시·군·구 검색"
+            placeholder="지역 이름을 입력해 주세요"
+            value={regionQuery}
+            onValueChange={setRegionQuery}
+            aria-controls={searching ? "region-search-results" : undefined}
+          />
+          {searching ? (
+            <div id="region-search-results" className="mt-4">
+              <p role="status" className="type-caption">지역 {searchResults.length}곳을 찾았어요.</p>
+              {searchResults.length ? (
+                <ul aria-label="지역 검색 결과" className="mt-2 divide-y divide-line">
+                  {searchResults.map(item => (
+                    <li key={item.code}>
+                      <button
+                        type="button"
+                        onClick={() => item.parentCode ? chooseRegion(item) : chooseProvince(item)}
+                        className="pressable focus-ring scroll-mb-24 flex min-h-11 w-full items-center justify-between gap-3 rounded-input px-2 py-3 text-left"
+                      >
+                        <span>{item.fullName}</span><span aria-hidden="true">›</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  illustration="empty-search"
+                  message="일치하는 지역이 없어요. 다른 이름으로 검색해 주세요."
+                  action={
+                    <ActionButton variant="gray" className="scroll-mb-24" onClick={() => {
+                      document.querySelector<HTMLInputElement>('input[aria-controls="region-search-results"]')?.focus();
+                      setRegionQuery("");
+                    }}>검색어 지우기</ActionButton>
+                  }
+                />
+              )}
+            </div>
+          ) : <>
           {!region ? <>
             <p className="mt-2 type-body text-muted">{province ? "시·군·구를 선택해 주세요." : "지역을 선택해 식당을 찾아보세요."}</p>
 
@@ -199,6 +258,7 @@ export function HomeMap() {
                 <p className="mt-4 type-caption text-muted">{attribution}</p>
               </> : null}
             </>}
+          </>}
           </>}
         </section>
         <section aria-label="지역 지도" className="relative order-first min-h-80 rounded-card border border-line bg-surface/40 p-4 lg:order-last">
