@@ -18,7 +18,7 @@ export function MyPageView({ data, member }: MyPageViewProps) {
   const { profile, regionVisits, foodCollection, reviews } = data;
 
   return (
-    <div className="em-theme my-backdrop flex min-h-dvh flex-1 pt-16 pb-16 md:pb-0 md:pl-[76px]">
+    <div className="em-theme my-backdrop flex min-h-dvh flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
       <ScrollActivity />
       <Sidebar />
       <main className="my-page mx-auto flex min-w-0 w-full max-w-2xl flex-1 flex-col break-keep text-foreground lg:max-w-none 2xl:max-w-7xl">
@@ -49,7 +49,7 @@ export function MyPageView({ data, member }: MyPageViewProps) {
             <div className="mt-8"><ThemeSettings /></div>
           </div>
           <section aria-labelledby="privacy-title" className="mx-4 flex flex-col gap-2 lg:col-start-1 lg:row-start-4 lg:mx-0 lg:mt-8">
-            <h2 id="privacy-title" className="scroll-mt-20 type-section">공개 범위</h2>
+            <h2 id="privacy-title" className="scroll-mt-6 type-section">공개 범위</h2>
             <p className="type-body text-muted">공개 설정과 기록 공유를 준비하고 있어요</p>
           </section>
         </div>

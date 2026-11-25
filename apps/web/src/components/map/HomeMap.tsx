@@ -177,7 +177,7 @@ export function HomeMap() {
     navigated.current = true; lastHandledSearch.current = new URL(url, window.location.href).searchParams.toString(); window.history.pushState(null, "", url); setPreview(view);
   }
   if (nearby) return (
-    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-20 pb-24 md:px-8">
+    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-6 md:pt-8 pb-24 md:px-8">
       <button type="button" className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring" onClick={() => { locationRequest.current++; setNearby(null); }}>‹ 지역 찾기</button>
       <div className="mt-4 grid gap-7 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
         <section aria-label="주변 식당 목록"><h1 className="type-title">내 주변 식당</h1><p className="mt-2 type-caption text-muted">{sampleLocation ? "서울 지도와 식당 정보는 예시예요." : "식당 정보와 지도 표시는 예시예요."}</p><div className="mt-3 divide-y divide-line">{[1, 2].map((number) => <RestaurantCard key={number} name={`예시 식당 ${number}`} address="식당 주소 예시" genre="한식" rankNational={null} estimatedHours={null} merUrl={null} reviewsHref={null} onReviewsClick={() => { setNearby(null); showPreview("reviews"); }} photoUrl="/images/preview/restaurant-example.png" reviews={summarizeReviews(exampleReviews)} />)}</div></section>
@@ -190,7 +190,7 @@ export function HomeMap() {
     </main>
   );
   if (preview) return (
-    <main className="mx-auto min-h-dvh max-w-md px-5 pt-20 pb-28 md:px-8">
+    <main className="mx-auto min-h-dvh max-w-md px-5 pt-6 md:pt-8 pb-28 md:px-8">
       <button type="button" className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring" onClick={() => showPreview(preview === "reviews" ? "card" : null)}>‹ {preview === "reviews" ? "식당 카드" : "지역 찾기"}</button>
       <h1 ref={titleRef} tabIndex={-1} className="mt-4 type-title outline-none">{preview === "reviews" ? "식당 후기" : "식당 카드"}</h1>
       <p className="mt-2 type-body text-muted">화면 구성 예시예요. 식당과 후기는 실제 정보가 아니에요.</p>
@@ -200,7 +200,7 @@ export function HomeMap() {
   const selectedTitle = region?.fullName ?? (province ? regionLabel(province) : "어디에서 먹을까요?");
   const places = result?.items.filter((place) => validEatplUrl(place.merUrl)) ?? [];
   return (
-    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-20 pb-24 md:px-8 md:pb-7">
+    <main className="mx-auto min-h-dvh max-w-[1600px] px-5 pt-6 md:pt-8 pb-24 md:px-8 md:pb-7">
       <div className="mt-6 grid gap-7 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
         <section className="min-w-0" aria-label="지역과 식당 목록">
           {(province || region) && <button type="button" onClick={goBack} className="pressable min-h-11 rounded-input px-2 font-semibold text-accent-dark focus-ring">‹ {region && province ? regionLabel(province) : "전국"}</button>}

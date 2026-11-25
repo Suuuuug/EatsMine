@@ -18,7 +18,7 @@ export function ListSection({ id, title, description, children }: ListSectionPro
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 id={id} className="scroll-mt-20 type-section text-foreground">
+        <h2 id={id} className="scroll-mt-6 type-section text-foreground">
           {title}
         </h2>
         {description && <p className="type-caption font-normal text-muted">{description}</p>}
