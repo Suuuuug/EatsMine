@@ -46,7 +46,8 @@ const createSchema = z.object(
     content: contentSchema.optional().transform((v) => v || undefined),
     visitedAt: visitedAtSchema.optional(),
     foodId: foodIdSchema.optional(),
-    visibility: visibilitySchema.default('private'),
+    /** 기본 공개 — 공개 후기만 영토 주인·지역 순위·매장 후기에 반영된다. 나만 보기는 작성 시 직접 고른다 */
+    visibility: visibilitySchema.default('public'),
   },
   { error: '본문은 JSON 객체여야 해요' },
 );

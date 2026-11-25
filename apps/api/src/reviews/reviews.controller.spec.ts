@@ -73,7 +73,7 @@ describe('리뷰·내 기록 API', () => {
   const server = () => app.getHttpServer();
 
   describe('POST /reviews', () => {
-    it('기본값(private)과 빈 후기 정리 후 서비스에 넘긴다', async () => {
+    it('기본값(public)과 빈 후기 정리 후 서비스에 넘긴다', async () => {
       reviews.create.mockResolvedValue({ id: 1 });
       await request(server())
         .post('/reviews')
@@ -89,7 +89,7 @@ describe('리뷰·내 기록 API', () => {
         restaurantName: '카페시나브로',
         rating: 5,
         content: undefined,
-        visibility: 'private',
+        visibility: 'public',
       });
     });
 
