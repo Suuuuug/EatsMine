@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionButton,
   BottomSheet,
@@ -11,6 +11,7 @@ import {
   getSamplePlaceReviews,
   type PlaceReviewItem,
 } from "@/data/map-mock";
+import { validEatplUrl } from "@/lib/map/home-contract";
 import type { EatplPlace } from "@/types/map";
 
 const MAX_REVIEW_PHOTOS = 4;
@@ -43,8 +44,24 @@ export function RestaurantReviewSheet({
   const [draftPhotos, setDraftPhotos] = useState<DraftPhoto[]>([]);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftPhotosRef = useRef<DraftPhoto[]>([]);
+
+  useEffect(() => {
+    draftPhotosRef.current = draftPhotos;
+  }, [draftPhotos]);
+
+  // 시트 언마운트 시 아직 제출하지 않은 드래프트 사진의 object URL을 정리한다.
+  useEffect(() => {
+    return () => {
+      for (const photo of draftPhotosRef.current) {
+        URL.revokeObjectURL(photo.url);
+      }
+    };
+  }, []);
 
   const summary = place ? getSamplePlaceReviews(place, userReviews) : null;
+  // 잇플 링크는 home-contract의 validEatplUrl로 검증한 API 응답 원본 URL만 허용한다(쿼리 추가·변형 금지).
+  const safeEatplUrl = place ? validEatplUrl(place.merUrl) : null;
 
   const clearDraftPhotos = (revokeUrls: boolean) => {
     if (revokeUrls) {
@@ -143,19 +160,35 @@ export function RestaurantReviewSheet({
                 <span>리뷰 남기기</span>
               </ActionButton>
             )}
-            <a
-              href={place.merUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={actionButtonClass({
-                variant: writing ? "gray" : "tinted",
-                size: "md",
-                block: writing,
-              })}
-            >
-              <span>잇플 가게 정보</span>
-              <Icon name="external" size={15} />
-            </a>
+            {safeEatplUrl ? (
+              <a
+                href={safeEatplUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={actionButtonClass({
+                  variant: writing ? "gray" : "tinted",
+                  size: "md",
+                  block: writing,
+                })}
+              >
+                <span>잇플 가게 정보</span>
+                <Icon name="external" size={15} />
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="백엔드 API 연동 후 실제 잇플 상세 페이지로 연결돼요"
+                className={actionButtonClass({
+                  variant: "gray",
+                  size: "md",
+                  block: writing,
+                  className: "cursor-not-allowed opacity-60",
+                })}
+              >
+                <span>잇플 가게 정보(예시)</span>
+              </button>
+            )}
           </div>
         )
       }
@@ -225,8 +258,8 @@ export function RestaurantReviewSheet({
                 onChange={(event) => setContent(event.target.value)}
                 rows={3}
                 maxLength={500}
-                placeholder="방문 후기를 남겨 주세요."
-                aria-label="방문 후기 입력"
+                placeholder="여행 중 다녀온 후기를 남겨 주세요."
+                aria-label="여행 후기 입력"
                 className="field resize-none px-3 py-2.5 text-sm"
               />
 

@@ -6,11 +6,11 @@ import type {
   TerritoryOwner,
 } from "@/types/map";
 
-/** 기본 시작 지역 (서울특별시 중구) */
+/** 기본 시작 지역 (서울 중구) */
 export const DEFAULT_REGION: RegionItem = {
   code: "11140",
   name: "중구",
-  fullName: "서울특별시 중구",
+  fullName: "서울 중구",
   centerLat: 37.5597,
   centerLng: 127.0017,
 };

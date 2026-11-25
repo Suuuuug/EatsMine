@@ -1,23 +1,32 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BottomSheet, IconButton, markerSrc } from "@/components/em";
+import { ActionButton, BottomSheet, IconButton } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import {
   KakaoMapLayer,
   type KakaoMapViewport,
 } from "@/components/map/KakaoMapLayer";
+import {
+  MAX_KAKAO_ZOOM,
+  MIN_KAKAO_ZOOM,
+  epsg5181ToLatLng,
+  latLngToEpsg5181,
+  metersPerPixelForZoom,
+} from "@/lib/map/epsg5181";
+import {
+  formatTravelFullName,
+  getTravelProvinceName,
+} from "@/lib/seo/site";
 import type { EatplPlace, RegionItem, TerritoryOwner } from "@/types/map";
 
 export type MapMode = "restaurants" | "territory";
 
-/** 카카오맵 JS 키가 설정되어 있으면 '식당 보기'에 카카오맵 사용, 미설정/실패 시 OSM 자동 폴백 */
+/** '식당 보기' 모드용 카카오맵 JS 키 (미설정 또는 로드 실패 시 오류 안내 표시) */
 const KAKAO_MAP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY?.trim() || "";
 
-const TILE_SIZE = 256;
-const MIN_ZOOM = 6;
-const MAX_ZOOM = 17;
+const MIN_ZOOM = MIN_KAKAO_ZOOM;
+const MAX_ZOOM = MAX_KAKAO_ZOOM;
 /** 영토 표시 모드에서 시·도 뷰 최대 줌 (이 초과인 zoom 9 이상부터 시·군·구 세부 영토로 전환) */
 const PROVINCE_MAX_ZOOM = 8;
 const DEFAULT_CENTER = { lat: 36.2, lng: 127.85 };
@@ -28,9 +37,10 @@ const NATION_BOUNDS: GeoBounds = {
   maxLng: 130.95,
 };
 
-// SVG 정밀도 유지를 위한 한반도 기준 정규화 좌표 (Web Mercator 0..1)
-const REF_NX = (127.85 + 180) / 360;
-const REF_NY = latToNormY(36.2);
+// SVG 정밀도 유지를 위한 한반도 기준 원점 (카카오맵 동일 EPSG:5181 평면, x: 동쪽+, y: 남쪽+)
+const REF_TM = latLngToEpsg5181(36.2, 127.85);
+const REF_X = REF_TM.x;
+const REF_Y = -REF_TM.y;
 
 /** 땅따먹기 점령자(닉네임)별 고유 영토 색상 팔레트 (차분한 자연·파스텔 톤) */
 const OWNER_PALETTE = [
@@ -141,7 +151,7 @@ type InteractiveTileMapProps = {
   onSelectProvince?: (provinceCode: string) => void;
 };
 
-// --- Web Mercator 수학 유틸 ---
+// --- 카카오맵 동일 EPSG:5181 (중부원점 TM) 평면 투영 유틸 ---
 
 function clampLat(lat: number): number {
   return Math.max(32.2, Math.min(39.2, lat));
@@ -151,14 +161,10 @@ function clampLng(lng: number): number {
   return Math.max(123.8, Math.min(132.4, lng));
 }
 
-function latToNormY(lat: number): number {
-  const sinLat = Math.sin((lat * Math.PI) / 180);
-  const clamped = Math.max(-0.9999, Math.min(0.9999, sinLat));
-  return 0.5 - Math.log((1 + clamped) / (1 - clamped)) / (4 * Math.PI);
-}
-
-function lngToNormX(lng: number): number {
-  return (lng + 180) / 360;
+/** 위도·경도 → EPSG:5181 평면 좌표(미터, x: 동쪽+, y: 남쪽+ 화면 방향) */
+function latLngToTmScreenMeters(lat: number, lng: number): [number, number] {
+  const tm = latLngToEpsg5181(lat, lng);
+  return [tm.x, -tm.y];
 }
 
 function latLngToWorld(
@@ -166,10 +172,11 @@ function latLngToWorld(
   lng: number,
   zoom: number,
 ): { x: number; y: number } {
-  const scale = TILE_SIZE * 2 ** zoom;
+  const mpp = metersPerPixelForZoom(zoom);
+  const tm = latLngToEpsg5181(lat, lng);
   return {
-    x: lngToNormX(lng) * scale,
-    y: latToNormY(lat) * scale,
+    x: tm.x / mpp,
+    y: -tm.y / mpp,
   };
 }
 
@@ -178,10 +185,8 @@ function worldToLatLng(
   y: number,
   zoom: number,
 ): { lat: number; lng: number } {
-  const scale = TILE_SIZE * 2 ** zoom;
-  const lng = (x / scale) * 360 - 180;
-  const n = Math.PI - (2 * Math.PI * y) / scale;
-  const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  const mpp = metersPerPixelForZoom(zoom);
+  const { lat, lng } = epsg5181ToLatLng(x * mpp, -y * mpp);
   return { lat: clampLat(lat), lng: clampLng(lng) };
 }
 
@@ -276,7 +281,7 @@ function extractRingsAndBounds(geometry: RawGeoFeature["geometry"]): {
           if (pLat > maxLat) maxLat = pLat;
           if (pLng < minLng) minLng = pLng;
           if (pLng > maxLng) maxLng = pLng;
-          return [lngToNormX(pLng), latToNormY(pLat)];
+          return latLngToTmScreenMeters(pLat, pLng);
         }),
       );
     }
@@ -321,15 +326,15 @@ function pointInRings(
 
 function buildTerritoryPathD(
   rings: [number, number][][],
-  worldScale: number,
+  pxPerMeter: number,
 ): string {
   const parts: string[] = [];
   for (const ring of rings) {
     if (ring.length < 3) continue;
     let cmd = "";
     for (let i = 0; i < ring.length; i++) {
-      const x = ((ring[i][0] - REF_NX) * worldScale).toFixed(1);
-      const y = ((ring[i][1] - REF_NY) * worldScale).toFixed(1);
+      const x = ((ring[i][0] - REF_X) * pxPerMeter).toFixed(1);
+      const y = ((ring[i][1] - REF_Y) * pxPerMeter).toFixed(1);
       cmd += (i === 0 ? "M" : "L") + x + "," + y;
     }
     parts.push(cmd + "Z");
@@ -365,17 +370,21 @@ export function InteractiveTileMap({
   const [viewport, setViewport] = useState<MapViewport>(() =>
     computeFitViewport(places, 900, 640, regionCenter),
   );
-  const [hoveredPinId, setHoveredPinId] = useState<string | null>(null);
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
-  const [kakaoFailed, setKakaoFailed] = useState(false);
+  const [kakaoError, setKakaoError] = useState<string | null>(() =>
+    KAKAO_MAP_KEY
+      ? null
+      : "카카오맵 API 키(NEXT_PUBLIC_KAKAO_MAP_KEY)가 설정되지 않았어요.",
+  );
+  const [kakaoRetryKey, setKakaoRetryKey] = useState(0);
   const [provinces, setProvinces] = useState<PrecomputedProvince[]>([]);
   const [territories, setTerritories] = useState<PrecomputedTerritory[]>([]);
 
-  const kakaoEnabled = Boolean(KAKAO_MAP_KEY) && !kakaoFailed;
-  const kakaoActiveInView = mode === "restaurants" && kakaoEnabled && kakaoReady;
+  const kakaoEnabled = Boolean(KAKAO_MAP_KEY) && !kakaoError;
+  const isTerritoryMode = mode === "territory";
 
   const dragStateRef = useRef<{
     pointerId: number;
@@ -418,7 +427,9 @@ export function InteractiveTileMap({
     ])
       .then(([sidoGeo, territoryGeo, meta]) => {
         const provinceNames = new Map<string, string>();
-        for (const p of meta.provinces) provinceNames.set(p.code, p.name);
+        for (const p of meta.provinces) {
+          provinceNames.set(p.code, getTravelProvinceName(p.code, p.name));
+        }
 
         const metaByCode = new Map<
           string,
@@ -441,11 +452,14 @@ export function InteractiveTileMap({
 
             return {
               code,
-              name: provinceNames.get(code) ?? feature.properties.name,
+              name:
+                provinceNames.get(code) ??
+                getTravelProvinceName(code, feature.properties.name),
               shortName:
                 SHORT_PROVINCE_NAME[code] ??
-                (provinceNames.get(code) ?? feature.properties.name),
-              labelNorm: [lngToNormX(labelLng), latToNormY(labelLat)],
+                provinceNames.get(code) ??
+                feature.properties.name,
+              labelNorm: latLngToTmScreenMeters(labelLat, labelLng),
               rings,
               bounds,
             };
@@ -460,8 +474,7 @@ export function InteractiveTileMap({
               feature.properties.parentCode ??
               info?.parentCode ??
               code.slice(0, 2);
-            const provinceName = provinceNames.get(parentCode);
-            const fullName = provinceName ? `${provinceName} ${name}` : name;
+            const fullName = formatTravelFullName(parentCode, name);
             const lp = feature.properties.labelPoint ?? info?.labelPoint;
             const [lng, lat] = lp ?? [null, null];
             const { rings, bounds } = extractRingsAndBounds(feature.geometry);
@@ -475,7 +488,7 @@ export function InteractiveTileMap({
               centerLng: lng,
               labelNorm:
                 lng != null && lat != null
-                  ? [lngToNormX(lng), latToNormY(lat)]
+                  ? latLngToTmScreenMeters(lat, lng)
                   : null,
               rings,
               bounds,
@@ -674,8 +687,7 @@ export function InteractiveTileMap({
         : territories;
       if (candidates.length === 0) return null;
 
-      const nx = lngToNormX(lng);
-      const ny = latToNormY(lat);
+      const [nx, ny] = latLngToTmScreenMeters(lat, lng);
       for (const t of candidates) {
         if (
           lat < t.bounds.minLat ||
@@ -734,23 +746,22 @@ export function InteractiveTileMap({
     if (prevModeRef.current === mode) return;
     prevModeRef.current = mode;
 
-    const vp = viewportRef.current;
-
     const id = requestAnimationFrame(() => {
+      const vp = viewportRef.current;
       setHoveredCode(null);
 
       if (mode === "territory") {
-        // 골목길 수준 과확대 상태였다면 영토 경계가 보이도록 줌 상한만 부드럽게 조정 (중심 좌표는 유지)
-        if (vp.zoom > 12) {
-          const next = { ...vp, zoom: 12 };
+        // 초근접 골목길 수준(zoom 14+)이었다면 시·군·구 경계가 보이도록 줌 상한만 부드럽게 조정 (중심 좌표는 유지)
+        if (vp.zoom > 13) {
+          const next = { ...vp, zoom: 13 };
           viewportRef.current = next;
           setViewport(next);
         }
         return;
       }
 
-      // 영토 표시 → 식당 보기: 현재 카메라(위치·줌)는 그대로 유지!
-      // 단, 세부 영토(zoom > PROVINCE_MAX_ZOOM)를 보던 중 현재 선택 지역이 화면 밖에 있다면 화면 중심 시·군·구로 목록도 동기화
+      // 영토 표시 → 식당 보기: 현재 카메라(위치·줌)는 그대로 유지하고,
+      // 세부 영토(zoom > PROVINCE_MAX_ZOOM)에서 선택 지역이 화면 밖에 있으면 화면 중심 시·군·구로 왼쪽 목록 동기화
       if (vp.zoom > PROVINCE_MAX_ZOOM) {
         const selectedTarget = selectedRegionCode
           ? territoryByCode.get(selectedRegionCode)
@@ -798,12 +809,6 @@ export function InteractiveTileMap({
   ]);
 
   // 식당 보기 모드에서 검색 결과 변경 시 핀이 모두 보이도록 카메라 맞추기
-  const fitAll = useCallback(() => {
-    setViewport(
-      computeFitViewport(places, size.width, size.height, regionCenter),
-    );
-  }, [places, size.width, size.height, regionCenter]);
-
   const prevFitRef = useRef(fitTrigger);
   useEffect(() => {
     if (prevFitRef.current !== fitTrigger) {
@@ -819,7 +824,10 @@ export function InteractiveTileMap({
           size.height,
           regionCenter,
         );
-        const id = requestAnimationFrame(() => setViewport(next));
+        const id = requestAnimationFrame(() => {
+          viewportRef.current = next;
+          setViewport(next);
+        });
         return () => cancelAnimationFrame(id);
       }
       if (mode === "territory" && selectedRegionCode) {
@@ -893,11 +901,13 @@ export function InteractiveTileMap({
       const lat = target.lat;
       const lng = target.lng;
       const id = requestAnimationFrame(() => {
-        setViewport((prev) => ({
+        const next: MapViewport = {
           lat,
           lng,
-          zoom: Math.max(prev.zoom, 14),
-        }));
+          zoom: Math.max(viewportRef.current.zoom, 14),
+        };
+        viewportRef.current = next;
+        setViewport(next);
       });
       return () => cancelAnimationFrame(id);
     }
@@ -948,13 +958,12 @@ export function InteractiveTileMap({
     [mode, size.width, size.height, syncRegionToViewport],
   );
 
-  // 마우스 휠·트랙패드 확대/축소 (페이지 스크롤 방지 + 누적 임계값으로 부드러운 1단계 줌)
-  // 카카오맵 활성 시에는 카카오맵 네이티브 줌에 맡긴다.
+  // 마우스 휠·트랙패드 확대/축소 ('영토 표시' SVG 모드에서만 사용, '식당 보기'는 카카오맵 네이티브 줌 사용)
   const wheelAccumRef = useRef(0);
   const wheelLastTriggerRef = useRef(0);
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || kakaoActiveInView) return;
+    if (!el || !isTerritoryMode) return;
 
     const handleWheel = (event: WheelEvent) => {
       if ((event.target as Element | null)?.closest("dialog")) return;
@@ -988,13 +997,13 @@ export function InteractiveTileMap({
 
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
-  }, [handleZoomDelta, kakaoActiveInView]);
+  }, [handleZoomDelta, isTerritoryMode]);
 
   // 영토 표시 모드: zoom <= PROVINCE_MAX_ZOOM(8)은 전국 16개 시·도, 더 확대(zoom >= 9)하면 주변 지역까지 이어진 시·군·구 세부 영토
   const isProvinceLevel =
     mode === "territory" && viewport.zoom <= PROVINCE_MAX_ZOOM;
 
-  const worldScale = TILE_SIZE * 2 ** viewport.zoom;
+  const pxPerMeter = 1 / metersPerPixelForZoom(viewport.zoom);
   const centerWorld = useMemo(
     () => latLngToWorld(viewport.lat, viewport.lng, viewport.zoom),
     [viewport],
@@ -1009,9 +1018,9 @@ export function InteractiveTileMap({
         code: p.code,
         label: p.name,
         shortLabel: p.shortName,
-        labelX: (p.labelNorm[0] - REF_NX) * worldScale,
-        labelY: (p.labelNorm[1] - REF_NY) * worldScale,
-        d: buildTerritoryPathD(p.rings, worldScale),
+        labelX: (p.labelNorm[0] - REF_X) * pxPerMeter,
+        labelY: (p.labelNorm[1] - REF_Y) * pxPerMeter,
+        d: buildTerritoryPathD(p.rings, pxPerMeter),
       }));
     }
 
@@ -1019,86 +1028,23 @@ export function InteractiveTileMap({
       code: t.code,
       label: t.fullName,
       shortLabel: t.name,
-      labelX: t.labelNorm ? (t.labelNorm[0] - REF_NX) * worldScale : null,
-      labelY: t.labelNorm ? (t.labelNorm[1] - REF_NY) * worldScale : null,
-      d: buildTerritoryPathD(t.rings, worldScale),
+      labelX: t.labelNorm ? (t.labelNorm[0] - REF_X) * pxPerMeter : null,
+      labelY: t.labelNorm ? (t.labelNorm[1] - REF_Y) * pxPerMeter : null,
+      d: buildTerritoryPathD(t.rings, pxPerMeter),
     }));
-  }, [mode, isProvinceLevel, provinces, territories, worldScale]);
+  }, [mode, isProvinceLevel, provinces, territories, pxPerMeter]);
 
   // 시·군·구 세부 영토에서 시·도 간 경계를 자연스럽게 구분해 주는 외곽선
   const provinceBorderPaths = useMemo(() => {
     if (mode !== "territory" || isProvinceLevel) return [];
     return provinces.map((p) => ({
       code: p.code,
-      d: buildTerritoryPathD(p.rings, worldScale),
+      d: buildTerritoryPathD(p.rings, pxPerMeter),
     }));
-  }, [mode, isProvinceLevel, provinces, worldScale]);
+  }, [mode, isProvinceLevel, provinces, pxPerMeter]);
 
-  const svgTranslateX = REF_NX * worldScale - centerWorld.x + size.width / 2;
-  const svgTranslateY = REF_NY * worldScale - centerWorld.y + size.height / 2;
-
-  // 지도 타일은 '식당 보기' 모드에서 카카오맵이 비활성일 때만 렌더링 (자동 폴백)
-  const tiles = useMemo(() => {
-    if (mode !== "restaurants" || kakaoActiveInView) return [];
-    const halfW = size.width / 2;
-    const halfH = size.height / 2;
-    const minTileX = Math.floor((centerWorld.x - halfW) / TILE_SIZE) - 1;
-    const maxTileX = Math.floor((centerWorld.x + halfW) / TILE_SIZE) + 1;
-    const minTileY = Math.floor((centerWorld.y - halfH) / TILE_SIZE) - 1;
-    const maxTileY = Math.floor((centerWorld.y + halfH) / TILE_SIZE) + 1;
-    const maxIndex = 2 ** viewport.zoom;
-
-    const list: { key: string; url: string; left: number; top: number }[] = [];
-    for (let tx = minTileX; tx <= maxTileX; tx++) {
-      for (let ty = minTileY; ty <= maxTileY; ty++) {
-        if (ty < 0 || ty >= maxIndex) continue;
-        const wrappedX = ((tx % maxIndex) + maxIndex) % maxIndex;
-        list.push({
-          key: `${viewport.zoom}-${tx}-${ty}`,
-          url: `https://tile.openstreetmap.org/${viewport.zoom}/${wrappedX}/${ty}.png`,
-          left: Math.round(tx * TILE_SIZE - centerWorld.x + halfW),
-          top: Math.round(ty * TILE_SIZE - centerWorld.y + halfH),
-        });
-      }
-    }
-    return list;
-  }, [mode, kakaoActiveInView, centerWorld, size.width, size.height, viewport.zoom]);
-
-  // 식당 핀은 '식당 보기' 모드에서 카카오맵이 비활성일 때만 커스텀 DOM으로 렌더링
-  const projectedPins = useMemo(() => {
-    if (mode !== "restaurants" || kakaoActiveInView) return [];
-    const halfW = size.width / 2;
-    const halfH = size.height / 2;
-
-    return places
-      .filter(
-        (p): p is EatplPlace & { lat: number; lng: number } =>
-          p.lat != null && p.lng != null,
-      )
-      .map((place) => {
-        const world = latLngToWorld(place.lat, place.lng, viewport.zoom);
-        return {
-          place,
-          x: world.x - centerWorld.x + halfW,
-          y: world.y - centerWorld.y + halfH,
-        };
-      })
-      .filter(
-        (pin) =>
-          pin.x >= -60 &&
-          pin.x <= size.width + 60 &&
-          pin.y >= -60 &&
-          pin.y <= size.height + 60,
-      );
-  }, [
-    mode,
-    kakaoActiveInView,
-    places,
-    centerWorld,
-    size.width,
-    size.height,
-    viewport.zoom,
-  ]);
+  const svgTranslateX = REF_X * pxPerMeter - centerWorld.x + size.width / 2;
+  const svgTranslateY = REF_Y * pxPerMeter - centerWorld.y + size.height / 2;
 
   const handleKakaoViewportChange = useCallback(
     (next: KakaoMapViewport) => {
@@ -1113,8 +1059,7 @@ export function InteractiveTileMap({
     (lat: number, lng: number) => {
       // 전국/광역 줌(<= 8)에서는 시·도 단위 1단계 확대 → 이후 클릭 시 시·군·구 선택
       if (viewportRef.current.zoom <= PROVINCE_MAX_ZOOM) {
-        const nx = lngToNormX(lng);
-        const ny = latToNormY(lat);
+        const [nx, ny] = latLngToTmScreenMeters(lat, lng);
         const hitProvince = provinces.find(
           (p) =>
             lat >= p.bounds.minLat &&
@@ -1165,9 +1110,16 @@ export function InteractiveTileMap({
     ],
   );
 
-  const handleKakaoFallback = useCallback(() => {
-    setKakaoFailed(true);
+  const handleKakaoError = useCallback((message: string) => {
+    setKakaoError(message);
   }, []);
+
+  const handleRetryKakao = () => {
+    if (!KAKAO_MAP_KEY) return;
+    setKakaoError(null);
+    setKakaoReady(false);
+    setKakaoRetryKey((n) => n + 1);
+  };
 
   const backToNation = useCallback(() => {
     const nationVp = computeNationViewport();
@@ -1242,9 +1194,26 @@ export function InteractiveTileMap({
 
   // 왼쪽 목록에서 시·도 또는 '전국'을 골랐을 때 오른쪽 지도도 함께 이동
   const prevProvinceTriggerRef = useRef(focusProvinceTrigger);
+  const initialProvinceFocusedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !initialProvinceFocusedRef.current &&
+      focusProvinceCode &&
+      !selectedRegionCode &&
+      provinces.length > 0
+    ) {
+      initialProvinceFocusedRef.current = true;
+      const id = requestAnimationFrame(() => {
+        focusProvince(focusProvinceCode);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [focusProvinceCode, selectedRegionCode, provinces.length, focusProvince]);
+
   useEffect(() => {
     if (prevProvinceTriggerRef.current === focusProvinceTrigger) return;
     prevProvinceTriggerRef.current = focusProvinceTrigger;
+    initialProvinceFocusedRef.current = true;
     const id = requestAnimationFrame(() => {
       if (focusProvinceCode) {
         focusProvince(focusProvinceCode);
@@ -1263,8 +1232,7 @@ export function InteractiveTileMap({
       const worldX = centerWorld.x + (clientX - rect.left - size.width / 2);
       const worldY = centerWorld.y + (clientY - rect.top - size.height / 2);
       const { lat, lng } = worldToLatLng(worldX, worldY, viewport.zoom);
-      const nx = lngToNormX(lng);
-      const ny = latToNormY(lat);
+      const [nx, ny] = latLngToTmScreenMeters(lat, lng);
 
       // 어느 모드든 전국/광역 줌(<= 8)에서는 시·도 단위로 먼저 판정 (도 → 시·군·구 단계별 확대)
       if (viewport.zoom <= PROVINCE_MAX_ZOOM) {
@@ -1307,7 +1275,7 @@ export function InteractiveTileMap({
   );
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (kakaoActiveInView) return;
+    if (!isTerritoryMode) return;
     if ((event.target as HTMLElement).closest("button, a, dialog")) return;
     const regionPath = (event.target as Element).closest("[data-region-code]");
     const clickedCode = regionPath?.getAttribute("data-region-code") ?? null;
@@ -1392,31 +1360,6 @@ export function InteractiveTileMap({
     setDragging(false);
   };
 
-  // 현재 위치 화면 좌표 계산 ('식당 보기' OSM 폴백 모드에서만 표시)
-  const projectedUserLocation = useMemo(() => {
-    if (mode !== "restaurants" || kakaoActiveInView || !userLocation)
-      return null;
-    const world = latLngToWorld(
-      userLocation.lat,
-      userLocation.lng,
-      viewport.zoom,
-    );
-    const x = world.x - centerWorld.x + size.width / 2;
-    const y = world.y - centerWorld.y + size.height / 2;
-    if (x < -20 || x > size.width + 20 || y < -20 || y > size.height + 20) {
-      return null;
-    }
-    return { x, y };
-  }, [
-    mode,
-    kakaoActiveInView,
-    userLocation,
-    viewport.zoom,
-    centerWorld,
-    size.width,
-    size.height,
-  ]);
-
   // 영토 표시 모드에서 호버/선택된 지역 위에 띄울 하얀 말풍선 위치 계산
   const floatingBubble = useMemo(() => {
     if (mode !== "territory") return null;
@@ -1496,14 +1439,15 @@ export function InteractiveTileMap({
       onPointerCancel={handlePointerCancel}
       className={
         "relative size-full touch-none select-none overflow-hidden transition-colors duration-200 " +
-        (mode === "territory" ? "bg-transparent " : "bg-map-empty/45 ") +
-        (kakaoActiveInView ? "" : dragging ? "cursor-grabbing" : "cursor-grab")
+        (isTerritoryMode ? "bg-transparent " : "bg-map-empty/45 ") +
+        (isTerritoryMode ? (dragging ? "cursor-grabbing" : "cursor-grab") : "")
       }
     >
-      {/* 1층-A: 카카오맵 JS SDK ('식당 보기' 모드 + NEXT_PUBLIC_KAKAO_MAP_KEY 설정 시 자동 활성) */}
+      {/* 1층: 카카오맵 JS SDK ('식당 보기' 전용) */}
       {kakaoEnabled && (
         <KakaoMapLayer
           appKey={KAKAO_MAP_KEY}
+          retryKey={kakaoRetryKey}
           visible={mode === "restaurants"}
           viewport={viewport}
           places={places}
@@ -1513,34 +1457,51 @@ export function InteractiveTileMap({
           onSelectPlace={onSelectPlace}
           onMapClick={handleKakaoMapClick}
           onReadyChange={setKakaoReady}
-          onFallback={handleKakaoFallback}
+          onError={handleKakaoError}
         />
       )}
 
-      {/* 1층-B: OpenStreetMap 타일 폴백 (카카오맵 키 미설정/로드 실패 시 자동 표시) */}
-      {mode === "restaurants" && !kakaoActiveInView && (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          {tiles.map((tile) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={tile.key}
-              src={tile.url}
-              alt=""
-              width={TILE_SIZE}
-              height={TILE_SIZE}
-              draggable={false}
-              decoding="async"
-              style={{
-                position: "absolute",
-                left: tile.left,
-                top: tile.top,
-                width: TILE_SIZE,
-                height: TILE_SIZE,
-                maxWidth: "none",
-              }}
-              className="opacity-95 saturate-[0.88]"
-            />
-          ))}
+      {/* 카카오맵 로딩 중 안내 */}
+      {mode === "restaurants" && kakaoEnabled && !kakaoReady && (
+        <div
+          role="status"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-surface/60 px-6 text-center backdrop-blur-[2px]"
+        >
+          <Icon name="map" size={26} className="text-accent-dark/70" />
+          <p className="text-sm font-medium text-foreground">
+            카카오맵을 불러오고 있어요…
+          </p>
+        </div>
+      )}
+
+      {/* 카카오맵 로드 실패 또는 API 키 미설정 시 안내 */}
+      {mode === "restaurants" && kakaoError && (
+        <div
+          role="alert"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-surface/90 px-6 text-center"
+        >
+          <div className="flex max-w-sm flex-col items-center gap-3 rounded-card border border-line bg-surface p-6 shadow-card">
+            <span className="flex size-11 items-center justify-center rounded-full bg-fill text-muted">
+              <Icon name="map" size={22} />
+            </span>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-foreground">
+                카카오맵을 불러오지 못했어요
+              </p>
+              <p className="text-xs leading-relaxed break-keep text-muted">
+                {kakaoError}
+              </p>
+            </div>
+            {KAKAO_MAP_KEY && (
+              <ActionButton
+                variant="tinted"
+                size="sm"
+                onClick={handleRetryKakao}
+              >
+                다시 시도
+              </ActionButton>
+            )}
+          </div>
         </div>
       )}
 
@@ -1668,94 +1629,11 @@ export function InteractiveTileMap({
         <button
           type="button"
           onClick={backToNation}
-          className="glass-bar pressable absolute top-3.5 left-3.5 z-30 inline-flex h-10 items-center gap-1 rounded-full px-3.5 text-xs font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--color-line)] focus-ring md:top-4 md:left-4"
+          className="glass-bar pressable absolute top-2.5 left-2.5 z-30 inline-flex h-9 items-center gap-1 rounded-full px-2.5 text-xs font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--color-line)] focus-ring sm:top-4 sm:left-4 sm:h-10 sm:px-3.5"
         >
-          <Icon name="back" size={15} className="text-accent-dark" />
+          <Icon name="back" size={14} className="text-accent-dark sm:size-[15px]" />
           <span>전국</span>
         </button>
-      )}
-
-      {/* 3층: 현재 위치 점 + 식당 마커 레이어 ('식당 보기' OSM 폴백 모드에서만 표시) */}
-      {mode === "restaurants" && !kakaoActiveInView && (
-        <div className="pointer-events-none absolute inset-0 z-20">
-          {projectedUserLocation && (
-            <div
-              aria-label="현재 위치"
-              title="현재 위치"
-              style={{
-                position: "absolute",
-                left: projectedUserLocation.x,
-                top: projectedUserLocation.y,
-                transform: "translate(-50%, -50%)",
-              }}
-              className="z-10 flex size-7 items-center justify-center rounded-full bg-sky-500/20"
-            >
-              <span className="size-3.5 rounded-full bg-sky-500 ring-2 ring-surface shadow-sm" />
-            </div>
-          )}
-
-          {projectedPins.map(({ place, x, y }) => {
-            const isSelected = place.id === selectedPlaceId;
-            const isHovered = place.id === hoveredPinId;
-            const active = isSelected || isHovered;
-            const markerWidth = isSelected ? 38 : 30;
-            const markerHeight = Math.round((markerWidth * 46) / 36);
-
-            return (
-              <div
-                key={place.id}
-                style={{
-                  position: "absolute",
-                  left: x,
-                  top: y,
-                  transform: "translate(-50%, -100%)",
-                }}
-                className={
-                  "pointer-events-auto transition-transform duration-150 " +
-                  (isSelected
-                    ? "z-30 scale-105"
-                    : isHovered
-                      ? "z-20 scale-105"
-                      : "z-10")
-                }
-              >
-                {active && (
-                  <div className="material-thick pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-input px-2.5 py-1 whitespace-nowrap">
-                    <p className="text-xs font-semibold text-foreground">
-                      {place.name}
-                    </p>
-                    {place.genre && (
-                      <p className="text-[11px] text-muted">{place.genre}</p>
-                    )}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  aria-label={`${place.name} 위치 선택`}
-                  aria-pressed={isSelected}
-                  onMouseEnter={() => setHoveredPinId(place.id)}
-                  onMouseLeave={() =>
-                    setHoveredPinId((prev) => (prev === place.id ? null : prev))
-                  }
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectPlace(place);
-                  }}
-                  className="block cursor-pointer rounded-full focus-ring"
-                >
-                  <Image
-                    src={markerSrc(isSelected ? "selected" : "restaurant")}
-                    alt=""
-                    width={markerWidth}
-                    height={markerHeight}
-                    draggable={false}
-                    className="drop-shadow-sm"
-                  />
-                </button>
-              </div>
-            );
-          })}
-        </div>
       )}
 
       {/* 좌하단 클릭 가능한 땅따먹기 TOP 3 카드 (클릭 시 전체 랭킹 시트 크게 열림) */}
@@ -1801,39 +1679,39 @@ export function InteractiveTileMap({
         </button>
       )}
 
-      {/* 우하단 유리 지도 컨트롤 (+, -, 현재 위치) */}
-      <div className="pointer-events-none absolute right-4 bottom-8 z-20 flex flex-col gap-2">
-        <IconButton
-          icon="plus"
-          label="지도 확대"
-          variant="glass"
-          className="pointer-events-auto"
-          onClick={() => handleZoomDelta(1)}
-        />
-        <IconButton
-          icon="minus"
-          label="지도 축소"
-          variant="glass"
-          className="pointer-events-auto"
-          onClick={() => handleZoomDelta(-1)}
-        />
-        {mode === "restaurants" && (
+      {/* 우하단 유리 지도 컨트롤 (+, -) */}
+      {(isTerritoryMode || kakaoReady) && (
+        <div className="pointer-events-none absolute right-3 bottom-7 z-20 flex flex-col gap-2 sm:right-4 sm:bottom-8">
           <IconButton
-            icon="locate"
-            label={onLocateMe ? "현재 위치로 이동" : "검색 결과 전체 보기"}
+            icon="plus"
+            label="지도 확대"
             variant="glass"
             className="pointer-events-auto"
-            onClick={onLocateMe ?? fitAll}
+            onClick={() => handleZoomDelta(1)}
           />
-        )}
-      </div>
+          <IconButton
+            icon="minus"
+            label="지도 축소"
+            variant="glass"
+            className="pointer-events-auto"
+            onClick={() => handleZoomDelta(-1)}
+          />
+          {mode === "restaurants" && onLocateMe && (
+            <IconButton
+              icon="locate"
+              label="현재 위치로 이동"
+              variant="glass"
+              className="pointer-events-auto"
+              onClick={onLocateMe}
+            />
+          )}
+        </div>
+      )}
 
-      {/* 출처 표기 (카카오맵 활성 시 카카오맵 자체 로고가 표시되므로 중복 숨김) */}
-      {!kakaoActiveInView && (
+      {/* 영토 지도 출처 표기 ('식당 보기'에서는 카카오맵 자체 로고가 표시됨) */}
+      {isTerritoryMode && (
         <div className="glass-bar pointer-events-none absolute right-2 bottom-1.5 z-20 rounded px-1.5 py-0.5 text-[10px] text-muted">
-          {mode === "territory"
-            ? "통계청 SGIS (2026-10-01)"
-            : "© OpenStreetMap contributors"}
+          통계청 SGIS (2026-10-01) · krmap · admdongkor (CC BY 4.0)
         </div>
       )}
 

@@ -31,7 +31,7 @@ export function SchemeSwitch({ className = "" }: { className?: string }) {
 function Brand({ label, className = "" }: { label: string; className?: string }) {
   return (
     <span className={`flex items-center gap-2.5 ${className}`}>
-      <Image src="/icon.svg" alt="" width={28} height={28} className="shrink-0 rounded-[7px]" />
+      <Image src="/icon.svg" alt="" width={28} height={28} className="shrink-0 object-contain" />
       <span className="truncate whitespace-nowrap type-row font-semibold">{label}</span>
     </span>
   );

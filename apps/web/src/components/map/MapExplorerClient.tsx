@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -15,7 +15,14 @@ import {
   type MapMode,
 } from "@/components/map/InteractiveTileMap";
 import { RestaurantReviewSheet } from "@/components/map/RestaurantReviewSheet";
-import { regionLabel, sortRegions } from "@/lib/map/home-contract";
+import { sortRegions, validEatplUrl } from "@/lib/map/home-contract";
+import {
+  SITE_NAME,
+  formatTravelFullName,
+  getRegionSearchText,
+  getTravelProvinceName,
+  sortProvincesByTravelName,
+} from "@/lib/seo/site";
 import {
   DEFAULT_REGION,
   FOOD_SLUG_PRESETS,
@@ -105,8 +112,28 @@ function resolveInitialState(
   return { region: DEFAULT_REGION, genres: [], food: null };
 }
 
-export function MapExplorerClient() {
-  const router = useRouter();
+function syncBrowserUrl(nextPath: string, nextTitle?: string) {
+  if (typeof window === "undefined") return;
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (current !== nextPath) {
+    window.history.replaceState(null, "", nextPath);
+  }
+  if (nextTitle) {
+    document.title = nextTitle;
+  }
+}
+
+type MapExplorerClientProps = {
+  /** /travel/[provinceSlug] 진입 시 처음 열어 둘 시·도 코드 (예: "51" 강원도) */
+  initialProvinceCode?: string | null;
+  /** /travel/[destinationSlug] 진입 시 처음 선택해 둘 여행지 정보 */
+  initialRegion?: RegionItem | null;
+};
+
+export function MapExplorerClient({
+  initialProvinceCode = null,
+  initialRegion = null,
+}: MapExplorerClientProps = {}) {
   const searchParams = useSearchParams();
   const { show: showToast, toast } = useToast();
 
@@ -114,17 +141,29 @@ export function MapExplorerClient() {
   const [allProvinces, setAllProvinces] = useState<
     { code: string; name: string }[]
   >([]);
-  const [allRegions, setAllRegions] = useState<RegionItem[]>([DEFAULT_REGION]);
+  const [allRegions, setAllRegions] = useState<RegionItem[]>(() =>
+    initialRegion ? [initialRegion] : [DEFAULT_REGION],
+  );
   const [parentCodeByRegion, setParentCodeByRegion] = useState<
     ReadonlyMap<string, string>
-  >(() => new Map([[DEFAULT_REGION.code, DEFAULT_REGION.code.slice(0, 2)]]));
+  >(() => {
+    const seed = initialRegion ?? DEFAULT_REGION;
+    return new Map([[seed.code, seed.code.slice(0, 2)]]);
+  });
 
   // 지도 모드('restaurants': 식당 보기 / 'territory': 영토 표시)
   const [mapMode, setMapMode] = useState<MapMode>("restaurants");
+  const foodParam = searchParams.get("food")?.trim() || null;
+  const regionParam = searchParams.get("region")?.trim() || null;
+
   /** 지역 미선택 상태에서 왼쪽 목록으로 둘러보고 있는 시·도 코드 (null이면 전국 16개 시·도 목록) */
   const [browsingProvinceCode, setBrowsingProvinceCode] = useState<
     string | null
-  >(null);
+  >(() =>
+    !foodParam && !regionParam && !initialRegion
+      ? (initialProvinceCode ?? null)
+      : null,
+  );
   const [focusProvinceTrigger, setFocusProvinceTrigger] = useState(0);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -143,13 +182,14 @@ export function MapExplorerClient() {
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
-  const foodParam = searchParams.get("food")?.trim() || null;
-  const regionParam = searchParams.get("region")?.trim() || null;
-
   // 현재 활성 탐색 조건 (백엔드 API 연동 전 프론트 단독 상태)
-  const [selectedRegion, setSelectedRegion] = useState<RegionItem | null>(() =>
-    resolveInitialState(foodParam, regionParam, new Map()).region,
-  );
+  const [selectedRegion, setSelectedRegion] = useState<RegionItem | null>(() => {
+    if (!foodParam && !regionParam) {
+      if (initialRegion) return initialRegion;
+      if (initialProvinceCode) return null;
+    }
+    return resolveInitialState(foodParam, regionParam, new Map()).region;
+  });
   const [selectedGenres, setSelectedGenres] = useState<string[]>(
     () => resolveInitialState(foodParam, regionParam, new Map()).genres,
   );
@@ -179,26 +219,20 @@ export function MapExplorerClient() {
         return res.json() as Promise<RawRegionMeta>;
       })
       .then((meta) => {
-        const provinceNames = new Map<string, string>();
-        for (const p of meta.provinces) {
-          provinceNames.set(p.code, regionLabel(p));
-        }
-
         const parentMap = new Map<string, string>();
         const list: RegionItem[] = meta.territories.map((t) => {
           const parentCode = t.parentCode ?? t.code.slice(0, 2);
           parentMap.set(t.code, parentCode);
-          const parentName = provinceNames.get(parentCode);
           const [lng, lat] = t.labelPoint ?? [null, null];
           return {
             code: t.code,
             name: t.name,
-            fullName: parentName ? `${parentName} ${t.name}` : t.name,
+            fullName: formatTravelFullName(parentCode, t.name),
             centerLat: lat,
             centerLng: lng,
           };
         });
-        setAllProvinces(sortRegions(meta.provinces));
+        setAllProvinces(sortProvincesByTravelName(meta.provinces));
         setParentCodeByRegion(parentMap);
         setAllRegions(list);
       })
@@ -274,7 +308,10 @@ export function MapExplorerClient() {
             setFitTrigger((n) => n + 1);
             if (byUserClick) {
               lastSyncedSignatureRef.current = `|${nearest.code}`;
-              router.replace(`/?region=${nearest.code}`, { scroll: false });
+              syncBrowserUrl(
+                `/?region=${nearest.code}`,
+                `${nearest.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+              );
             }
           } else if (byUserClick) {
             showToast("현재 위치가 한국 지역 범위를 벗어나 있어요");
@@ -289,13 +326,13 @@ export function MapExplorerClient() {
         { enableHighAccuracy: false, timeout: 6000, maximumAge: 300_000 },
       );
     },
-    [router, showToast],
+    [showToast],
   );
 
-  // URL 쿼리(/?food=, /?region=) 없이 기본 진입했을 때 현재 위치 기준 시·군·구 자동 선택
+  // URL 쿼리(/?food=, /?region=) 및 /travel/[slug] 지정 진입이 없을 때만 현재 위치 기준 자동 선택
   useEffect(() => {
     if (geoInitializedRef.current) return;
-    if (foodParam || regionParam) {
+    if (foodParam || regionParam || initialProvinceCode || initialRegion) {
       geoInitializedRef.current = true;
       return;
     }
@@ -306,19 +343,26 @@ export function MapExplorerClient() {
       locateCurrentRegion(allRegions, false);
     });
     return () => cancelAnimationFrame(id);
-  }, [allRegions, foodParam, regionParam, locateCurrentRegion]);
+  }, [
+    allRegions,
+    foodParam,
+    regionParam,
+    initialProvinceCode,
+    initialRegion,
+    locateCurrentRegion,
+  ]);
 
-  // 검색어 기반 시·군·구 즉시 필터링 (최대 10개)
+  // 검색어 기반 시·군·구 즉시 필터링 (친숙한 여행지명 + 공식 행정명 별칭 모두 지원, 최대 10개)
   const regionSuggestions = useMemo(() => {
     const q = regionQuery.trim().toLowerCase();
     if (!q) return [];
 
     return allRegions
-      .filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.fullName.toLowerCase().includes(q),
-      )
+      .filter((r) => {
+        const parentCode =
+          parentCodeByRegion.get(r.code) ?? r.code.slice(0, 2);
+        return getRegionSearchText(parentCode, r.name, r.fullName).includes(q);
+      })
       .sort((a, b) => {
         const aExact = a.name.toLowerCase() === q ? 0 : 1;
         const bExact = b.name.toLowerCase() === q ? 0 : 1;
@@ -329,7 +373,7 @@ export function MapExplorerClient() {
         return a.code.localeCompare(b.code);
       })
       .slice(0, 10);
-  }, [regionQuery, allRegions]);
+  }, [regionQuery, allRegions, parentCodeByRegion]);
 
   // 검색창 바깥 클릭 시 자동완성 닫기
   useEffect(() => {
@@ -356,6 +400,10 @@ export function MapExplorerClient() {
   }, []);
 
   // 현재 조건에 맞는 예시 식당 검색 결과
+  // TODO(api): 백엔드 연동 시 이 지점에서 NEXT_PUBLIC_API_URL과 /?preview=1 분기를 연결한다.
+  // - 실제 모드: home-contract의 buildRestaurantUrl(apiBase, selectedRegion.code, foodId)로 GET /restaurants 호출,
+  //   HTTP 401/403/502/503 오류 상태 안내 UI를 표시하고 후기 집계는 formatReviewSummary, 외부 링크는 validEatplUrl(원본 그대로, 쿼리 추가 금지)을 재사용한다.
+  // - 예시 모드(/?preview=1 또는 API 미설정): 아래 buildMockSearchResult 결과를 표시한다.
   const result = useMemo(() => {
     if (!selectedRegion) return null;
     return buildMockSearchResult(selectedRegion, {
@@ -413,9 +461,17 @@ export function MapExplorerClient() {
       setSelectedPlaceId(null);
       setFocusProvinceTrigger((n) => n + 1);
       lastSyncedSignatureRef.current = "|";
-      router.replace("/", { scroll: false });
+      const label = nextProvinceCode
+        ? getTravelProvinceName(nextProvinceCode)
+        : "";
+      syncBrowserUrl(
+        "/",
+        label
+          ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}`
+          : `전국 국내 여행지 맛집 지도 · 미식 여행 | ${SITE_NAME}`,
+      );
     },
-    [router],
+    [],
   );
 
   const handleSelectProvinceFromList = useCallback(
@@ -435,14 +491,22 @@ export function MapExplorerClient() {
         setSelectedPlaceId(null);
         setFitTrigger((n) => n + 1);
         lastSyncedSignatureRef.current = `|${children[0].code}`;
-        router.replace(`/?region=${children[0].code}`, { scroll: false });
+        syncBrowserUrl(
+          `/?region=${children[0].code}`,
+          `${children[0].fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+        );
         return;
       }
 
       setBrowsingProvinceCode(provinceCode);
       setFocusProvinceTrigger((n) => n + 1);
+      const label = getTravelProvinceName(provinceCode);
+      syncBrowserUrl(
+        "/",
+        label ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}` : undefined,
+      );
     },
-    [allRegions, parentCodeByRegion, router],
+    [allRegions, parentCodeByRegion],
   );
 
   const handleSelectProvinceFromMap = useCallback(
@@ -459,7 +523,10 @@ export function MapExplorerClient() {
         setSelectedPlaceId(null);
         setFitTrigger((n) => n + 1);
         lastSyncedSignatureRef.current = `|${children[0].code}`;
-        router.replace(`/?region=${children[0].code}`, { scroll: false });
+        syncBrowserUrl(
+          `/?region=${children[0].code}`,
+          `${children[0].fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+        );
         return;
       }
 
@@ -470,25 +537,29 @@ export function MapExplorerClient() {
       setSelectedPlaceId(null);
       setBrowsingProvinceCode(provinceCode);
       lastSyncedSignatureRef.current = "|";
-      router.replace("/", { scroll: false });
+      const label = getTravelProvinceName(provinceCode);
+      syncBrowserUrl(
+        "/",
+        label ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}` : undefined,
+      );
     },
-    [allRegions, parentCodeByRegion, router],
+    [allRegions, parentCodeByRegion],
   );
 
-  const handleSelectRegion = useCallback(
-    (region: RegionItem) => {
-      setSuggestionsOpen(false);
-      setRegionQuery("");
-      setActiveFood(null);
-      setBrowsingProvinceCode(null);
-      setSelectedRegion(region);
-      setSelectedPlaceId(null);
-      setFitTrigger((n) => n + 1);
-      lastSyncedSignatureRef.current = `|${region.code}`;
-      router.replace(`/?region=${region.code}`, { scroll: false });
-    },
-    [router],
-  );
+  const handleSelectRegion = useCallback((region: RegionItem) => {
+    setSuggestionsOpen(false);
+    setRegionQuery("");
+    setActiveFood(null);
+    setBrowsingProvinceCode(null);
+    setSelectedRegion(region);
+    setSelectedPlaceId(null);
+    setFitTrigger((n) => n + 1);
+    lastSyncedSignatureRef.current = `|${region.code}`;
+    syncBrowserUrl(
+      `/?region=${region.code}`,
+      `${region.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+    );
+  }, []);
 
   const handleBackStep = useCallback(() => {
     if (selectedRegion) {
@@ -505,6 +576,10 @@ export function MapExplorerClient() {
     if (browsingProvinceCode) {
       setBrowsingProvinceCode(null);
       setFocusProvinceTrigger((n) => n + 1);
+      syncBrowserUrl(
+        "/",
+        `전국 국내 여행지 맛집 지도 · 미식 여행 | ${SITE_NAME}`,
+      );
     }
   }, [
     selectedRegion,
@@ -526,7 +601,7 @@ export function MapExplorerClient() {
     if (selectedRegion) {
       setFitTrigger((n) => n + 1);
     } else {
-      showToast("먼저 지역을 선택하면 고른 업종 식당을 보여드려요");
+      showToast("먼저 여행지를 선택하면 고른 업종 식당을 보여드려요");
     }
   };
 
@@ -545,7 +620,10 @@ export function MapExplorerClient() {
     setSelectedPlaceId(null);
     if (selectedRegion) {
       lastSyncedSignatureRef.current = `|${selectedRegion.code}`;
-      router.replace(`/?region=${selectedRegion.code}`, { scroll: false });
+      syncBrowserUrl(
+        `/?region=${selectedRegion.code}`,
+        `${selectedRegion.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+      );
       setFitTrigger((n) => n + 1);
     } else {
       clearRegionSelection();
@@ -565,7 +643,26 @@ export function MapExplorerClient() {
     setReviewSheetPlace(place);
   };
 
+  const createdObjectUrlsRef = useRef<string[]>([]);
+
+  // 페이지 이탈(언마운트) 시 로컬 예시 리뷰 사진의 object URL을 일괄 해제한다.
+  useEffect(() => {
+    return () => {
+      for (const url of createdObjectUrlsRef.current) {
+        URL.revokeObjectURL(url);
+      }
+      createdObjectUrlsRef.current = [];
+    };
+  }, []);
+
   const handleAddLocalReview = (placeId: string, review: PlaceReviewItem) => {
+    if (review.photos?.length) {
+      for (const url of review.photos) {
+        if (url.startsWith("blob:")) {
+          createdObjectUrlsRef.current.push(url);
+        }
+      }
+    }
     setLocalReviewsByPlace((prev) => ({
       ...prev,
       [placeId]: [review, ...(prev[placeId] ?? [])],
@@ -605,7 +702,10 @@ export function MapExplorerClient() {
                     (parentCodeByRegion.get(r.code) ?? r.code.slice(0, 2)) ===
                     selectedParentCode,
                 ).length > 1
-                  ? regionLabel(selectedParentProvince)
+                  ? getTravelProvinceName(
+                      selectedParentProvince.code,
+                      selectedParentProvince.name,
+                    )
                   : "전국"}
               </span>
             </button>
@@ -616,8 +716,14 @@ export function MapExplorerClient() {
               {selectedRegion
                 ? selectedRegion.fullName
                 : browsingProvince
-                  ? regionLabel(browsingProvince)
-                  : "어디에서 먹을까요?"}
+                  ? getTravelProvinceName(
+                      browsingProvince.code,
+                      browsingProvince.name,
+                    )
+                  : browsingProvinceCode
+                    ? getTravelProvinceName(browsingProvinceCode) ||
+                      "어디로 떠나볼까요?"
+                    : "어디로 떠나볼까요?"}
             </h1>
             {selectedRegion ? (
               <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums">
@@ -706,8 +812,8 @@ export function MapExplorerClient() {
                       setSuggestionsOpen(false);
                     }
                   }}
-                  aria-label="지역 검색"
-                  placeholder="지역 검색"
+                  aria-label="여행 지역 검색"
+                  placeholder="여행 지역 검색"
                   enterKeyHint="search"
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted/80 [&::-webkit-search-cancel-button]:hidden"
                 />
@@ -883,7 +989,7 @@ export function MapExplorerClient() {
             <div className="overflow-hidden rounded-card border border-line bg-surface/75">
               {browsingProvince ? (
                 <ul
-                  aria-label={`${regionLabel(browsingProvince)} 시·군·구 목록`}
+                  aria-label={`${getTravelProvinceName(browsingProvince.code, browsingProvince.name)} 시·군·구 목록`}
                   className="divide-y divide-line"
                 >
                   {districtsOfBrowsingProvince.map((district) => (
@@ -918,7 +1024,7 @@ export function MapExplorerClient() {
                         className="pressable flex min-h-11 w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-fill/70 focus-ring"
                       >
                         <span className="truncate">
-                          {regionLabel(province)}
+                          {getTravelProvinceName(province.code, province.name)}
                         </span>
                         <Icon
                           name="chevron-right"
@@ -939,6 +1045,8 @@ export function MapExplorerClient() {
                   place,
                   localReviewsByPlace[place.id],
                 );
+                // 잇플 외부 링크는 home-contract의 validEatplUrl로 검증한 API 응답 원본만 사용한다(쿼리 추가·변형 금지).
+                const safeEatplUrl = validEatplUrl(place.merUrl);
 
                 return (
                   <li
@@ -1049,19 +1157,29 @@ export function MapExplorerClient() {
                           <span aria-hidden="true">›</span>
                         </button>
 
-                        <a
-                          href={place.merUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedPlaceId(place.id);
-                          }}
-                          className="pressable inline-flex min-h-8 items-center gap-1 rounded-input text-xs font-semibold text-accent-dark focus-ring"
-                        >
-                          <span>잇플 상세 보기</span>
-                          <Icon name="external" size={13} />
-                        </a>
+                        {safeEatplUrl ? (
+                          <a
+                            href={safeEatplUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedPlaceId(place.id);
+                            }}
+                            className="pressable inline-flex min-h-8 items-center gap-1 rounded-input text-xs font-semibold text-accent-dark focus-ring"
+                          >
+                            <span>잇플 상세 보기</span>
+                            <Icon name="external" size={13} />
+                          </a>
+                        ) : (
+                          <span
+                            aria-disabled="true"
+                            title="백엔드 API 연동 후 실제 잇플 상세 페이지로 연결돼요"
+                            className="inline-flex min-h-8 cursor-not-allowed items-center gap-1 text-xs font-medium text-muted/75"
+                          >
+                            <span>잇플 상세 보기(예시)</span>
+                          </span>
+                        )}
                       </div>
                     </article>
                   </li>
@@ -1083,22 +1201,26 @@ export function MapExplorerClient() {
         aria-label="지도 영역"
         className="relative order-1 h-[48vh] min-h-[340px] w-full overflow-hidden rounded-card border border-line bg-surface/45 shadow-card lg:order-2 lg:h-full"
       >
-        {/* 우상단 컨트롤: 내 위치 버튼 + 슬라이드 모드 전환 (식당 보기 ↔ 영토 표시) */}
-        <div className="pointer-events-none absolute top-3.5 right-3.5 z-30 flex flex-wrap items-center justify-end gap-2 md:top-4 md:right-4">
+        {/* 우상단 컨트롤: 내 위치 버튼 + 슬라이드 모드 전환 (모바일에서 좌상단 '← 전국'과 겹치지 않도록 컴팩트 반응형) */}
+        <div className="pointer-events-none absolute top-2.5 right-2.5 z-30 flex items-center justify-end gap-1.5 sm:top-4 sm:right-4 sm:gap-2">
           <button
             type="button"
             disabled={locating}
+            aria-label={locating ? "현재 위치 확인 중" : "내 위치로 이동"}
+            title="내 위치"
             onClick={() => locateCurrentRegion(allRegions, true)}
-            className="glass-bar pressable pointer-events-auto inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--color-line)] focus-ring disabled:opacity-60"
+            className="glass-bar pressable pointer-events-auto inline-flex size-9 items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--color-line)] focus-ring disabled:opacity-60 sm:h-10 sm:w-auto sm:px-3.5"
           >
-            <Icon name="locate" size={15} className="text-accent-dark" />
-            <span>{locating ? "확인 중…" : "내 위치"}</span>
+            <Icon name="locate" size={15} className="shrink-0 text-accent-dark" />
+            <span className="hidden sm:inline">
+              {locating ? "확인 중…" : "내 위치"}
+            </span>
           </button>
 
           <div
             role="radiogroup"
             aria-label="지도 표시 모드"
-            className="glass-bar pointer-events-auto relative grid h-10 w-[204px] grid-cols-2 items-center rounded-full p-1 shadow-[inset_0_0_0_1px_var(--color-line)]"
+            className="glass-bar pointer-events-auto relative grid h-9 w-[164px] grid-cols-2 items-center rounded-full p-1 shadow-[inset_0_0_0_1px_var(--color-line)] sm:h-10 sm:w-[204px]"
           >
             <span
               aria-hidden="true"
@@ -1113,13 +1235,13 @@ export function MapExplorerClient() {
               aria-checked={mapMode === "restaurants"}
               onClick={() => setMapMode("restaurants")}
               className={
-                "relative z-10 inline-flex h-full cursor-pointer items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors focus-ring " +
+                "relative z-10 inline-flex h-full cursor-pointer items-center justify-center gap-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors focus-ring sm:gap-1.5 sm:text-xs " +
                 (mapMode === "restaurants"
                   ? "text-on-accent"
                   : "text-muted hover:text-foreground")
               }
             >
-              <Icon name="pin" size={14} />
+              <Icon name="pin" size={13} className="shrink-0 sm:size-[14px]" />
               <span>식당 보기</span>
             </button>
             <button
@@ -1128,13 +1250,17 @@ export function MapExplorerClient() {
               aria-checked={mapMode === "territory"}
               onClick={() => setMapMode("territory")}
               className={
-                "relative z-10 inline-flex h-full cursor-pointer items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors focus-ring " +
+                "relative z-10 inline-flex h-full cursor-pointer items-center justify-center gap-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors focus-ring sm:gap-1.5 sm:text-xs " +
                 (mapMode === "territory"
                   ? "text-on-accent"
                   : "text-muted hover:text-foreground")
               }
             >
-              <Icon name="territory" size={14} />
+              <Icon
+                name="territory"
+                size={13}
+                className="shrink-0 sm:size-[14px]"
+              />
               <span>영토 표시</span>
             </button>
           </div>
@@ -1148,7 +1274,6 @@ export function MapExplorerClient() {
           onSelectPlace={handleSelectPlaceFromMap}
           regionCenter={regionCenter}
           userLocation={userLocation}
-          onLocateMe={() => locateCurrentRegion(allRegions, true)}
           fitTrigger={fitTrigger}
           ownersByRegion={ownersByRegion}
           isSampleOwners

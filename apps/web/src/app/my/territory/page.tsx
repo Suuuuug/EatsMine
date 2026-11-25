@@ -3,7 +3,14 @@ import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TerritoryMap } from "@/components/em/TerritoryMap";
 
-export const metadata: Metadata = { title: "나의 영토 | EatsMine" };
+export const metadata: Metadata = {
+  title: "나의 여행 영토 지도 | EatsMine",
+  description:
+    "국내 여행으로 다녀온 전국 230개 시·군·구 방문 기록을 나만의 영토 지도로 모아 보세요.",
+  alternates: {
+    canonical: "/my/territory",
+  },
+};
 
 export default function MyTerritoryPage() {
   return <div className="em-theme min-h-dvh pb-20 md:pb-0 md:pl-[76px]">

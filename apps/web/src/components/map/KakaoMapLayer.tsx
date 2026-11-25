@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { markerSrc } from "@/components/em";
+import { kakaoLevelToZoom, zoomToKakaoLevel } from "@/lib/map/epsg5181";
 import type { EatplPlace } from "@/types/map";
 
 // --- Kakao Maps JavaScript SDK v2 최소 타입 선언 ---
@@ -85,16 +86,24 @@ const KAKAO_SDK_SCRIPT_ID = "eatsmine-kakao-maps-sdk";
 let kakaoSdkPromise: Promise<KakaoMapsNamespace> | null = null;
 
 /**
- * Kakao Maps JS SDK를 브라우저에 1회만 비동기 로드한다.
- * 키·도메인 오류나 네트워크 실패 시 reject되어 상위 컴포넌트가 안전하게 폴백할 수 있다.
+ * Kakao Maps JS SDK를 브라우저에 비동기 로드한다.
+ * 키·도메인 오류나 네트워크 실패 시 상세 오류 메시지로 reject된다.
  */
-function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
+function loadKakaoMapsSdk(
+  appKey: string,
+  forceReload = false,
+): Promise<KakaoMapsNamespace> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("SSR 환경에서는 로드할 수 없습니다."));
   }
 
   if (window.kakao?.maps?.Map) {
     return Promise.resolve(window.kakao.maps);
+  }
+
+  if (forceReload) {
+    kakaoSdkPromise = null;
+    document.getElementById(KAKAO_SDK_SCRIPT_ID)?.remove();
   }
 
   if (kakaoSdkPromise) {
@@ -104,7 +113,8 @@ function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
   kakaoSdkPromise = new Promise<KakaoMapsNamespace>((resolve, reject) => {
     const timeoutId = window.setTimeout(() => {
       kakaoSdkPromise = null;
-      reject(new Error("카카오맵 SDK 로드 시간이 초과되었습니다."));
+      document.getElementById(KAKAO_SDK_SCRIPT_ID)?.remove();
+      reject(new Error("카카오맵 SDK 응답 시간이 초과되었어요."));
     }, 8000);
 
     const finishLoad = () => {
@@ -112,7 +122,7 @@ function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
       if (!maps?.load) {
         window.clearTimeout(timeoutId);
         kakaoSdkPromise = null;
-        reject(new Error("카카오맵 네임스페이스를 찾지 못했습니다."));
+        reject(new Error("카카오맵 SDK를 초기화하지 못했어요."));
         return;
       }
       maps.load(() => {
@@ -121,7 +131,7 @@ function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
           resolve(window.kakao.maps);
         } else {
           kakaoSdkPromise = null;
-          reject(new Error("카카오맵 초기화에 실패했습니다."));
+          reject(new Error("카카오맵 지도 객체를 생성하지 못했어요."));
         }
       });
     };
@@ -138,8 +148,13 @@ function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
           "error",
           () => {
             window.clearTimeout(timeoutId);
+            existing.remove();
             kakaoSdkPromise = null;
-            reject(new Error("카카오맵 SDK 로드에 실패했습니다."));
+            reject(
+              new Error(
+                "카카오맵 스크립트를 불러오지 못했어요. 도메인 등록 또는 네트워크를 확인해 주세요.",
+              ),
+            );
           },
           { once: true },
         );
@@ -156,21 +171,16 @@ function loadKakaoMapsSdk(appKey: string): Promise<KakaoMapsNamespace> {
       window.clearTimeout(timeoutId);
       script.remove();
       kakaoSdkPromise = null;
-      reject(new Error("카카오맵 SDK 스크립트를 불러오지 못했습니다."));
+      reject(
+        new Error(
+          "카카오맵 스크립트를 불러오지 못했어요. API 키·도메인 등록 또는 네트워크를 확인해 주세요.",
+        ),
+      );
     };
     document.head.appendChild(script);
   });
 
   return kakaoSdkPromise;
-}
-
-/** Web Mercator 줌(6~17) ↔ 카카오맵 레벨(1~14) 상호 변환 */
-export function zoomToKakaoLevel(zoom: number): number {
-  return Math.max(1, Math.min(14, Math.round(19 - zoom)));
-}
-
-export function kakaoLevelToZoom(level: number): number {
-  return Math.max(6, Math.min(17, Math.round(19 - level)));
 }
 
 function createPinLabelElement(name: string, genre: string | null): HTMLElement {
@@ -216,6 +226,7 @@ export type KakaoMapViewport = {
 
 type KakaoMapLayerProps = {
   appKey: string;
+  retryKey?: number;
   visible: boolean;
   viewport: KakaoMapViewport;
   places: EatplPlace[];
@@ -225,16 +236,17 @@ type KakaoMapLayerProps = {
   onSelectPlace: (place: EatplPlace) => void;
   onMapClick: (lat: number, lng: number) => void;
   onReadyChange: (ready: boolean) => void;
-  onFallback: () => void;
+  onError: (message: string) => void;
 };
 
 /**
- * '식당 보기' 모드용 카카오맵 JS SDK 레이어.
- * 영토 표시 모드로 전환 시에는 숨김 처리하여 인스턴스를 유지하고,
- * 다시 돌아올 때 relayout + 좌표 동기화로 끊김 없이 이어진다.
+ * '식당 보기' 모드 전용 카카오맵 JS SDK 레이어.
+ * 영토 표시 모드로 전환 시에는 숨김 처리해 인스턴스를 유지하고,
+ * 전환 직전·직후에 좌표와 축척을 양방향으로 정확히 동기화한다.
  */
 export function KakaoMapLayer({
   appKey,
+  retryKey = 0,
   visible,
   viewport,
   places,
@@ -244,7 +256,7 @@ export function KakaoMapLayer({
   onSelectPlace,
   onMapClick,
   onReadyChange,
-  onFallback,
+  onError,
 }: KakaoMapLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [sdkReady, setSdkReady] = useState(false);
@@ -255,29 +267,62 @@ export function KakaoMapLayer({
   const hoverLabelRef = useRef<KakaoCustomOverlayInstance | null>(null);
   const userOverlayRef = useRef<KakaoCustomOverlayInstance | null>(null);
 
-  // 내부 이벤트에서 발생한 뷰포트 갱신 직후 불필요한 setCenter 재호출을 막기 위한 가드
-  const lastReportedRef = useRef<KakaoMapViewport | null>(null);
+  const visibleRef = useRef(visible);
+  const latestViewportRef = useRef(viewport);
   const initialViewportRef = useRef(viewport);
+  const lastReportedRef = useRef<KakaoMapViewport | null>(null);
+  /** 코드에서 relayout/setLevel/setCenter를 호출한 직후 발생하는 내부 idle 이벤트를 무시하기 위한 타임스탬프 */
+  const suppressIdleUntilRef = useRef(0);
 
-  // 최신 콜백 참조 유지 (지도 리스너 재등록 방지)
   const callbacksRef = useRef({
     onViewportChange,
     onSelectPlace,
     onMapClick,
     onReadyChange,
-    onFallback,
+    onError,
   });
+
+  useEffect(() => {
+    latestViewportRef.current = viewport;
+  }, [viewport]);
+
   useEffect(() => {
     callbacksRef.current = {
       onViewportChange,
       onSelectPlace,
       onMapClick,
       onReadyChange,
-      onFallback,
+      onError,
     };
-  }, [onViewportChange, onSelectPlace, onMapClick, onReadyChange, onFallback]);
+  }, [onViewportChange, onSelectPlace, onMapClick, onReadyChange, onError]);
 
-  // 1. 카카오맵 SDK 로드 및 지도 인스턴스 1회 초기화
+  // 프로그래밍 방식으로 카카오맵 카메라를 지정 좌표·줌에 정확히 맞춘다.
+  const applyViewportToMap = (
+    maps: KakaoMapsNamespace,
+    map: KakaoMapInstance,
+    vp: KakaoMapViewport,
+    withRelayout: boolean,
+  ) => {
+    const targetLevel = zoomToKakaoLevel(vp.zoom);
+    const targetLatLng = new maps.LatLng(vp.lat, vp.lng);
+    suppressIdleUntilRef.current = performance.now() + 260;
+
+    if (withRelayout) {
+      map.relayout();
+    }
+    map.setCenter(targetLatLng);
+    if (map.getLevel() !== targetLevel) {
+      map.setLevel(targetLevel, { animate: false });
+      map.setCenter(targetLatLng);
+    }
+    lastReportedRef.current = {
+      lat: vp.lat,
+      lng: vp.lng,
+      zoom: kakaoLevelToZoom(targetLevel),
+    };
+  };
+
+  // 1. 카카오맵 SDK 로드 및 지도 인스턴스 초기화
   useEffect(() => {
     let cancelled = false;
     let mapInstance: KakaoMapInstance | null = null;
@@ -286,21 +331,29 @@ export function KakaoMapLayer({
     let handleClick: ((event: KakaoMouseEvent) => void) | null = null;
     let resizeObserver: ResizeObserver | null = null;
 
-    loadKakaoMapsSdk(appKey)
+    loadKakaoMapsSdk(appKey, retryKey > 0)
       .then((maps) => {
         if (cancelled || !containerRef.current) return;
         mapsNs = maps;
         mapsRef.current = maps;
 
-        const initVp = initialViewportRef.current;
+        const initVp = latestViewportRef.current ?? initialViewportRef.current;
+        suppressIdleUntilRef.current = performance.now() + 300;
         mapInstance = new maps.Map(containerRef.current, {
           center: new maps.LatLng(initVp.lat, initVp.lng),
           level: zoomToKakaoLevel(initVp.zoom),
         });
         mapRef.current = mapInstance;
+        lastReportedRef.current = {
+          lat: initVp.lat,
+          lng: initVp.lng,
+          zoom: kakaoLevelToZoom(zoomToKakaoLevel(initVp.zoom)),
+        };
 
         handleIdle = () => {
-          if (!mapInstance) return;
+          if (!mapInstance || !visibleRef.current) return;
+          if (performance.now() < suppressIdleUntilRef.current) return;
+
           const center = mapInstance.getCenter();
           const next: KakaoMapViewport = {
             lat: center.getLat(),
@@ -312,7 +365,7 @@ export function KakaoMapLayer({
         };
 
         handleClick = (event: KakaoMouseEvent) => {
-          if (!event?.latLng) return;
+          if (!visibleRef.current || !event?.latLng) return;
           callbacksRef.current.onMapClick(
             event.latLng.getLat(),
             event.latLng.getLng(),
@@ -323,8 +376,9 @@ export function KakaoMapLayer({
         maps.event.addListener(mapInstance, "click", handleClick);
 
         resizeObserver = new ResizeObserver(() => {
-          if (!mapInstance) return;
+          if (!mapInstance || !visibleRef.current) return;
           const center = mapInstance.getCenter();
+          suppressIdleUntilRef.current = performance.now() + 200;
           mapInstance.relayout();
           mapInstance.setCenter(center);
         });
@@ -333,11 +387,15 @@ export function KakaoMapLayer({
         setSdkReady(true);
         callbacksRef.current.onReadyChange(true);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!cancelled) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "카카오맵을 불러오지 못했어요.";
           setSdkReady(false);
           callbacksRef.current.onReadyChange(false);
-          callbacksRef.current.onFallback();
+          callbacksRef.current.onError(message);
         }
       });
 
@@ -364,57 +422,68 @@ export function KakaoMapLayer({
       setSdkReady(false);
       callbacksRef.current.onReadyChange(false);
     };
-  }, [appKey]);
+  }, [appKey, retryKey]);
 
-  // 2. 외부 viewport 변경(지역 검색, + / - 버튼, 영토→식당 모드 전환)을 카카오맵에 반영
+  // 2. visible 전환(식당 보기 ↔ 영토 표시) 양방향 카메라 동기화
+  const prevVisibleRef = useRef(visible);
+  useEffect(() => {
+    const wasVisible = prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+    visibleRef.current = visible;
+
+    const maps = mapsRef.current;
+    const map = mapRef.current;
+    if (!sdkReady || !maps || !map) return;
+
+    // 식당 보기 → 영토 표시: idle 전이라도 방금 움직인 카카오맵 중심·줌을 즉시 영토 지도에 전달
+    if (wasVisible && !visible) {
+      const center = map.getCenter();
+      const live: KakaoMapViewport = {
+        lat: center.getLat(),
+        lng: center.getLng(),
+        zoom: kakaoLevelToZoom(map.getLevel()),
+      };
+      lastReportedRef.current = live;
+      callbacksRef.current.onViewportChange(live);
+      return;
+    }
+
+    // 영토 표시 → 식당 보기: 영토 지도에서 이동해 둔 좌표·줌으로 카카오맵을 즉시 정렬
+    if (!wasVisible && visible) {
+      const id = requestAnimationFrame(() => {
+        if (!visibleRef.current) return;
+        applyViewportToMap(maps, map, latestViewportRef.current, true);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [sdkReady, visible]);
+
+  // 3. 외부 viewport 변경(지역 검색, + / - 버튼, 왼쪽 목록 클릭)을 카카오맵에 반영
   useEffect(() => {
     const maps = mapsRef.current;
     const map = mapRef.current;
     if (!sdkReady || !visible || !maps || !map) return;
 
     const reported = lastReportedRef.current;
+    const targetLevel = zoomToKakaoLevel(viewport.zoom);
     if (
       reported &&
       Math.abs(reported.lat - viewport.lat) < 1e-5 &&
       Math.abs(reported.lng - viewport.lng) < 1e-5 &&
-      reported.zoom === viewport.zoom
+      zoomToKakaoLevel(reported.zoom) === targetLevel
     ) {
       return;
     }
 
-    const targetLevel = zoomToKakaoLevel(viewport.zoom);
-    if (map.getLevel() !== targetLevel) {
-      map.setLevel(targetLevel);
-    }
     const cur = map.getCenter();
-    if (
-      Math.abs(cur.getLat() - viewport.lat) > 1e-5 ||
-      Math.abs(cur.getLng() - viewport.lng) > 1e-5
-    ) {
-      map.setCenter(new maps.LatLng(viewport.lat, viewport.lng));
-    }
+    const sameLevel = map.getLevel() === targetLevel;
+    const sameCenter =
+      Math.abs(cur.getLat() - viewport.lat) < 1e-5 &&
+      Math.abs(cur.getLng() - viewport.lng) < 1e-5;
+    if (sameLevel && sameCenter) return;
+
+    applyViewportToMap(maps, map, viewport, false);
   }, [sdkReady, visible, viewport]);
-
-  // 3. 영토 모드에서 다시 식당 보기로 돌아왔을 때 relayout 후 정확한 좌표로 재정렬
-  const latestViewportRef = useRef(viewport);
-  useEffect(() => {
-    latestViewportRef.current = viewport;
-  }, [viewport]);
-
-  useEffect(() => {
-    if (!sdkReady || !visible) return;
-    const maps = mapsRef.current;
-    const map = mapRef.current;
-    if (!maps || !map) return;
-
-    const id = requestAnimationFrame(() => {
-      const vp = latestViewportRef.current;
-      map.relayout();
-      map.setLevel(zoomToKakaoLevel(vp.zoom));
-      map.setCenter(new maps.LatLng(vp.lat, vp.lng));
-    });
-    return () => cancelAnimationFrame(id);
-  }, [sdkReady, visible]);
 
   // 4. 식당 마커 및 선택/호버 말풍선 동기화
   useEffect(() => {
@@ -422,7 +491,6 @@ export function KakaoMapLayer({
     const map = mapRef.current;
     if (!sdkReady || !maps || !map) return;
 
-    // 기존 마커·말풍선 정리
     for (const m of markersRef.current) m.setMap(null);
     markersRef.current = [];
     selectedLabelRef.current?.setMap(null);

@@ -2,7 +2,11 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icon/Icon";
-import { regionLabel, sortRegions } from "@/lib/map/home-contract";
+import { sortRegions } from "@/lib/map/home-contract";
+import {
+  getTravelProvinceName,
+  sortProvincesByTravelName,
+} from "@/lib/seo/site";
 
 /*
  * 영토 지도(나의 방문 현황 표시용 정밀 SVG).
@@ -245,7 +249,7 @@ export function TerritoryMap({
   const provinceNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of meta?.provinces ?? []) {
-      map.set(p.code, regionLabel(p));
+      map.set(p.code, getTravelProvinceName(p.code, p.name));
     }
     return map;
   }, [meta]);
@@ -253,11 +257,10 @@ export function TerritoryMap({
   const provinceName = province ? provinceNameMap.get(province) : undefined;
   const regions = useMemo(() => {
     if (!meta) return [];
-    const list =
-      province === NATION
-        ? meta.provinces
-        : (territoriesOf.get(province) ?? []);
-    return sortRegions(list);
+    if (province === NATION) {
+      return sortProvincesByTravelName(meta.provinces);
+    }
+    return sortRegions(territoriesOf.get(province) ?? []);
   }, [meta, province, territoriesOf]);
 
   // 현재 레벨(전국 16개 시·도 또는 선택한 시·도의 시·군·구)에 맞춘 정밀 SVG 투영
@@ -433,7 +436,10 @@ export function TerritoryMap({
           className="flex flex-wrap gap-2"
         >
           {regions.map((region) => {
-            const label = province === NATION ? regionLabel(region) : region.name;
+            const label =
+              province === NATION
+                ? getTravelProvinceName(region.code, region.name)
+                : region.name;
             const ratio = ratioOf(region.code);
             const count =
               province === NATION
@@ -476,7 +482,8 @@ export function TerritoryMap({
 
       {meta && (
         <p className="type-caption font-normal text-muted">
-          통계청 SGIS({meta.sourceDate}) 행정구역 경계 기준
+          통계청 SGIS({meta.sourceDate}) · krmap · admdongkor (CC BY 4.0) 행정구역
+          경계 기준
         </p>
       )}
     </section>
