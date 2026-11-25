@@ -1122,13 +1122,12 @@ export function MapExplorerClient({
                         (isSelected ? "bg-accent-weak/45" : "")
                       }
                     >
-                      {/* 상단 가로: 컴팩트 이미지 슬롯 + 식당명 · 주소 · 업종 · 매출/영업시간 */}
+                      {/* 상단 가로: 컴팩트 이미지 슬롯 + 식당명 · 주소 · 업종 · 매출/영업시간 (사진·이름 → 잇플 상세) */}
                       <div className="flex items-start gap-3">
-                        <div
-                          aria-hidden="true"
-                          className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-fill"
-                        >
-                          {place.imageUrl ? (
+                        {(() => {
+                          const thumbClass =
+                            "flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-fill";
+                          const thumb = place.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={place.imageUrl}
@@ -1141,13 +1140,53 @@ export function MapExplorerClient({
                               size={22}
                               className="text-muted/35"
                             />
-                          )}
-                        </div>
+                          );
+                          // 키보드·스크린리더는 이름 링크 하나로 이동하고, 사진 링크는 마우스·터치용으로만 둔다.
+                          return safeEatplUrl ? (
+                            <a
+                              href={safeEatplUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              tabIndex={-1}
+                              aria-hidden="true"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedPlaceId(place.id);
+                              }}
+                              className={`${thumbClass} pressable`}
+                            >
+                              {thumb}
+                            </a>
+                          ) : (
+                            <div aria-hidden="true" className={thumbClass}>
+                              {thumb}
+                            </div>
+                          );
+                        })()}
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-2">
                             <h2 className="truncate text-[15px] font-semibold tracking-tight text-foreground">
-                              {place.name}
+                              {safeEatplUrl ? (
+                                <a
+                                  href={safeEatplUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSelectedPlaceId(place.id);
+                                  }}
+                                  className="rounded-input hover:underline underline-offset-4 focus-ring"
+                                >
+                                  {place.name}
+                                  <span className="sr-only">
+                                    {" "}
+                                    (잇플 상세, 새 창)
+                                  </span>
+                                </a>
+                              ) : (
+                                place.name
+                              )}
                             </h2>
                             {place.genre && (
                               <span className="shrink-0 text-[11px] font-medium text-muted">
@@ -1202,8 +1241,8 @@ export function MapExplorerClient({
                         </span>
                       </button>
 
-                      {/* 하단 액션 줄: 후기 보기 · 잇플 상세 보기 */}
-                      <div className="flex items-center justify-between gap-3 px-1">
+                      {/* 하단 액션 줄: 후기 보기 */}
+                      <div className="flex items-center gap-3 px-1">
                         <button
                           type="button"
                           onClick={(event) => {
@@ -1215,30 +1254,6 @@ export function MapExplorerClient({
                           <span>후기 보기</span>
                           <span aria-hidden="true">›</span>
                         </button>
-
-                        {safeEatplUrl ? (
-                          <a
-                            href={safeEatplUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSelectedPlaceId(place.id);
-                            }}
-                            className="pressable inline-flex min-h-8 items-center gap-1 rounded-input text-xs font-semibold text-accent-dark focus-ring"
-                          >
-                            <span>잇플 상세 보기</span>
-                            <Icon name="external" size={13} />
-                          </a>
-                        ) : (
-                          <span
-                            aria-disabled="true"
-                            title="백엔드 API 연동 후 실제 잇플 상세 페이지로 연결돼요"
-                            className="inline-flex min-h-8 cursor-not-allowed items-center gap-1 text-xs font-medium text-muted/75"
-                          >
-                            <span>잇플 상세 보기(예시)</span>
-                          </span>
-                        )}
                       </div>
                     </article>
                   </li>
