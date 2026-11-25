@@ -1,7 +1,7 @@
 import type { MyPageData } from "@/types/my-page";
 
 // 예시 데이터. 로그인과 API가 생기기 전까지 마이페이지 모양을 보여 주는 용도다.
-// 화면에는 isSample로 "예시"라고 밝힌다. 식당 이름은 지어낸 것이고 잇플 링크는 넣지 않는다.
+// 화면 확인용 임시 데이터다(화면에 따로 밝히지 않는다). 식당 이름은 지어낸 것이고 잇플 링크는 넣지 않는다.
 export const SAMPLE_MY_PAGE: MyPageData = {
   isSample: true,
   profile: {
@@ -15,6 +15,16 @@ export const SAMPLE_MY_PAGE: MyPageData = {
     { region_id: 41110, region_name: "수원시", first_visited_at: "2026-11-09" },
     { region_id: 26350, region_name: "부산 해운대구", first_visited_at: "2026-11-15" },
     { region_id: 30140, region_name: "대전 중구", first_visited_at: "2026-11-21" },
+    { region_id: 11110, region_name: "서울 종로구", first_visited_at: "2026-11-04" },
+    { region_id: 11170, region_name: "서울 용산구", first_visited_at: "2026-11-06" },
+    { region_id: 11710, region_name: "서울 송파구", first_visited_at: "2026-11-08" },
+    { region_id: 26110, region_name: "부산 중구", first_visited_at: "2026-11-15" },
+    { region_id: 27110, region_name: "대구 중구", first_visited_at: "2026-11-17" },
+    { region_id: 31110, region_name: "울산 중구", first_visited_at: "2026-11-18" },
+    { region_id: 47130, region_name: "경주시", first_visited_at: "2026-11-19" },
+    { region_id: 50110, region_name: "제주시", first_visited_at: "2026-11-20" },
+    { region_id: 51110, region_name: "춘천시", first_visited_at: "2026-11-22" },
+    { region_id: 52110, region_name: "전주시", first_visited_at: "2026-11-23" },
   ],
   foodCollection: [
     { food_id: 1, food_name: "딸기", collected_at: "2026-11-15" },

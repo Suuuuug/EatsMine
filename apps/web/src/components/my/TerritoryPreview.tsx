@@ -6,8 +6,6 @@ import { TerritoryMap } from "@/components/em/TerritoryMap";
  */
 export function TerritoryPreview({ visited }: { visited: readonly string[] }) {
   return (
-    <div className="max-h-80 overflow-hidden">
-      <TerritoryMap visited={visited} />
-    </div>
+    <TerritoryMap visited={visited} territoryView compact />
   );
 }

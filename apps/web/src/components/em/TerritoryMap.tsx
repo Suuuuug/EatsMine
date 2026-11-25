@@ -141,6 +141,10 @@ export function TerritoryMap({
     if (province !== NATION || territoryShapes) return marked.has(code);
     return (territoriesOf.get(code) ?? []).some((t) => marked.has(t.code));
   }
+  // 칠한 영토는 맨 위에 그려 윤곽이 이웃에 덮이지 않게 한다.
+  function isFilled(code: string) {
+    return (province !== NATION || territoryShapes) && owned.has(code);
+  }
   function fillOf(code: string) {
     const ratio = ratioOf(code);
     if (ratio === 1) return "fill-map-full";
@@ -206,7 +210,7 @@ export function TerritoryMap({
         </h3>
       </div>
 
-      <div className={`relative aspect-[4/5] w-full ${compact ? "max-h-80" : "max-h-[min(65vh,560px)]"}`}>
+      <div className={`relative aspect-[4/5] w-full ${compact ? "max-h-80" : "max-h-[min(78vh,760px)]"}`}>
         {failed ? (
           <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <p className="type-body">지도를 불러오지 못했어요.</p>
@@ -236,8 +240,9 @@ export function TerritoryMap({
               if (code && name) choosePath(code, name);
             }}
           >
-            {shape.paths.map((path) => {
+            {[...shape.paths].sort((a, b) => Number(isFilled(a.code)) - Number(isFilled(b.code))).map((path) => {
               const isSelected = selected === path.code;
+              const filled = isFilled(path.code);
               return (
                 <path
                   key={path.code}
@@ -246,11 +251,11 @@ export function TerritoryMap({
                   data-name={path.name}
                   fillRule="evenodd"
                   vectorEffect="non-scaling-stroke"
-                  strokeWidth={isSelected ? 2.5 : 1}
+                  strokeWidth={isSelected ? 4 : filled ? 2 : 1}
                   className={
                     (compact ? "pointer-events-none " : "cursor-pointer transition-opacity duration-150 hover:opacity-80 ") +
                     fillOf(path.code) +
-                    (isSelected ? " stroke-accent-dark" : " stroke-map-line")
+                    (isSelected ? " stroke-foreground" : filled ? " stroke-accent-dark" : " stroke-map-line")
                   }
                 >
                   <title>{path.name}</title>
@@ -265,7 +270,7 @@ export function TerritoryMap({
       {markedText && <p className="sr-only">{markedText}</p>}
 
       {!compact && regions.length > 0 && (
-        <ul aria-label={`${provinceName ?? "전국"} 지역 목록`} className="flex flex-wrap gap-2">
+        <ul aria-label={`${provinceName ?? "전국"} 지역 목록`} className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
           {(marked.size > 0 ? regions.filter((r) => (province === NATION ? markedAt(r.code) : marked.has(r.code))) : regions).map((region) => {
             const ratio = ratioOf(region.code);
             const markedCount = province === NATION ? (territoriesOf.get(region.code) ?? []).filter((t) => marked.has(t.code)).length : 0;
@@ -273,7 +278,7 @@ export function TerritoryMap({
             const done = province === NATION ? Math.round(ratio * count) : 0;
             const isSelected = selected === region.code;
             return (
-              <li key={region.code}>
+              <li key={region.code} className="shrink-0">
                 <button
                   type="button"
                   aria-pressed={province === NATION ? undefined : isSelected}

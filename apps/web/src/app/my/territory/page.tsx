@@ -1,19 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Icon } from "@/components/icon/Icon";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { TerritoryMap } from "@/components/em/TerritoryMap";
+import { TerritoryExplorer } from "@/components/my/TerritoryExplorer";
+import { SAMPLE_MY_PAGE } from "@/lib/my-page/sample-data";
 
-export const metadata: Metadata = { title: "나의 영토 | EatsMine" };
+export const metadata: Metadata = { title: "내 영토 | EatsMine" };
+
+// 화면 확인용 임시 데이터. 실제 방문 기록·후기 집계는 인증과 API가 연결된 뒤 같은 모양으로 바꿔 넘긴다.
+const VISITED = SAMPLE_MY_PAGE.regionVisits.map((v) => ({ code: String(v.region_id), label: v.region_name }));
+const STATS = Object.fromEntries(
+  VISITED.map((v, i) => [v.code, { mine: (i % 3) + 1, others: 9 + ((i * 17) % 41) }]),
+);
 
 export default function MyTerritoryPage() {
-  return <div className="em-theme min-h-dvh pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
-    <Sidebar />
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 md:px-8">
-      <Link href="/my" className="focus-ring inline-flex min-h-11 w-fit items-center rounded-input px-2 font-medium text-accent-dark">마이페이지로</Link>
-      <h1 className="type-title">나의 영토</h1>
-      <p className="type-body text-muted">예시로 칠한 지도예요. 내 기록은 로그인 연결 후 볼 수 있어요.</p>
-      <p className="type-body">방문 지역 예시 4곳: 서울 강남구, 수원시, 부산 해운대구, 대전 중구</p>
-      <TerritoryMap visited={["11680", "41110", "26350", "30140"]} />
-    </main>
-  </div>;
+  return (
+    <div className="em-theme my-backdrop min-h-dvh pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
+      <Sidebar />
+      <main className="flex w-full flex-col gap-6 px-4 pt-4 pb-8 lg:px-8 lg:pt-8 2xl:px-12">
+        <header className="flex min-h-11 items-center gap-1">
+          <Link href="/my" aria-label="마이페이지로" className="pressable focus-ring -ml-2 inline-flex size-11 items-center justify-center rounded-full text-foreground">
+            <Icon name="back" size={22} />
+          </Link>
+          <h1 className="type-section">내 영토</h1>
+        </header>
+        <TerritoryExplorer visited={VISITED} stats={STATS} />
+      </main>
+    </div>
+  );
 }
