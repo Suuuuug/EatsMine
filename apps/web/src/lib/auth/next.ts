@@ -6,7 +6,9 @@ export function safeNext(next: string | null | undefined, fallback = "/my"): str
   try {
     const url = new URL(next, base);
     if (url.origin !== base) return fallback;
-    return url.pathname + url.search + url.hash;
+    const path = url.pathname + url.search + url.hash;
+    // "/..//host"처럼 정규화 뒤에 "//"로 시작하는 경로는 프로토콜 상대 주소로 읽히므로 거부한다.
+    return path.startsWith("//") ? fallback : path;
   } catch {
     return fallback;
   }
