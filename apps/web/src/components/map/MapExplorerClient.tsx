@@ -22,7 +22,13 @@ import {
 } from "@/components/map/InteractiveTileMap";
 import { RestaurantReviewSheet } from "@/components/map/RestaurantReviewSheet";
 import { sortRegions, validEatplUrl } from "@/lib/map/home-contract";
-import { MAX_GENRES, isPreviewMode, toCardReview } from "@/lib/map/map-data";
+import {
+  MAX_GENRES,
+  PLACE_PAGE_SIZE,
+  isPreviewMode,
+  pagePlaces,
+  toCardReview,
+} from "@/lib/map/map-data";
 import {
   useMapRestaurants,
   useTerritoryOwners,
@@ -438,7 +444,19 @@ export function MapExplorerClient({
   const searchLoading = !isPreview && apiSearch.loading;
   const searchError = isPreview ? "" : apiSearch.error;
 
-  const places = result?.items ?? [];
+  const allPlaces = result?.items ?? [];
+  // 목록·지도 핀은 한 페이지씩 그린다. 지역·업종·재시도가 바뀌면 첫 페이지부터 다시 보여 준다.
+  const listKey = `${selectedRegion?.code ?? ""}|${selectedGenres.join(",")}|${searchAttempt}|${isPreview}`;
+  const [shownState, setShownState] = useState({
+    key: listKey,
+    count: PLACE_PAGE_SIZE,
+  });
+  const shownCount =
+    shownState.key === listKey ? shownState.count : PLACE_PAGE_SIZE;
+  const { visible: places, remaining: remainingPlaces } = pagePlaces(
+    allPlaces,
+    shownCount,
+  );
   const currentOwner = selectedRegion
     ? ownersByRegion.get(selectedRegion.code)
     : undefined;
@@ -757,7 +775,7 @@ export function MapExplorerClient({
             </h1>
             {selectedRegion ? (
               <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums">
-                {places.length}곳
+                {allPlaces.length}곳
               </span>
             ) : browsingProvince ? (
               <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums">
@@ -1089,7 +1107,7 @@ export function MapExplorerClient({
                 </ActionButton>
               }
             />
-          ) : places.length === 0 ? (
+          ) : allPlaces.length === 0 ? (
             <EmptyState
               illustration="empty-search"
               message={
@@ -1283,6 +1301,26 @@ export function MapExplorerClient({
               })}
             </ul>
           )}
+
+          {selectedRegion &&
+            !searchLoading &&
+            !searchError &&
+            remainingPlaces > 0 && (
+              <div className="mt-2 flex justify-center">
+                <ActionButton
+                  variant="tinted"
+                  size="sm"
+                  onClick={() =>
+                    setShownState({
+                      key: listKey,
+                      count: places.length + PLACE_PAGE_SIZE,
+                    })
+                  }
+                >
+                  더 보기 ({places.length} / {allPlaces.length})
+                </ActionButton>
+              </div>
+            )}
 
           {result && (
             <p className="mt-3 px-1 pb-2 text-center text-[11px] text-muted">

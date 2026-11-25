@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview } from './map-data.ts';
+import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview, pagePlaces, PLACE_PAGE_SIZE } from './map-data.ts';
 
 const place = (id, merUrl = `https://web.paybooc.ai/mer/web/profile/${id}`) => ({ id, merUrl });
 
@@ -34,4 +34,13 @@ test('카드 리뷰 요약: 공개 리뷰가 없으면 null, 대표 리뷰가 �
   assert.equal(toCardReview({ average: 0, count: 0, featured: null }), null);
   assert.deepEqual(toCardReview({ average: 4.5, count: 2, featured: { id: 1, nickname: 'a', rating: 5, content: ' 맛있어요 ' } }), { average: 4.5, count: 2, excerpt: '맛있어요' });
   assert.deepEqual(toCardReview({ average: 3, count: 1, featured: null }), { average: 3, count: 1, excerpt: null });
+});
+
+test('목록은 한 페이지씩 보여주고 남은 개수를 센다', () => {
+  const items = Array.from({ length: 45 }, (_, i) => i);
+  assert.deepEqual(pagePlaces(items, 0).visible.length, PLACE_PAGE_SIZE);
+  assert.equal(pagePlaces(items, 0).remaining, 45 - PLACE_PAGE_SIZE);
+  assert.equal(pagePlaces(items, 40).visible.length, 40);
+  assert.deepEqual(pagePlaces(items, 60), { visible: items, remaining: 0 });
+  assert.deepEqual(pagePlaces([1, 2], 20), { visible: [1, 2], remaining: 0 });
 });

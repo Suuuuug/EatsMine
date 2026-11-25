@@ -38,3 +38,12 @@ export function toCardReview(summary: PlaceReviewSummaryDto | null | undefined):
   if (!Number.isInteger(summary.count) || summary.count < 1) return null;
   return { average: summary.average, count: summary.count, excerpt: summary.featured?.content?.trim() || null };
 }
+
+/** 식당 목록·지도 핀을 한 번에 그리는 개수. '더 보기'를 누를 때마다 이만큼 늘린다. */
+export const PLACE_PAGE_SIZE = 20;
+
+/** 지금 보여줄 개수(최소 한 페이지, 전체를 넘지 않음)와 남은 개수 */
+export function pagePlaces<T>(items: readonly T[], shown: number): { visible: T[]; remaining: number } {
+  const count = Math.min(items.length, Math.max(PLACE_PAGE_SIZE, shown));
+  return { visible: items.slice(0, count), remaining: items.length - count };
+}
