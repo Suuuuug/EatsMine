@@ -149,7 +149,7 @@ html[data-dictionary-season="winter"] .season-backdrop { --season-background: ur
 .em-theme.explore-backdrop,
 .em-theme.my-backdrop {
   background-image:
-    linear-gradient(to bottom, light-dark(oklch(0.968 0.006 150 / 0.5), oklch(0.17 0.008 150 / 0.86)), var(--color-background) 680px),
+    linear-gradient(to bottom, light-dark(oklch(0.968 0.006 150 / 0.12), oklch(0.17 0.008 150 / 0.86)), var(--color-background) 680px),
     var(--page-backdrop);
   background-size: 100% 680px, max(100%, 1632px) auto;
   background-position: top center;

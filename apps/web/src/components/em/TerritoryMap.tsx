@@ -25,16 +25,36 @@ type TerritoryMapProps = {
   visited: readonly string[];
   /** 영토 하나를 골랐을 때 */
   onSelectTerritory?: (territory: { code: string; name: string }) => void;
+  /** 강조할 지역 코드(5자리, 예: 음식이 나는 지역). 전국에서는 해당 시도를, 시도 안에서는 해당 시군구를 칠한다. */
+  highlighted?: readonly string[];
+  /** 선택 윤곽을 밖에서 제어한다(null이면 선택 없음). 생략하면 내부 상태를 쓴다. */
+  selectedCode?: string | null;
+  /** 보고 있는 시도 코드를 밖에서 제어한다(""은 전국). 생략하면 내부 상태를 쓴다. */
+  province?: string;
+  onProvinceChange?: (code: string) => void;
+  /** 작은 읽기 전용 미리보기. 지역 버튼 목록과 출처 문구를 숨기고 클릭을 막는다. */
+  compact?: boolean;
   className?: string;
 };
 
-export function TerritoryMap({ visited, onSelectTerritory, className = "" }: TerritoryMapProps) {
+export function TerritoryMap({
+  visited,
+  onSelectTerritory,
+  highlighted,
+  selectedCode,
+  province: provinceProp,
+  onProvinceChange,
+  compact = false,
+  className = "",
+}: TerritoryMapProps) {
   const [meta, setMeta] = useState<RegionMeta | null>(null);
   const [metaError, setMetaError] = useState(false);
-  const [province, setProvince] = useState(NATION);
+  const [provinceState, setProvinceState] = useState(NATION);
+  const province = provinceProp ?? provinceState;
   const [shape, setShape] = useState<Shape | null>(null);
   const [shapeError, setShapeError] = useState("");
-  const [selected, setSelected] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const selected = selectedCode !== undefined ? selectedCode ?? "" : selectedState;
   const [attempt, setAttempt] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
@@ -91,6 +111,7 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
   }, [province]);
 
   const owned = useMemo(() => new Set(visited), [visited]);
+  const marked = useMemo(() => new Set(highlighted ?? []), [highlighted]);
   const territoriesOf = useMemo(() => {
     const map = new Map<string, Region[]>();
     for (const t of meta?.territories ?? []) {
@@ -111,21 +132,45 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
     return list.filter((t) => owned.has(t.code)).length / list.length;
   }
 
+  // 강조 지역은 전국에서는 시도 단위, 시도 안에서는 시군구 단위로 칠한다(칠한 영토와 같은 map-partial 색).
+  function markedAt(code: string) {
+    if (province !== NATION) return marked.has(code);
+    return (territoriesOf.get(code) ?? []).some((t) => marked.has(t.code));
+  }
+  function fillOf(code: string) {
+    const ratio = ratioOf(code);
+    if (ratio === 1) return "fill-map-full";
+    return ratio > 0 || markedAt(code) ? "fill-map-partial" : "fill-map-empty";
+  }
+
+  // 칠한 지역을 글로도 알린다(색만으로 전하지 않는다).
+  const markedNames = useMemo(() => {
+    if (!meta || marked.size === 0) return [] as string[];
+    const provinceNames = new Map(meta.provinces.map((p) => [p.code, p.name]));
+    return meta.territories
+      .filter((t) => marked.has(t.code) && (province === NATION || t.parentCode === province))
+      .map((t) => `${provinceNames.get(t.parentCode ?? "") ?? ""} ${t.name}`.trim());
+  }, [meta, marked, province]);
+  const markedText = markedNames.length > 0 ? `추천 지역: ${markedNames.join(", ")}` : "";
+
   function choose(code: string, name: string) {
+    if (compact) return;
     if (province === NATION) {
       movedByUser.current = true;
-      setSelected("");
-      setProvince(code);
+      setSelectedState("");
+      setProvinceState(code);
+      onProvinceChange?.(code);
     } else {
-      setSelected(code);
+      setSelectedState(code);
       onSelectTerritory?.({ code, name });
     }
   }
 
   function backToNation() {
     movedByUser.current = true;
-    setSelected("");
-    setProvince(NATION);
+    setSelectedState("");
+    setProvinceState(NATION);
+    onProvinceChange?.(NATION);
   }
 
   const loading = !metaError && (!meta || (shape?.key !== shapeKey && shapeError !== shapeKey));
@@ -134,7 +179,7 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
   return (
     <section aria-labelledby={titleId} className={`flex flex-col gap-4 ${className}`}>
       <div className="flex min-h-11 items-center gap-1">
-        {province !== NATION && (
+        {province !== NATION && !compact && (
           <button
             type="button"
             onClick={backToNation}
@@ -144,7 +189,7 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
             전국
           </button>
         )}
-        <h3 id={titleId} ref={headingRef} tabIndex={-1} className="type-section outline-none">
+        <h3 id={titleId} ref={headingRef} tabIndex={-1} className={compact ? "sr-only" : "type-section outline-none"}>
           {provinceName ?? "전국"}
         </h3>
       </div>
@@ -169,9 +214,10 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
           <svg
             viewBox={shape.viewBox}
             role="img"
-            aria-label={`${provinceName ?? "전국"} 영토 지도`}
+            aria-label={`${provinceName ?? "전국"} 영토 지도${markedText ? `. ${markedText}` : ""}`}
             className="size-full"
             onClick={(event) => {
+              if (compact) return;
               const target = event.target as Element;
               const code = target.getAttribute("data-code");
               const name = target.getAttribute("data-name");
@@ -179,7 +225,6 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
             }}
           >
             {shape.paths.map((path) => {
-              const ratio = ratioOf(path.code);
               const isSelected = selected === path.code;
               return (
                 <path
@@ -191,8 +236,8 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
                   vectorEffect="non-scaling-stroke"
                   strokeWidth={isSelected ? 2.5 : 1}
                   className={
-                    "cursor-pointer transition-opacity duration-150 hover:opacity-80 " +
-                    (ratio === 1 ? "fill-map-full" : ratio > 0 ? "fill-map-partial" : "fill-map-empty") +
+                    (compact ? "pointer-events-none " : "cursor-pointer transition-opacity duration-150 hover:opacity-80 ") +
+                    fillOf(path.code) +
                     (isSelected ? " stroke-accent-dark" : " stroke-map-line")
                   }
                 >
@@ -200,12 +245,14 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
                 </path>
               );
             })}
-            <IslandOutlines province={province || null} className={ratioOf(province || "47") === 1 ? "fill-map-full" : ratioOf(province || "47") > 0 ? "fill-map-partial" : "fill-map-empty"} />
+            <IslandOutlines province={province || null} className={fillOf(province || "47")} />
           </svg>
         )}
       </div>
 
-      {regions.length > 0 && (
+      {markedText && <p className="sr-only">{markedText}</p>}
+
+      {!compact && regions.length > 0 && (
         <ul aria-label={`${provinceName ?? "전국"} 지역 목록`} className="flex flex-wrap gap-2">
           {regions.map((region) => {
             const ratio = ratioOf(region.code);
@@ -230,8 +277,12 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
                       {done}/{count}
                     </span>
                   ) : (
-                    owned.has(region.code) && <span className="sr-only">, 칠함</span>
+                    <>
+                      {owned.has(region.code) && <span className="sr-only">, 칠함</span>}
+                      {marked.has(region.code) && <span className="sr-only">, 추천 지역</span>}
+                    </>
                   )}
+                  {province === NATION && markedAt(region.code) && <span className="sr-only">, 추천 지역 있음</span>}
                 </button>
               </li>
             );
@@ -239,7 +290,7 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
         </ul>
       )}
 
-      {meta && (
+      {meta && !compact && (
         <p className="type-caption font-normal text-muted">
           경계는 단순화한 예시예요. 통계청 SGIS({meta.sourceDate}) · krmap, admdongkor(CC BY 4.0)를 바꿔 그렸어요.
         </p>

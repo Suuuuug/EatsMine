@@ -1,11 +1,16 @@
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { RecordLinks } from "@/components/my/RecordLinks";
+import { CollectionPreview } from "@/components/my/CollectionPreview";
+import { RecordSection } from "@/components/my/RecordSection";
+import { TerritoryPreview } from "@/components/my/TerritoryPreview";
+import regionCodes from "../../../public/images/maps/region-codes.json";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeSettings } from "@/components/theme/ThemeSettings";
 import { ReviewList } from "@/components/my/ReviewList";
 import { ScrollActivity } from "@/components/scroll/ScrollActivity";
 import { GlassCard } from "@/components/ui";
 import { formatSince } from "@/lib/my-page/format";
+import { collectionSummary, territorySummary } from "@/lib/my-page/summary";
+import { SEASONAL_FOODS, SAMPLE_COLLECTED_FOOD_IDS } from "@/data/seasonal-foods";
 import type { MyPageData } from "@/types/my-page";
 
 type MyPageViewProps = {
@@ -15,7 +20,7 @@ type MyPageViewProps = {
 };
 
 export function MyPageView({ data, member }: MyPageViewProps) {
-  const { profile, regionVisits, foodCollection, reviews } = data;
+  const { profile, regionVisits, reviews } = data;
 
   return (
     <div className="em-theme my-backdrop flex min-h-dvh flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
@@ -41,8 +46,13 @@ export function MyPageView({ data, member }: MyPageViewProps) {
               {!member && <div className="w-full sm:max-w-xs"><GoogleSignInButton next="/my" /></div>}
             </GlassCard>
           </div>
-          <div className="mx-4 lg:col-start-1 lg:row-start-3 lg:mx-0 lg:mt-8">
-            <RecordLinks regionCount={regionVisits.length} foodCount={foodCollection.length} member={member} />
+          <div className="mx-4 flex flex-col gap-6 lg:col-start-1 lg:row-start-3 lg:mx-0 lg:mt-6">
+            <RecordSection id="my-territory" title="내 영토" href="/my/territory" summary={territorySummary(regionVisits.length, regionCodes.territories.length)}>
+              <TerritoryPreview visited={regionVisits.map((visit) => String(visit.region_id))} />
+            </RecordSection>
+            <RecordSection id="my-collection" title="내 도감" href="/dictionary?collection=collected" summary={collectionSummary(SAMPLE_COLLECTED_FOOD_IDS.length, SEASONAL_FOODS.length)}>
+              <CollectionPreview />
+            </RecordSection>
           </div>
           <div className="mx-4 lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:mx-0 lg:[&_h2]:min-h-10">
             <ReviewList reviews={reviews} />
