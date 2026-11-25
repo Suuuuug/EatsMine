@@ -84,6 +84,9 @@ const getServerSnapshot = (): Settings => DEFAULT_PRIVACY;
 
 // 지도·도감은 우리 API의 공유 링크로 연결한다(켜면 링크를 만들고, 끄면 무효로 만든다).
 // 새 후기 공개는 서버에 전체 설정이 없어 이 기기에만 저장한다.
+// 서버가 공유 상태 조회(GET /me/shares)와 새 후기 공개 설정 저장을 줄 때까지 스위치를 막는다.
+// 켠 상태를 서버에서 확인·취소할 수 없는 공개 스위치는 개인정보 위험이라서다(Codex 재리뷰).
+const SERVER_READY = false;
 const shareTypes: Partial<Record<keyof Settings, ShareType>> = { territoryPublic: "territory", collectionPublic: "collection" };
 
 export function PrivacySettings({ enabled, token, userId, className }: { enabled: boolean; token: string | null; userId: string; className?: string }) {
@@ -120,12 +123,14 @@ export function PrivacySettings({ enabled, token, userId, className }: { enabled
               key={row.key}
               label={row.label}
               checked={settings[row.key]}
-              disabled={!enabled || busy !== null}
+              disabled={!enabled || !SERVER_READY || busy !== null}
               onChange={() => void toggle(row.key)}
             />
           ))}
         </ul>
-        {!enabled && <p className="pb-4 type-caption text-muted">로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요</p>}
+        <p className="pb-4 type-caption text-muted">
+          {!enabled ? "로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요" : !SERVER_READY ? "공개 설정을 준비하고 있어요. 지금은 모두 나만 봐요" : ""}
+        </p>
       </GlassCard>
       {toast}
     </MySection>
