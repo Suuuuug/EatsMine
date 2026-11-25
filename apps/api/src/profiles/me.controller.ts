@@ -30,10 +30,14 @@ const updateMeSchema = z.object(
 export class MeController {
   constructor(private readonly profilesService: ProfilesService) {}
 
-  /** GET /me — 내 프로필 (없으면 생성) */
+  /** GET /me — 내 프로필 (없으면 생성) + 리뷰 총 개수 */
   @Get()
   async get(@CurrentUser() user: AuthUser) {
-    return toProfileDto(await this.profilesService.getOrCreate(user));
+    const profile = await this.profilesService.getOrCreate(user);
+    return toProfileDto(
+      profile,
+      await this.profilesService.countReviews(user.id),
+    );
   }
 
   /** PATCH /me — 닉네임 변경 (1분 10회) */
@@ -43,8 +47,13 @@ export class MeController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: updateMeSchema }) body: z.infer<typeof updateMeSchema>,
   ) {
+    const profile = await this.profilesService.updateNickname(
+      user,
+      body.nickname,
+    );
     return toProfileDto(
-      await this.profilesService.updateNickname(user, body.nickname),
+      profile,
+      await this.profilesService.countReviews(user.id),
     );
   }
 }

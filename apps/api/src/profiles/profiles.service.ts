@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { eq, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { randomInt } from 'node:crypto';
 import type { AuthUser } from '../auth/auth-user.js';
-import { type Profile, profiles } from '../db/schema.js';
+import { type Profile, profiles, reviews } from '../db/schema.js';
 import { rankLabel } from './ranks.js';
 
 export type ProfileDto = {
@@ -13,6 +13,8 @@ export type ProfileDto = {
   rank: Profile['rank'];
   rankLabel: string;
   avatarUrl: string | null;
+  /** 내 리뷰 총 개수(공개·비공개 모두). 등급 계산 기준과 같다 */
+  reviewCount: number;
   createdAt: string;
 };
 
@@ -21,13 +23,14 @@ export function generateNickname(): string {
   return `미식탐험가${randomInt(1000, 10000)}`;
 }
 
-export function toProfileDto(p: Profile): ProfileDto {
+export function toProfileDto(p: Profile, reviewCount: number): ProfileDto {
   return {
     id: p.id,
     nickname: p.nickname,
     rank: p.rank,
     rankLabel: rankLabel(p.rank),
     avatarUrl: p.avatarUrl,
+    reviewCount,
     createdAt: p.createdAt.toISOString(),
   };
 }
@@ -52,6 +55,14 @@ export class ProfilesService {
       .where(eq(profiles.id, user.id))
       .limit(1);
     return profile;
+  }
+
+  async countReviews(userId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(reviews)
+      .where(eq(reviews.userId, userId));
+    return Number(row?.n ?? 0);
   }
 
   async updateNickname(user: AuthUser, nickname: string): Promise<Profile> {
