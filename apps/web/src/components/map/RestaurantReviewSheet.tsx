@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionButton,
   BottomSheet,
+  GlassSelect,
   RatingStars,
   actionButtonClass,
 } from "@/components/em";
@@ -465,32 +466,30 @@ export function RestaurantReviewSheet({
                     </div>
                   }
                   {canSave && foods.length > 0 && (
-                    <label className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <span className="type-caption text-foreground">
                         먹은 음식 <span className="text-muted">(선택)</span>
                       </span>
-                      <select
-                        value={foodId ?? ""}
-                        onChange={(event) =>
-                          setFoodId(
-                            event.target.value
-                              ? Number(event.target.value)
-                              : null,
-                          )
-                        }
-                        className="field px-3.5 py-2.5 type-body"
-                      >
-                        <option value="">고르지 않기</option>
-                        {foods.map((food) => (
-                          <option key={food.id} value={food.id}>
-                            {food.name}
-                          </option>
-                        ))}
-                      </select>
+                      {/* 도감 수집 필터와 같은 유리 패널 드롭다운 */}
+                      <GlassSelect
+                        trigger="field"
+                        options={[
+                          { value: "", label: "고르지 않기" },
+                          ...foods.map((food) => ({
+                            value: String(food.id),
+                            label: food.name,
+                          })),
+                        ]}
+                        value={foodId == null ? "" : String(foodId)}
+                        onChange={(next) => setFoodId(next ? Number(next) : null)}
+                        placeholderValue=""
+                        label="먹은 음식"
+                        listLabel="먹은 음식 목록"
+                      />
                       <span className="type-caption text-muted">
                         고른 음식은 도감에 모여요.
                       </span>
-                    </label>
+                    </div>
                   )}
                 </ReviewFormFields>
 
