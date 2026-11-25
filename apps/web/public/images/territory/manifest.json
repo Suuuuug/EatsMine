@@ -1,0 +1,22 @@
+[
+  {
+    "id": "owner-crown",
+    "name": "영토 1위 왕관",
+    "src": "/images/territory/owner-crown.svg"
+  },
+  {
+    "id": "review-count",
+    "name": "리뷰 수",
+    "src": "/images/territory/review-count.svg"
+  },
+  {
+    "id": "leaderboard",
+    "name": "상위 3위 단상",
+    "src": "/images/territory/leaderboard.svg"
+  },
+  {
+    "id": "my-territory",
+    "name": "내 영토",
+    "src": "/images/territory/my-territory.svg"
+  }
+]

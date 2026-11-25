@@ -1,1 +1,380 @@
-[{"id":"strawberry","name":"딸기","season":"spring","src":"/images/foods/strawberry.svg"},{"id":"wild-greens","name":"냉이","season":"spring","src":"/images/foods/wild-greens.svg"},{"id":"chives","name":"달래","season":"spring","src":"/images/foods/chives.svg"},{"id":"watermelon","name":"수박","season":"summer","src":"/images/foods/watermelon.svg"},{"id":"peach","name":"복숭아","season":"summer","src":"/images/foods/peach.svg"},{"id":"corn","name":"옥수수","season":"summer","src":"/images/foods/corn.svg"},{"id":"persimmon","name":"감","season":"autumn","src":"/images/foods/persimmon.svg"},{"id":"shiitake","name":"표고버섯","season":"autumn","src":"/images/foods/shiitake.svg"},{"id":"sweet-potato","name":"고구마","season":"autumn","src":"/images/foods/sweet-potato.svg"},{"id":"yellowtail","name":"방어","season":"winter","src":"/images/foods/yellowtail.svg"},{"id":"oyster","name":"굴","season":"winter","src":"/images/foods/oyster.svg"},{"id":"tangerine","name":"귤","season":"winter","src":"/images/foods/tangerine.svg"},{"id":"chestnut","name":"밤","season":"autumn","src":"/images/foods/chestnut.svg"},{"id":"pear","name":"배","season":"autumn","src":"/images/foods/pear.svg"},{"id":"mackerel","name":"고등어","season":"autumn","src":"/images/foods/mackerel.svg"},{"id":"crab","name":"꽃게","season":"spring","src":"/images/foods/crab.svg"},{"id":"asparagus","name":"아스파라거스","season":"spring","src":"/images/foods/asparagus.svg"},{"id":"tomato","name":"토마토","season":"summer","src":"/images/foods/tomato.svg"},{"id":"cucumber","name":"오이","season":"summer","src":"/images/foods/cucumber.svg"},{"id":"radish","name":"무","season":"winter","src":"/images/foods/radish.svg"}]
+[
+  {
+    "id": "strawberry",
+    "name": "딸기",
+    "season": "spring",
+    "src": "/images/foods/strawberry.svg"
+  },
+  {
+    "id": "wild-greens",
+    "name": "냉이",
+    "season": "spring",
+    "src": "/images/foods/wild-greens.svg"
+  },
+  {
+    "id": "chives",
+    "name": "달래",
+    "season": "spring",
+    "src": "/images/foods/chives.svg"
+  },
+  {
+    "id": "watermelon",
+    "name": "수박",
+    "season": "summer",
+    "src": "/images/foods/watermelon.svg"
+  },
+  {
+    "id": "peach",
+    "name": "복숭아",
+    "season": "summer",
+    "src": "/images/foods/peach.svg"
+  },
+  {
+    "id": "corn",
+    "name": "옥수수",
+    "season": "summer",
+    "src": "/images/foods/corn.svg"
+  },
+  {
+    "id": "persimmon",
+    "name": "감",
+    "season": "autumn",
+    "src": "/images/foods/persimmon.svg"
+  },
+  {
+    "id": "shiitake",
+    "name": "표고버섯",
+    "season": "autumn",
+    "src": "/images/foods/shiitake.svg"
+  },
+  {
+    "id": "sweet-potato",
+    "name": "고구마",
+    "season": "autumn",
+    "src": "/images/foods/sweet-potato.svg"
+  },
+  {
+    "id": "yellowtail",
+    "name": "방어",
+    "season": "winter",
+    "src": "/images/foods/yellowtail.svg"
+  },
+  {
+    "id": "oyster",
+    "name": "굴",
+    "season": "winter",
+    "src": "/images/foods/oyster.svg"
+  },
+  {
+    "id": "tangerine",
+    "name": "귤",
+    "season": "winter",
+    "src": "/images/foods/tangerine.svg"
+  },
+  {
+    "id": "chestnut",
+    "name": "밤",
+    "season": "autumn",
+    "src": "/images/foods/chestnut.svg"
+  },
+  {
+    "id": "pear",
+    "name": "배",
+    "season": "autumn",
+    "src": "/images/foods/pear.svg"
+  },
+  {
+    "id": "mackerel",
+    "name": "고등어",
+    "season": "autumn",
+    "src": "/images/foods/mackerel.svg"
+  },
+  {
+    "id": "crab",
+    "name": "꽃게",
+    "season": "spring",
+    "src": "/images/foods/crab.svg"
+  },
+  {
+    "id": "asparagus",
+    "name": "아스파라거스",
+    "season": "spring",
+    "src": "/images/foods/asparagus.svg"
+  },
+  {
+    "id": "tomato",
+    "name": "토마토",
+    "season": "summer",
+    "src": "/images/foods/tomato.svg"
+  },
+  {
+    "id": "cucumber",
+    "name": "오이",
+    "season": "summer",
+    "src": "/images/foods/cucumber.svg"
+  },
+  {
+    "id": "radish",
+    "name": "무",
+    "season": "winter",
+    "src": "/images/foods/radish.svg"
+  },
+  {
+    "id": "yellowtail-sashimi",
+    "name": "방어회",
+    "season": "winter",
+    "src": "/images/foods/yellowtail-sashimi.svg"
+  },
+  {
+    "id": "fresh-oysters",
+    "name": "굴",
+    "season": "winter",
+    "src": "/images/foods/fresh-oysters.svg"
+  },
+  {
+    "id": "gwamegi",
+    "name": "과메기",
+    "season": "winter",
+    "src": "/images/foods/gwamegi.svg"
+  },
+  {
+    "id": "snow-crab",
+    "name": "대게",
+    "season": "winter",
+    "src": "/images/foods/snow-crab.svg"
+  },
+  {
+    "id": "spicy-monkfish",
+    "name": "아귀찜",
+    "season": "winter",
+    "src": "/images/foods/spicy-monkfish.svg"
+  },
+  {
+    "id": "cockles",
+    "name": "꼬막",
+    "season": "winter",
+    "src": "/images/foods/cockles.svg"
+  },
+  {
+    "id": "seaweed-soup",
+    "name": "매생이국",
+    "season": "winter",
+    "src": "/images/foods/seaweed-soup.svg"
+  },
+  {
+    "id": "webfoot-octopus",
+    "name": "주꾸미",
+    "season": "spring",
+    "src": "/images/foods/webfoot-octopus.svg"
+  },
+  {
+    "id": "flounder-mugwort-soup",
+    "name": "도다리쑥국",
+    "season": "spring",
+    "src": "/images/foods/flounder-mugwort-soup.svg"
+  },
+  {
+    "id": "strawberry-dessert",
+    "name": "딸기 디저트",
+    "season": "spring",
+    "src": "/images/foods/strawberry-dessert.svg"
+  },
+  {
+    "id": "sea-squirt-bibimbap",
+    "name": "멍게비빔밥",
+    "season": "spring",
+    "src": "/images/foods/sea-squirt-bibimbap.svg"
+  },
+  {
+    "id": "clam-kalguksu",
+    "name": "바지락칼국수",
+    "season": "spring",
+    "src": "/images/foods/clam-kalguksu.svg"
+  },
+  {
+    "id": "blue-crab",
+    "name": "꽃게",
+    "season": "spring",
+    "src": "/images/foods/blue-crab.svg"
+  },
+  {
+    "id": "anchovy-ssambap",
+    "name": "멸치쌈밥",
+    "season": "spring",
+    "src": "/images/foods/anchovy-ssambap.svg"
+  },
+  {
+    "id": "grilled-eel",
+    "name": "장어구이",
+    "season": "summer",
+    "src": "/images/foods/grilled-eel.svg"
+  },
+  {
+    "id": "fresh-abalone",
+    "name": "전복",
+    "season": "summer",
+    "src": "/images/foods/fresh-abalone.svg"
+  },
+  {
+    "id": "naengmyeon",
+    "name": "냉면",
+    "season": "summer",
+    "src": "/images/foods/naengmyeon.svg"
+  },
+  {
+    "id": "milmyeon",
+    "name": "밀면",
+    "season": "summer",
+    "src": "/images/foods/milmyeon.svg"
+  },
+  {
+    "id": "makguksu",
+    "name": "막국수",
+    "season": "summer",
+    "src": "/images/foods/makguksu.svg"
+  },
+  {
+    "id": "kongguksu",
+    "name": "콩국수",
+    "season": "summer",
+    "src": "/images/foods/kongguksu.svg"
+  },
+  {
+    "id": "samgyetang",
+    "name": "삼계탕",
+    "season": "summer",
+    "src": "/images/foods/samgyetang.svg"
+  },
+  {
+    "id": "bingsu",
+    "name": "빙수",
+    "season": "summer",
+    "src": "/images/foods/bingsu.svg"
+  },
+  {
+    "id": "croaker",
+    "name": "민어",
+    "season": "summer",
+    "src": "/images/foods/croaker.svg"
+  },
+  {
+    "id": "pike-conger",
+    "name": "하모(갯장어)",
+    "season": "summer",
+    "src": "/images/foods/pike-conger.svg"
+  },
+  {
+    "id": "mulhoe",
+    "name": "물회",
+    "season": "summer",
+    "src": "/images/foods/mulhoe.svg"
+  },
+  {
+    "id": "spear-squid",
+    "name": "한치",
+    "season": "summer",
+    "src": "/images/foods/spear-squid.svg"
+  },
+  {
+    "id": "sea-urchin",
+    "name": "성게",
+    "season": "summer",
+    "src": "/images/foods/sea-urchin.svg"
+  },
+  {
+    "id": "cold-soba",
+    "name": "냉모밀",
+    "season": "summer",
+    "src": "/images/foods/cold-soba.svg"
+  },
+  {
+    "id": "seafood-pancake",
+    "name": "해물파전",
+    "season": "summer",
+    "src": "/images/foods/seafood-pancake.svg"
+  },
+  {
+    "id": "gizzard-shad",
+    "name": "전어",
+    "season": "autumn",
+    "src": "/images/foods/gizzard-shad.svg"
+  },
+  {
+    "id": "grilled-prawns",
+    "name": "대하구이",
+    "season": "autumn",
+    "src": "/images/foods/grilled-prawns.svg"
+  },
+  {
+    "id": "long-arm-octopus",
+    "name": "낙지",
+    "season": "autumn",
+    "src": "/images/foods/long-arm-octopus.svg"
+  },
+  {
+    "id": "chueotang",
+    "name": "추어탕",
+    "season": "autumn",
+    "src": "/images/foods/chueotang.svg"
+  },
+  {
+    "id": "grilled-mackerel",
+    "name": "고등어구이",
+    "season": "autumn",
+    "src": "/images/foods/grilled-mackerel.svg"
+  },
+  {
+    "id": "skate",
+    "name": "홍어",
+    "season": "winter",
+    "src": "/images/foods/skate.svg"
+  },
+  {
+    "id": "grilled-sandfish",
+    "name": "도루묵구이",
+    "season": "autumn",
+    "src": "/images/foods/grilled-sandfish.svg"
+  },
+  {
+    "id": "sand-eel",
+    "name": "양미리",
+    "season": "winter",
+    "src": "/images/foods/sand-eel.svg"
+  },
+  {
+    "id": "gomchi-soup",
+    "name": "곰치국",
+    "season": "winter",
+    "src": "/images/foods/gomchi-soup.svg"
+  },
+  {
+    "id": "gopchang-hotpot",
+    "name": "곱창전골",
+    "season": "winter",
+    "src": "/images/foods/gopchang-hotpot.svg"
+  },
+  {
+    "id": "fishcake-soup",
+    "name": "어묵탕",
+    "season": "winter",
+    "src": "/images/foods/fishcake-soup.svg"
+  },
+  {
+    "id": "oyster-jjamppong",
+    "name": "굴짬뽕",
+    "season": "winter",
+    "src": "/images/foods/oyster-jjamppong.svg"
+  },
+  {
+    "id": "ramen",
+    "name": "라멘",
+    "season": "winter",
+    "src": "/images/foods/ramen.svg"
+  },
+  {
+    "id": "red-bean-porridge",
+    "name": "팥죽",
+    "season": "winter",
+    "src": "/images/foods/red-bean-porridge.svg"
+  }
+]

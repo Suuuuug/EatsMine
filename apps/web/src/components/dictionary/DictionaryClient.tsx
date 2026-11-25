@@ -1,17 +1,24 @@
 "use client";
 
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ActionButton, EmptyState, ProgressBar } from "@/components/em";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { RankSection } from "./RankSection";
+import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
+import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
+import { foodSelectionParams, parseFoodSelection } from "@/lib/dictionary/food-region-selection";
+import { FoodDetail } from "./FoodDetail";
 import {
   SAMPLE_COLLECTED_FOOD_IDS,
   SEASONAL_FOODS,
   SEASON_TABS,
 } from "@/data/seasonal-foods";
+import { currentSeason } from "@/lib/theme/theme";
 import type { SeasonKey } from "@/types/dictionary";
+
+const subscribeToSeason = () => () => {};
+const serverSeason = (): SeasonKey => "all";
 
 type CollectionFilter = "all" | "collected" | "uncollected";
 
@@ -226,7 +233,9 @@ function CollectionFilterDropdown({
 export function DictionaryClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [selectedSeason, setSelectedSeason] = useState<SeasonKey>("all");
+  const defaultSeason = useSyncExternalStore(subscribeToSeason, () => currentSeason(), serverSeason);
+  const [seasonChoice, setSelectedSeason] = useState<SeasonKey | null>(null);
+  const selectedSeason = seasonChoice ?? defaultSeason;
   useEffect(() => {
     if (selectedSeason === "all") delete document.documentElement.dataset.dictionarySeason;
     else document.documentElement.dataset.dictionarySeason = selectedSeason;
@@ -241,6 +250,38 @@ export function DictionaryClient() {
     return () => window.clearTimeout(timer);
   }, [collectionParam]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // 음식·지역 선택은 URL이 정본이다. pushState로 바꾸면 Next가 useSearchParams에 반영하고, 뒤로 가기·새로고침도 같은 경로로 복원된다.
+  const knownSlugs = useMemo(() => new Set(SEASONAL_FOODS.map((f) => f.id)), []);
+  const selection = parseFoodSelection(new URLSearchParams(searchParams.toString()), knownSlugs);
+  const selectedFood = SEASONAL_FOODS.find((f) => f.id === selection.food) ?? null;
+  const gridScroll = useRef<number | null>(null);
+  const lastTile = useRef<string | null>(null);
+  const hadFood = useRef(false);
+
+  function writeSelection(food: string | null, regionCode: string | null) {
+    const next = foodSelectionParams(new URLSearchParams(window.location.search), { food, regionCode }).toString();
+    if (next === window.location.search.replace(/^\?/, "")) return;
+    window.history.pushState(null, "", `${window.location.pathname}${next ? `?${next}` : ""}`);
+  }
+  function selectFood(id: string) {
+    gridScroll.current = window.scrollY;
+    lastTile.current = id;
+    writeSelection(id, null);
+  }
+  function clearFood() {
+    writeSelection(null, null);
+  }
+
+  // 음식을 풀면 격자 스크롤 위치를 되돌리고 방금 누른 타일로 포커스를 돌려 준다.
+  useLayoutEffect(() => {
+    if (selectedFood) { hadFood.current = true; return; }
+    if (!hadFood.current) return;
+    hadFood.current = false;
+    if (gridScroll.current !== null) window.scrollTo(0, gridScroll.current);
+    const tile = lastTile.current ? document.querySelector<HTMLElement>(`[data-food-id="${lastTile.current}"] button`) : null;
+    tile?.focus({ preventScroll: true });
+  }, [selectedFood]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabIdPrefix = useId();
   const panelId = useId();
@@ -261,10 +302,10 @@ export function DictionaryClient() {
     for (const food of SEASONAL_FOODS) {
       const isCollected = collectedSet.has(food.id);
       stats.all.total += 1;
-      stats[food.season].total += 1;
+      for (const season of food.seasons) stats[season].total += 1;
       if (isCollected) {
         stats.all.collected += 1;
-        stats[food.season].collected += 1;
+        for (const season of food.seasons) stats[season].collected += 1;
       }
     }
 
@@ -275,7 +316,7 @@ export function DictionaryClient() {
     const keyword = query.trim().toLowerCase();
 
     return SEASONAL_FOODS.filter((food) => {
-      if (selectedSeason !== "all" && food.season !== selectedSeason) {
+      if (selectedSeason !== "all" && !food.seasons.includes(selectedSeason)) {
         return false;
       }
 
@@ -293,7 +334,8 @@ export function DictionaryClient() {
         food.name,
         food.seasonLabel,
         ...food.keywords,
-        ...food.regions,
+        food.description,
+        ...food.regions.flatMap((region) => [region.name, region.reason]),
       ]
         .join(" ")
         .toLowerCase();
@@ -343,28 +385,36 @@ export function DictionaryClient() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-8 md:py-12">
-      {/* 1행: 1순위 페이지 제목 + 아담한 보조 검색창(h-9, 14px) */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl leading-tight font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
-          제철음식 도감
-        </h1>
+    <main className="flex w-full flex-col gap-6 px-4 pt-4 pb-8 lg:px-8 lg:pt-8 2xl:px-12">
+      {selectedFood && (
+        <FoodDetail
+          key={selectedFood.id}
+          food={selectedFood}
+          regionCode={selection.regionCode}
+          onSelectRegion={(code) => writeSelection(selectedFood.id, code)}
+          onBack={clearFood}
+        />
+      )}
+      <div hidden={selectedFood !== null} className={selectedFood ? "hidden" : "flex flex-col gap-6"}>
+      {/* 1행: 검색창. 보이는 제목은 두지 않는다(하단 탭·사이드바가 위치를 알려 준다) */}
+      <header className="flex flex-col gap-4">
+        <h1 className="sr-only">제철음식 도감</h1>
 
         <form
           role="search"
           onSubmit={(event) => event.preventDefault()}
-          className="flex h-11 w-full items-center gap-2 rounded-input bg-surface/40 px-3 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-52"
+          className="flex h-12 w-full items-center gap-2 rounded-input bg-surface/70 px-4 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
         >
-          <Icon name="search" size={15} className="shrink-0 text-muted/80" />
+          <Icon name="search" size={20} className="shrink-0 text-muted" />
           <input
             ref={searchInputRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label="음식 또는 지역 검색"
-            placeholder="음식·지역 검색"
+            placeholder="음식이나 지역 이름을 입력해 주세요"
             enterKeyHint="search"
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted/75 [&::-webkit-search-cancel-button]:hidden"
+            className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
@@ -382,20 +432,18 @@ export function DictionaryClient() {
         </form>
       </header>
 
-      {/* 2행: 흰 표면 카드(shadow-card 단일 경계)로 감싼 수집 진행도 */}
-      <section aria-label="제철음식 수집 현황">
-        <div className="rounded-card border border-line bg-surface px-5 py-4">
+      {/* 2행: 수집 현황과 랭크를 한 카드로 */}
+      <RankSection
+        reviewCount={DUMMY_MY_REVIEW_COUNT}
+        collection={
           <ProgressBar
-            label={`${activeSeasonLabel}(예시)`}
+            label={activeSeasonLabel}
             value={activeSeasonStat.collected}
             max={activeSeasonStat.total}
             unit="종"
-            className="[&_span:first-child]:text-sm"
           />
-        </div>
-      </section>
-
-      <p className="type-caption text-muted">음식별 식당 연결을 준비하고 있어요.</p>
+        }
+      />
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
       <section className="flex flex-col gap-4 sm:gap-6">
@@ -478,62 +526,14 @@ export function DictionaryClient() {
             >
               {filteredFoods.map((food) => {
                 const isCollected = collectedSet.has(food.id);
-                const regionSummary = food.regions.join(" · ");
 
                 return (
-                  <li key={food.id}>
-                    <div className="flex h-full flex-col rounded-card border border-line bg-surface p-4">
-                      {/* 상단 공식 음식 SVG 일러스트 (수집: 원색 + ✓ / 미수집: 흑백 옅게) */}
-                      <div className="flex items-center justify-center rounded-input bg-illustration-surface py-4">
-                        <span className="relative inline-flex size-20 items-center justify-center">
-                          <Image
-                            src={food.src}
-                            alt=""
-                            width={76}
-                            height={76}
-                            className={isCollected ? "" : "opacity-55 grayscale"}
-                          />
-                          {isCollected && (
-                            <span
-                              aria-hidden="true"
-                              className="absolute right-0 bottom-0 flex size-6 items-center justify-center rounded-full bg-accent text-on-accent ring-2 ring-surface"
-                            >
-                              <Icon name="check" size={14} />
-                            </span>
-                          )}
-                        </span>
+                  <li key={food.id} data-food-id={food.id}>
+                    <div onClick={(e) => { if (!(e.target as Element).closest("button")) selectFood(food.id); }} className="flex h-full cursor-pointer flex-col gap-3 rounded-card border border-line bg-surface p-4">
+                      <div className="rounded-input bg-illustration-surface py-4">
+                        <FoodTile name={food.name} src={food.src} collected={isCollected} imageSize={76} showName={false} onSelect={() => selectFood(food.id)} />
                       </div>
-
-                      {/* 하단 음식명(16px) · 주요 지역(12px) · 제철 시기(12px) */}
-                      <div className="mt-auto flex flex-col gap-1 border-t border-line pt-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span
-                            className={`text-base leading-snug font-semibold tracking-[-0.01em] ${
-                              isCollected ? "text-foreground" : "text-muted"
-                            }`}
-                          >
-                            {food.name}
-                            <span className="sr-only">
-                              {isCollected ? ", 수집함" : ", 아직 수집 안 함"}
-                            </span>
-                          </span>
-
-                        </div>
-
-                        <p className="text-xs font-medium text-muted">
-                          {isCollected ? "수집함 · 예시" : "미수집 · 예시"}
-                        </p>
-
-                        {regionSummary && (
-                          <p className="truncate text-xs text-muted">
-                            {regionSummary}
-                          </p>
-                        )}
-
-                        <p className="mt-0.5 text-xs font-medium text-muted/80 tabular-nums">
-                          {food.seasonLabel}
-                        </p>
-                      </div>
+                      <p aria-hidden="true" className={`type-row font-semibold ${isCollected ? "text-foreground" : "text-muted"}`}>{food.name}</p>
                     </div>
                   </li>
                 );
@@ -542,6 +542,7 @@ export function DictionaryClient() {
           )}
         </div>
       </section>
+      </div>
     </main>
   );
 }

@@ -8,13 +8,15 @@ export interface SeasonalFoodItem {
   id: string;
   /** 지역명을 제외한 음식명 */
   name: string;
-  season: Season;
+  seasons: Season[];
+  months: number[];
+  description: string;
   /** 공식 음식 SVG 경로 (/images/foods/*.svg) */
   src: string;
-  /** 제철 시기 표기 (예: "11~2월") */
+  /** 제철 시기 표기 (예: "11월, 12월, 1월, 2월") */
   seasonLabel: string;
   /** 주요 추천 여행 지역 (시·군·구 이름) */
-  regions: string[];
+  regions: { code: string; name: string; reason: string }[];
   /** 검색 보조 키워드 */
   keywords: string[];
 }

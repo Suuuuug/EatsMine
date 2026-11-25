@@ -382,7 +382,7 @@ export function RestaurantReviewSheet({
             <div
               role="presentation"
               onClick={() => setLightboxUrl(null)}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/75 p-4 backdrop-blur-xs"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/75 p-4"
             >
               <div
                 onClick={(event) => event.stopPropagation()}

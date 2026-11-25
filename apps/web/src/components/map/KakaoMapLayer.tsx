@@ -524,14 +524,17 @@ export function KakaoMapLayer({
       markersRef.current.push(marker);
 
       if (isSelected) {
+        const label = createPinLabelElement(place.name, place.genre);
         const overlay = new maps.CustomOverlay({
           position,
-          content: createPinLabelElement(place.name, place.genre),
+          content: label,
           xAnchor: 0.5,
           yAnchor: 1.38,
           zIndex: 40,
         });
         overlay.setMap(map);
+        // SDK가 만든 래퍼도 마커를 가리지 않도록 한다.
+        if (label.parentElement) label.parentElement.style.pointerEvents = "none";
         selectedLabelRef.current = overlay;
       }
 
@@ -542,14 +545,17 @@ export function KakaoMapLayer({
       maps.event.addListener(marker, "mouseover", () => {
         if (isSelected) return;
         hoverLabelRef.current?.setMap(null);
+        const label = createPinLabelElement(place.name, place.genre);
         const overlay = new maps.CustomOverlay({
           position,
-          content: createPinLabelElement(place.name, place.genre),
+          content: label,
           xAnchor: 0.5,
           yAnchor: 1.32,
           zIndex: 35,
         });
         overlay.setMap(map);
+        // 내용뿐 아니라 SDK 래퍼도 마우스를 받으면 over/out이 반복된다.
+        if (label.parentElement) label.parentElement.style.pointerEvents = "none";
         hoverLabelRef.current = overlay;
       });
 

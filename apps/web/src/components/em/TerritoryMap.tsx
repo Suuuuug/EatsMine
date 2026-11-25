@@ -167,12 +167,24 @@ type TerritoryMapProps = {
   visited: readonly string[];
   /** 영토 하나를 골랐을 때 */
   onSelectTerritory?: (territory: { code: string; name: string }) => void;
+  highlighted?: readonly string[];
+  selectedCode?: string | null;
+  province?: string;
+  onProvinceChange?: (code: string) => void;
+  compact?: boolean;
+  territoryView?: boolean;
   className?: string;
 };
 
 export function TerritoryMap({
   visited,
   onSelectTerritory,
+  highlighted = [],
+  selectedCode,
+  province: provinceProp,
+  onProvinceChange,
+  compact = false,
+  territoryView = false,
   className = "",
 }: TerritoryMapProps) {
   const [meta, setMeta] = useState<RegionMeta | null>(null);
@@ -181,8 +193,10 @@ export function TerritoryMap({
     [],
   );
   const [loadError, setLoadError] = useState(false);
-  const [province, setProvince] = useState(NATION);
-  const [selected, setSelected] = useState("");
+  const [provinceState, setProvince] = useState(NATION);
+  const province = provinceProp ?? provinceState;
+  const [selectedState, setSelected] = useState("");
+  const selected = selectedCode !== undefined ? selectedCode ?? "" : selectedState;
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -235,6 +249,8 @@ export function TerritoryMap({
   }, [province]);
 
   const owned = useMemo(() => new Set(visited), [visited]);
+  const marked = useMemo(() => new Set(highlighted), [highlighted]);
+  const territoryShapes = territoryView && province === NATION;
   const territoriesOf = useMemo(() => {
     const map = new Map<string, Region[]>();
     for (const t of meta?.territories ?? []) {
@@ -265,6 +281,7 @@ export function TerritoryMap({
 
   // 현재 레벨(전국 16개 시·도 또는 선택한 시·도의 시·군·구)에 맞춘 정밀 SVG 투영
   const shape = useMemo(() => {
+    if (territoryShapes) return buildProjectedShape(territoryFeatures);
     if (province === NATION) {
       return buildProjectedShape(sidoFeatures, provinceNameMap);
     }
@@ -273,21 +290,38 @@ export function TerritoryMap({
         (f.properties.parentCode ?? f.properties.code.slice(0, 2)) === province,
     );
     return buildProjectedShape(filtered);
-  }, [province, sidoFeatures, territoryFeatures, provinceNameMap]);
+  }, [province, sidoFeatures, territoryFeatures, provinceNameMap, territoryShapes]);
 
   function ratioOf(code: string) {
-    if (province !== NATION) return owned.has(code) ? 1 : 0;
+    if (province !== NATION || (territoryShapes && code.length > 2)) return owned.has(code) ? 1 : 0;
     const list = territoriesOf.get(code) ?? [];
     if (list.length === 0) return 0;
     return list.filter((t) => owned.has(t.code)).length / list.length;
   }
 
+  function isMarked(code: string) {
+    if (province !== NATION || (territoryShapes && code.length > 2)) return marked.has(code);
+    return (territoriesOf.get(code) ?? []).some((t) => marked.has(t.code));
+  }
+
+  const markedText = (meta?.territories ?? [])
+    .filter((t) => marked.has(t.code) && (province === NATION || t.parentCode === province))
+    .map((t) => `${provinceNameMap.get(t.parentCode ?? "") ?? ""} ${t.name}`.trim())
+    .join(", ");
+
   function choose(code: string, name: string) {
+    if (compact) return;
     setHoveredCode(null);
+    if (territoryShapes && code.length > 2) {
+      setSelected(code);
+      onSelectTerritory?.({ code, name });
+      return;
+    }
     if (province === NATION) {
       movedByUser.current = true;
       setSelected("");
       setProvince(code);
+      onProvinceChange?.(code);
     } else {
       setSelected(code);
       onSelectTerritory?.({ code, name });
@@ -299,6 +333,7 @@ export function TerritoryMap({
     setHoveredCode(null);
     setSelected("");
     setProvince(NATION);
+    onProvinceChange?.(NATION);
   }
 
   const loading = !loadError && (!meta || !shape);
@@ -310,10 +345,11 @@ export function TerritoryMap({
 
   return (
     <section
-      aria-labelledby={titleId}
+      aria-labelledby={compact ? undefined : titleId}
+      aria-label={compact ? "영토 지도 미리보기" : undefined}
       className={`flex flex-col gap-4 ${className}`}
     >
-      <div className="flex min-h-11 items-center gap-1">
+      {!compact && <div className="flex min-h-11 items-center gap-1">
         {province !== NATION && (
           <button
             type="button"
@@ -332,9 +368,9 @@ export function TerritoryMap({
         >
           {provinceName ?? "전국"}
         </h3>
-      </div>
+      </div>}
 
-      <div className="relative flex aspect-[4/5] max-h-[min(65vh,560px)] w-full items-center justify-center overflow-hidden rounded-card border border-line bg-surface/45 p-4">
+      <div className={`relative flex w-full items-center justify-center overflow-hidden ${compact ? "h-64 sm:h-80" : "rounded-card border border-line bg-surface/45 p-4"} ${compact ? "" : "aspect-[4/5] max-h-[320px] sm:max-h-[min(65vh,560px)]"}`}>
         {loadError ? (
           <div
             role="alert"
@@ -364,7 +400,7 @@ export function TerritoryMap({
         ) : (
           <div
             style={{ aspectRatio: `${shape.width} / ${shape.height}` }}
-            className="relative max-h-full max-w-full"
+            className="relative h-full max-h-full max-w-full"
           >
             <svg
               viewBox={shape.viewBox}
@@ -378,7 +414,12 @@ export function TerritoryMap({
                 if (code && name) choose(code, name);
               }}
             >
-              {shape.paths.map((path) => {
+              {(compact
+                ? [...shape.paths].sort(
+                    (a, b) => Number(owned.has(a.code)) - Number(owned.has(b.code)),
+                  )
+                : shape.paths
+              ).map((path) => {
                 const ratio = ratioOf(path.code);
                 const isSelected = selected === path.code;
                 const isHovered = hoveredCode === path.code;
@@ -390,7 +431,7 @@ export function TerritoryMap({
                     data-name={path.name}
                     fillRule="evenodd"
                     vectorEffect="non-scaling-stroke"
-                    strokeWidth={isSelected ? 2.2 : isHovered ? 1.5 : 1}
+                    strokeWidth={isSelected ? 2.2 : isHovered ? 1.5 : compact ? (ratio === 1 ? 1.4 : 0.5) : 1}
                     strokeOpacity={isSelected || isHovered ? 1 : 0.85}
                     strokeLinejoin="round"
                     onMouseEnter={() => setHoveredCode(path.code)}
@@ -400,13 +441,13 @@ export function TerritoryMap({
                       )
                     }
                     className={
-                      "cursor-pointer transition-opacity duration-150 " +
-                      (ratio === 1
+                      (compact ? "" : "cursor-pointer ") + "transition-opacity duration-150 " +
+                      (ratio === 1 || isMarked(path.code)
                         ? "fill-map-full"
                         : ratio > 0 || isHovered
                           ? "fill-map-partial"
                           : "fill-map-empty") +
-                      (isSelected ? " stroke-accent-dark" : " stroke-map-line")
+                      (isSelected || (compact && ratio === 1) ? " stroke-accent-dark" : " stroke-map-line")
                     }
                   />
                 );
@@ -430,7 +471,7 @@ export function TerritoryMap({
         )}
       </div>
 
-      {regions.length > 0 && (
+      {!compact && regions.length > 0 && (
         <ul
           aria-label={`${provinceName ?? "전국"} 지역 목록`}
           className="flex flex-wrap gap-2"
@@ -480,7 +521,8 @@ export function TerritoryMap({
         </ul>
       )}
 
-      {meta && (
+      {!compact && markedText && <p className="sr-only">추천 지역: {markedText}</p>}
+      {!compact && meta && (
         <p className="type-caption font-normal text-muted">
           통계청 SGIS({meta.sourceDate}) · krmap · admdongkor (CC BY 4.0) 행정구역
           경계 기준

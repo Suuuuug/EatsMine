@@ -1,5 +1,6 @@
 // EatsMine SVG 키트 자산 목록. 파일은 apps/web/public/images/ 아래에 있다.
-// 이름·계절 분류는 그림 소재의 예시 분류다. 실제 제철 데이터는 출처를 확인한 뒤 따로 연결한다.
+// 기존 재료 20종과 시드 음식 43종의 그림 목록이에요. 여기의 season은 카탈로그용 대표 계절이며,
+// 도감의 정확한 개월·복수 계절은 data/seasonal-foods.ts에서 시드 스냅샷으로 계산해요.
 import foodManifest from "../../../public/images/foods/manifest.json";
 
 export type Season = "spring" | "summer" | "autumn" | "winter";

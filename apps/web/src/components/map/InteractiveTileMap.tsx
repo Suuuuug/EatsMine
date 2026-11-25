@@ -196,11 +196,24 @@ function computeViewportForBounds(
   height: number,
   minZoom: number,
   maxZoom: number,
+  /** true면 영토(SVG) 전용 지도라 소수 줌으로 프레임에 꽉 맞춘다. 카카오 지도는 정수 레벨만 쓴다. */
+  fractional = false,
 ): MapViewport {
   const centerLat = (bounds.minLat + bounds.maxLat) / 2;
   const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-  const usableW = Math.max(220, width - 140);
-  const usableH = Math.max(180, height - 160);
+  const usableW = Math.max(220, width - (fractional ? 48 : 140));
+  const usableH = Math.max(180, height - (fractional ? 72 : 160));
+
+  if (fractional) {
+    const nw0 = latLngToWorld(bounds.maxLat, bounds.minLng, minZoom);
+    const se0 = latLngToWorld(bounds.minLat, bounds.maxLng, minZoom);
+    const scale = Math.min(
+      usableW / Math.abs(se0.x - nw0.x),
+      usableH / Math.abs(se0.y - nw0.y),
+    );
+    const zoom = Math.max(minZoom, Math.min(maxZoom + 1, minZoom + Math.log2(scale)));
+    return { lat: centerLat, lng: centerLng, zoom };
+  }
 
   for (let z = maxZoom; z >= minZoom; z--) {
     const nw = latLngToWorld(bounds.maxLat, bounds.minLng, z);
@@ -371,6 +384,7 @@ export function InteractiveTileMap({
     computeFitViewport(places, 900, 640, regionCenter),
   );
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
+  const [expandedRank, setExpandedRank] = useState<string | null>(null);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
@@ -671,8 +685,9 @@ export function InteractiveTileMap({
         size.height,
         MIN_ZOOM,
         7,
+        isTerritoryMode,
       ),
-    [size.width, size.height],
+    [size.width, size.height, isTerritoryMode],
   );
 
   const findTerritoryAtLatLng = useCallback(
@@ -1465,7 +1480,7 @@ export function InteractiveTileMap({
       {mode === "restaurants" && kakaoEnabled && !kakaoReady && (
         <div
           role="status"
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-surface/60 px-6 text-center backdrop-blur-[2px]"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-surface/80 px-6 text-center"
         >
           <Icon name="map" size={26} className="text-accent-dark/70" />
           <p className="text-sm font-medium text-foreground">
@@ -1721,90 +1736,59 @@ export function InteractiveTileMap({
         onClose={() => setRankingOpen(false)}
         title={`땅따먹기 랭킹${isSampleOwners ? "(예시)" : ""}`}
       >
-        <div className="flex flex-col gap-3.5">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span>최근 30일 점령 영토 기준</span>
-            <span className="tabular-nums">
-              총 {ownersByRegion.size}곳 점령됨
-            </span>
-          </div>
+        <div className="flex flex-col gap-2">
+          <p className="type-caption text-muted">
+            최근 30일 점령 영토 기준, 총 {ownersByRegion.size}곳
+          </p>
 
-          <ol className="flex flex-col gap-3">
+          <ol className="list-group">
             {leaderboard.map((entry, idx) => {
-              const maxRegions = leaderboard[0]?.regionCount ?? 1;
-              const barPercent = Math.max(
-                14,
-                Math.round((entry.regionCount / maxRegions) * 100),
-              );
-
+              const open = expandedRank === entry.nickname;
               return (
-                <li
-                  key={entry.nickname}
-                  className={
-                    "flex flex-col gap-2.5 rounded-card p-4 shadow-card " +
-                    (idx === 0
-                      ? "bg-accent-weak/75 ring-1 ring-accent/50"
-                      : "bg-surface")
-                  }
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className={
-                          "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums " +
-                          (idx === 0
-                            ? "bg-accent text-on-accent"
-                            : "bg-fill text-foreground")
-                        }
-                      >
-                        {idx + 1}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        style={{ backgroundColor: entry.color }}
-                        className="size-3.5 shrink-0 rounded-full"
-                      />
-                      <span className="truncate text-base font-bold text-foreground">
-                        {entry.nickname}
-                      </span>
-                    </div>
-                    <div className="shrink-0 text-right tabular-nums">
-                      <span className="text-lg font-bold text-foreground">
-                        {entry.regionCount}곳
-                      </span>
-                      <span className="ml-1.5 text-xs text-muted">
-                        리뷰 {entry.totalReviews}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 점령 규모 바 */}
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-fill">
-                    <div
-                      style={{
-                        width: `${barPercent}%`,
-                        backgroundColor: entry.color,
-                      }}
-                      className="h-full rounded-full transition-[width] duration-300"
+                <li key={entry.nickname}>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => setExpandedRank(open ? null : entry.nickname)}
+                    className="pressable flex min-h-14 w-full items-center gap-3 px-1 text-left focus-ring"
+                  >
+                    <span className="w-5 shrink-0 text-center type-row font-semibold tabular-nums text-foreground">
+                      {idx + 1}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      style={{ backgroundColor: entry.color }}
+                      className="size-3 shrink-0 rounded-full"
                     />
-                  </div>
-
-                  {/* 점령 중인 시·군·구 칩 (클릭 시 해당 지역으로 이동) */}
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {entry.regions.map((r) => (
-                      <button
-                        key={r.code}
-                        type="button"
-                        onClick={() => handleSelectRegionFromRanking(r.code)}
-                        className="pressable inline-flex h-7 items-center gap-1 rounded-full bg-fill px-2.5 text-xs font-medium text-foreground focus-ring"
-                      >
-                        <span>{r.name}</span>
-                        <span className="text-[11px] text-muted tabular-nums">
-                          {r.reviewCount}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate type-row">{entry.nickname}</span>
+                      <span className="block type-caption font-normal text-muted tabular-nums">
+                        후기 {entry.totalReviews}개
+                      </span>
+                    </span>
+                    <span className="type-row font-semibold tabular-nums">{entry.regionCount}곳</span>
+                    <Icon
+                      name="chevron-right"
+                      size={18}
+                      className={"shrink-0 text-muted " + (open ? "rotate-90" : "")}
+                    />
+                  </button>
+                  {open && (
+                    <ul className="flex flex-wrap gap-2 pt-1 pr-1 pb-3 pl-9">
+                      {entry.regions.map((r) => (
+                        <li key={r.code}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRegionFromRanking(r.code)}
+                            className="pressable inline-flex h-9 items-center gap-1.5 rounded-full bg-fill px-3 type-caption text-foreground focus-ring"
+                          >
+                            {r.name}
+                            <span className="text-muted tabular-nums">{r.reviewCount}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}

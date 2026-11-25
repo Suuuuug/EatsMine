@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <title>EatsMine 포크와 제철 잎</title>
+  <!-- EatsMine original geometry. 24 grid / 1.75 stroke, build-icons.mjs line contract.
+       Embed #mark with currentColor from the accent-dark token for both color schemes. -->
+  <g id="mark" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3v5a3 3 0 0 0 6 0V3M8 3v18"/>
+    <path d="M15 13c-2.5-4 0-8 6-9 1 6-1 10-6 9Zm0 0 4-6m-4 6v8"/>
+  </g>
+</svg>

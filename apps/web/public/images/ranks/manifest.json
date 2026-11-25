@@ -1,0 +1,7 @@
+[
+  { "id": "bronze", "name": "브론즈", "src": "/images/ranks/bronze.svg" },
+  { "id": "silver", "name": "실버", "src": "/images/ranks/silver.svg" },
+  { "id": "gold", "name": "골드", "src": "/images/ranks/gold.svg" },
+  { "id": "platinum", "name": "플래티넘", "src": "/images/ranks/platinum.svg" },
+  { "id": "diamond", "name": "다이아", "src": "/images/ranks/diamond.svg" }
+]

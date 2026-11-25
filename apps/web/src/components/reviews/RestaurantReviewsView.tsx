@@ -14,7 +14,7 @@ export function RestaurantReviewsView({ status, restaurantName }: RestaurantRevi
   const { title, description } = reviewStatusText(status);
   const safeName = cleanRestaurantName(restaurantName ?? null);
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 pt-7 pb-28 md:px-8 md:pt-12">
+    <main className="mx-auto w-full max-w-2xl px-5 pt-7 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-12 md:px-8 md:pt-12">
       <Suspense fallback={<Link href="/" className="focus-ring inline-flex min-h-11 items-center text-accent-dark">식당 찾기로 돌아가기</Link>}>
         <ReviewsBackLink />
       </Suspense>

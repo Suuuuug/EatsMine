@@ -31,6 +31,18 @@
   --color-map-full: #80a858;
   --color-map-line: #7c8a70;
 
+  /* 홈 지도: 지역 리뷰 1위 사용자 구분색 8슬롯(fill-owner-1..8). 라이트·다크 한 줄에 정의(light-dark는 쓰는 자리의 color-scheme을 따른다).
+     색조는 Okabe-Ito 계열(주황·하늘·청록·노랑·파랑·주홍·자주)+중립 회색. 초록은 map-full과 혼동돼 피한다.
+     배경 대비 3:1, 색쌍 ΔE는 apps/web/scripts/check-owner-colors.mjs로 검증한다. 값을 바꾸면 그 스크립트를 다시 돌린다. */
+  --color-owner-1: light-dark(oklch(0.60 0.15 50), oklch(0.76 0.15 60));
+  --color-owner-2: light-dark(oklch(0.62 0.12 235), oklch(0.8 0.1 235));
+  --color-owner-3: light-dark(oklch(0.58 0.095 185), oklch(0.7 0.11 185));
+  --color-owner-4: light-dark(oklch(0.64 0.13 100), oklch(0.8 0.16 100));
+  --color-owner-5: light-dark(oklch(0.55 0.2 265), oklch(0.6 0.19 265));
+  --color-owner-6: light-dark(oklch(0.55 0.2 25), oklch(0.66 0.2 28));
+  --color-owner-7: light-dark(oklch(0.66 0.17 335), oklch(0.74 0.15 335));
+  --color-owner-8: light-dark(oklch(0.55 0.01 150), oklch(0.62 0.01 150));
+
   /* 바텀시트·토스트처럼 실제로 떠 있는 층에만 */
   --radius-sheet: 20px;
   --shadow-float: 0 8px 24px rgb(0 0 0 / 0.28);
@@ -57,9 +69,9 @@
   --color-danger-weak: light-dark(oklch(0.55 0.19 27 / 0.1), oklch(0.74 0.15 27 / 0.16));
 
   /* 키트 제안값(paper·olive, #E3E8D4/#80A858/#7C8A70)을 OKLCH로 옮기고 어둡게 모드를 더함 */
-  --color-map-empty: light-dark(oklch(0.92 0.025 125), oklch(0.29 0.014 150));
+  --color-map-empty: light-dark(oklch(0.93 0.02 125), oklch(0.29 0.014 150));
   --color-map-partial: light-dark(oklch(0.84 0.06 128), oklch(0.43 0.06 140));
-  --color-map-full: light-dark(oklch(0.68 0.11 133), oklch(0.64 0.11 138));
+  --color-map-full: light-dark(oklch(0.5 0.14 145), oklch(0.74 0.16 145));
   --color-map-line: light-dark(oklch(0.6 0.03 135), oklch(0.5 0.02 150));
 
   /* light-dark()는 색만 받으므로 그림자 길이는 밖에, 색만 안에 둔다 */
@@ -145,19 +157,16 @@ html[data-dictionary-season="summer"] .season-backdrop { --season-background: ur
 html[data-dictionary-season="autumn"] .season-backdrop { --season-background: url('/images/seasons/autumn.webp'); }
 html[data-dictionary-season="winter"] .season-backdrop { --season-background: url('/images/seasons/winter.webp'); }
 
-/* 배경은 화면의 역할을 구분하면서 같은 토큰을 공유한다. */
-.em-theme.explore-backdrop {
-  background-image:
-    radial-gradient(85% 65% at 0% 0%, color-mix(in oklab, var(--color-accent) 20%, transparent), transparent 75%),
-    radial-gradient(75% 65% at 100% 35%, color-mix(in oklab, var(--color-star) 11%, transparent), transparent 75%),
-    linear-gradient(155deg, var(--color-background), color-mix(in oklab, var(--color-accent-weak) 40%, var(--color-background)));
-}
+/* 지도·마이: 일러스트 없이 위쪽 중앙의 초록 빛번짐이 아래로 갈수록 배경 단색으로 이어진다.
+   (A/B 독립 평가에서 일러스트가 제목·카드와 겹쳐 감점돼 뺐다. 계절 일러스트는 도감에만 쓴다.) */
+.em-theme.explore-backdrop,
 .em-theme.my-backdrop {
   background-image:
-    radial-gradient(85% 65% at 100% 0%, color-mix(in oklab, var(--color-accent) 19%, transparent), transparent 75%),
-    radial-gradient(70% 55% at 0% 55%, color-mix(in oklab, var(--color-star) 9%, transparent), transparent 75%),
-    linear-gradient(160deg, var(--color-surface), var(--color-background) 75%);
-  background-attachment: fixed;
+    radial-gradient(70% 420px at 50% 0%, color-mix(in oklab, var(--color-accent) 16%, transparent), transparent 75%),
+    linear-gradient(to bottom, light-dark(oklch(0.94 0.03 150), oklch(0.2 0.02 150)), var(--color-background) 520px);
+  background-size: 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
 }
 .brand-dark { display: none; }
 html[data-theme="dark"] .brand-light { display: none; }

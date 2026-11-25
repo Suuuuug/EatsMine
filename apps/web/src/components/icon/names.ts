@@ -14,6 +14,7 @@ export const iconNames = [
   "clock",
   "close",
   "copy",
+  "crown",
   "dice",
   "external",
   "filter",

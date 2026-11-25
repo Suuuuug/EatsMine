@@ -450,6 +450,7 @@ export default function StyleguidePage() {
               영토 경계: 통계청 SGIS 행정구역 경계(2026-10-01, 공공누리 제1유형)와 krmap·admdongkor(CC BY 4.0)를 좌표 양자화·단순화해 바꿔 그렸어요.
             </li>
             <li>음식·배지·마커·빈 화면 그림과 UI 아이콘: EatsMine 자체 제작 SVG 키트. 계절 그림: 프로젝트용으로 만든 이미지.</li>
+            <li>도감 음식 43종: 기존 SVG 키트의 64 격자·2.4 둥근 선·고정 팔레트로 직접 그렸어요. 음식 정보는 foods.json 시드 원문을 사용해요. SVG는 독립 이미지이며 아이콘 스프라이트에 넣지 않아요.</li>
             <li>브랜드·영토 아이콘의 남한 윤곽: CIA World Factbook(퍼블릭 도메인), 숟가락: 스물셋(CC BY 4.0)을 바꿔 그림.</li>
             <li>글꼴: Pretendard(OFL-1.1).</li>
           </ul>
