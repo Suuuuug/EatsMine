@@ -51,7 +51,7 @@ export function ShareRailButton() {
       <button
         type="button"
         onClick={() => void share()}
-        className="pressable mx-2 flex h-16 flex-col items-center justify-center gap-1.5 rounded-button text-muted transition-colors hover:text-foreground focus-ring"
+        className="pressable mx-2 flex h-16 w-[calc(100%-1rem)] flex-col items-center justify-center gap-1.5 rounded-button text-muted transition-colors hover:text-foreground focus-ring"
       >
         <Icon name="share" size={22} />
         <span className="whitespace-nowrap text-xs leading-none font-medium tracking-tight">공유</span>
