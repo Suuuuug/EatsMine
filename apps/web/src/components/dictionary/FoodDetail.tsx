@@ -141,7 +141,7 @@ export function FoodDetail({ food, regionCode, onSelectRegion, onBack }: Props) 
           </div>
           <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
           {multiProvince && (
-            <div aria-hidden="true" className="mx-auto w-full max-w-[180px] lg:mx-0 lg:max-w-[150px]">
+            <div className="mx-auto w-full max-w-[180px] lg:mx-0 lg:max-w-[150px]">
               <TerritoryMap
                 visited={[]}
                 highlighted={codes}

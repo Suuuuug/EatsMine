@@ -20,10 +20,10 @@ type MyPageViewProps = {
 };
 
 export function MyPageView({ data, member }: MyPageViewProps) {
-  const { profile, regionVisits, reviews } = data;
+  const { profile, regionVisits, foodCollection, reviews } = data;
 
   return (
-    <div className="em-theme my-backdrop flex min-h-dvh flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
+    <div className="em-theme my-backdrop min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
       <ScrollActivity />
       <Sidebar />
       <main className="my-page mx-auto flex min-w-0 w-full max-w-2xl flex-1 flex-col break-keep text-foreground lg:max-w-none">
@@ -48,6 +48,7 @@ export function MyPageView({ data, member }: MyPageViewProps) {
                       </div>
                     </div>
                   )}
+                  {data.isSample && <p className="type-body">예시로 채운 화면이에요.</p>}
                   {!member && <div className="w-full"><GoogleSignInButton next="/my" /></div>}
                 </GlassCard>
               </section>
@@ -62,8 +63,8 @@ export function MyPageView({ data, member }: MyPageViewProps) {
                 <ReviewList reviews={reviews} />
               </div>
               <div className="order-3 mx-4 lg:order-2 lg:mx-0">
-                <RecordSection id="my-collection" title="내 도감" href="/dictionary?collection=collected" summary={collectionSummary(SAMPLE_COLLECTED_FOOD_IDS.length, SEASONAL_FOODS.length)}>
-                  <CollectionPreview />
+                <RecordSection id="my-collection" title="내 도감" href="/dictionary?collection=collected" summary={collectionSummary(data.isSample ? SAMPLE_COLLECTED_FOOD_IDS.length : foodCollection.length, SEASONAL_FOODS.length)}>
+                  {data.isSample && <CollectionPreview />}
                 </RecordSection>
               </div>
             </div>

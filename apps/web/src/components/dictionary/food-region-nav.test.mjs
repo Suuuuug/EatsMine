@@ -14,3 +14,10 @@ test('다른 키와 빈 목록은 null', () => {
   assert.equal(nextRegionIndex('ArrowDown', 0, 0), null);
   assert.equal(nextRegionIndex('End', 0, 3), 2);
 });
+
+test('Esc는 여러 지역에서만 지역 선택을 해제한다', async () => {
+  const { shouldClearRegionOnEscape } = await import('./food-region-nav.ts');
+  assert.equal(shouldClearRegionOnEscape('Escape', '50130', 1), false);
+  assert.equal(shouldClearRegionOnEscape('Escape', '50130', 2), true);
+  assert.equal(shouldClearRegionOnEscape('Escape', null, 2), false);
+});

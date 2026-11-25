@@ -39,10 +39,10 @@ export function TerritoryExplorer({
           <div className="flex min-h-11 items-center">
             <h2 id="territory-detail" className="type-section">{selected ? selected.name : "영토를 골라 보세요"}</h2>
           </div>
-          <GlassCard className="flex flex-col gap-1 px-4 py-2">
-            {!selected ? (
-              <p className="type-body text-foreground">지도나 아래 목록에서 영토를 누르면 후기 수를 볼 수 있어요.</p>
-            ) : (
+          {!selected ? (
+            <a href="#visited-title" className="pressable focus-ring inline-flex min-h-11 w-fit items-center rounded-button px-2 type-body font-semibold text-accent-dark">다녀온 곳에서 고르기</a>
+          ) : (
+            <GlassCard className="flex flex-col gap-1 px-4 py-2">
               <dl aria-live="polite" className="flex flex-col">
                 <div className="flex min-h-11 items-center justify-between border-b border-line">
                   <dt className="type-body">내 후기</dt>
@@ -53,8 +53,8 @@ export function TerritoryExplorer({
                   <dd className="type-row font-semibold tabular-nums">{stat ? `${stat.others}개` : "준비 중이에요"}</dd>
                 </div>
               </dl>
-            )}
-          </GlassCard>
+            </GlassCard>
+          )}
         </section>
 
         <section aria-labelledby="visited-title" className="order-3 flex flex-col gap-1 lg:order-none">

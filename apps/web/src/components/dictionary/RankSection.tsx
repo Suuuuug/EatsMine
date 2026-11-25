@@ -52,7 +52,8 @@ export function RankSection({ reviewCount, collection }: Props) {
   }
 
   return (
-    <section aria-label="내 도감과 랭크" onKeyDown={onKeyDown} className="rounded-card border border-line bg-surface px-5 py-4">
+    <section aria-label="내 도감과 랭크" onKeyDown={onKeyDown} className="rounded-card border border-line bg-surface px-4 py-3">
+      <p className="type-caption text-muted">수집 현황과 랭크는 예시예요.</p>
       <button
         type="button"
         aria-expanded={open}
@@ -70,11 +71,11 @@ export function RankSection({ reviewCount, collection }: Props) {
           <Icon name="chevron-right" size={16} className={open ? "rotate-90" : ""} />
         </span>
       </button>
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-1 flex flex-col gap-2">
         {collection}
-        <RankProgress reviewCount={reviewCount} />
       </div>
       <div id={panelId} hidden={!open} className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+        <RankProgress reviewCount={reviewCount} />
         <RankLadder reviewCount={reviewCount} />
         <p className="type-caption text-muted">리뷰는 직접 다녀온 곳에만 써 주세요.</p>
       </div>

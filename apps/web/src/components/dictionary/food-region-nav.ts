@@ -7,3 +7,8 @@ export function nextRegionIndex(key: string, current: number, count: number): nu
   if (key === "End") return count - 1;
   return null;
 }
+
+/** 단일 추천 지역의 Esc는 상위 음식 화면으로 넘긴다. */
+export function shouldClearRegionOnEscape(key: string, selectedCode: string | null, count: number): boolean {
+  return key === "Escape" && selectedCode !== null && count > 1;
+}

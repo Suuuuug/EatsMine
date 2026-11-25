@@ -23,7 +23,10 @@ import {
 import { badges, markers, seasonNames, type Season } from "@/lib/assets/catalog";
 
 // 팀원 확인용 디자인 시스템 문서. 토큰은 styles/tokens.css, 부품은 components/em, 규칙은 docs/DESIGN.md.
-export const metadata: Metadata = { title: "디자인 시스템 | EatsMine" };
+export const metadata: Metadata = {
+  title: "디자인 시스템 | EatsMine",
+  robots: { index: false, follow: false },
+};
 
 const colorTokens: { name: string; swatch: string; use: string }[] = [
   { name: "background", swatch: "bg-background", use: "화면 바탕" },

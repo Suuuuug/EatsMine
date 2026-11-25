@@ -12,7 +12,7 @@ export function RegionLeaderboard({ regionCode }: { regionCode: string }) {
     <div className="border-b border-line py-3">
       <h5 className="flex items-center gap-2 type-body font-semibold">
         <Icon name="trophy" size={20} className="shrink-0 text-accent-dark" />
-        {rows.length === 1 ? "영토 주인" : "이 지역 순위"}
+        {rows.length === 1 ? "영토 주인 예시" : "이 지역 순위 예시"}
       </h5>
       <ol className="m-0 mt-2 list-none p-0">
         {rows.map((r) => (

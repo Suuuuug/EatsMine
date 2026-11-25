@@ -2,7 +2,7 @@
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icon/Icon";
-import { nextRegionIndex } from "./food-region-nav";
+import { nextRegionIndex, shouldClearRegionOnEscape } from "./food-region-nav";
 
 export type FoodRegionItem = { code: string; name: string; reason: string };
 
@@ -23,7 +23,7 @@ export function FoodRegionList({ regions, selectedCode, onSelect, children, head
   const single = regions.length === 1;
 
   function onKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
-    if (e.key === "Escape" && selectedCode !== null) { e.preventDefault(); onSelect(null); return; }
+    if (shouldClearRegionOnEscape(e.key, selectedCode, regions.length)) { e.preventDefault(); onSelect(null); return; }
     const next = nextRegionIndex(e.key, index, regions.length);
     if (next === null) return;
     e.preventDefault();

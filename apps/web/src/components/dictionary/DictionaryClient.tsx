@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { RankSection } from "./RankSection";
 import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
@@ -14,7 +14,12 @@ import {
   SEASONAL_FOODS,
   SEASON_TABS,
 } from "@/data/seasonal-foods";
+import { seasonForMonth } from "@/lib/theme/theme";
 import type { SeasonKey } from "@/types/dictionary";
+
+const subscribeToSeason = () => () => {};
+const currentSeason = () => seasonForMonth(new Date().getMonth() + 1);
+const serverSeason = (): SeasonKey => "all";
 
 type CollectionFilter = "all" | "collected" | "uncollected";
 
@@ -229,7 +234,9 @@ function CollectionFilterDropdown({
 export function DictionaryClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [selectedSeason, setSelectedSeason] = useState<SeasonKey>("all");
+  const defaultSeason = useSyncExternalStore(subscribeToSeason, currentSeason, serverSeason);
+  const [seasonChoice, setSelectedSeason] = useState<SeasonKey | null>(null);
+  const selectedSeason = seasonChoice ?? defaultSeason;
   useEffect(() => {
     if (selectedSeason === "all") delete document.documentElement.dataset.dictionarySeason;
     else document.documentElement.dataset.dictionarySeason = selectedSeason;
