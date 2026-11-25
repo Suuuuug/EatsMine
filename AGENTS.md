@@ -37,6 +37,7 @@ package.json  npm workspaces. npm run dev(둘 다) / build / lint / db:generate�
 ## Git
 - 저장소 https://github.com/Suuuuug/EatsMine (공개, 기본 브랜치 `main`, 팀원이 관리). `main` 직접 커밋 금지, `feat/*`·`fix/*`·`chore/*` 브랜치 → PR.
 - **PR 흐름(2026-11-24 사용자 결정)**: 각자 브랜치에서 작업 → 끝나면 리뷰어를 지정해 `main`으로 PR(`gh pr create --reviewer Suuuuug,peter030125`) → **머지는 리뷰어가 한다(우리가 머지하지 않음)**. PR에는 코드와 팀 공용 문서(`docs/DESIGN.md`, `docs/plan.md`)만 넣는다. AI 활용 문서·스킬(AGENTS·CLAUDE·GOAL·HANDOFF·`.claude/`·`.agents/`·`research/`·작업 기록)은 본인 작업 브랜치 `feat/mypage`에만 두고 `main`에 넣지 않는다. 그래서 PR은 `main`에서 새 브랜치를 만들어 코드 커밋을 cherry-pick해 올린다(예: PR #1 `feat/mypage-design-system`).
+- **머지 규칙(2026-11-25 사용자 결정, 예외 없음)**: PR 머지는 **무조건 리뷰어(Suuuuug, peter030125)가 한다.** 우리 쪽(Claude 포함)은 본인 PR이든 남의 PR이든 `gh pr merge`·머지 API·웹 머지 버튼을 쓰지 않는다. 사용자가 "머지해줘"라고 해도 이 규칙을 알리고, 리뷰어에게 머지를 요청하는 데서 멈춘다. 이 규칙을 건너뛰려면 사용자가 그 PR을 지정해 "규칙을 건너뛰고 머지"라고 명시해야 하며, 그 승인은 해당 PR에만 적용되고 다음에는 이어지지 않는다. 되돌리기(revert)도 PR로 올리고 리뷰어가 머지한다.
 - **AI 활용 문서도 커밋·push한다(2026-11-24 사용자 결정 변경, ignore로 막지 않음).** 대상: AGENTS.md, CLAUDE.md, GOAL.md, HANDOFF.md, `.claude/`, `.agents/`, `docs/`, `research/`. 단 비밀·개인정보·서명 문서·타인(팀원) 문서는 제외하고, 커밋 전 `/usr/bin/grep` 비밀값 검사를 한다. 팀 `.gitignore`가 루트 CLAUDE.md·AGENTS.md를 무시하므로 `git add -f`로 올린다(팀 `.gitignore`는 바꾸지 않는다). `.claude/settings.local.json`·런타임 파일은 계속 제외.
 - push는 사용자가 요청한 턴에만. `--force`·이력 재작성 금지. Conventional Commits. Claude 공동 작성자·생성 표기를 넣지 않는다. 세부: `.claude/rules/git-commit.md`.
 
