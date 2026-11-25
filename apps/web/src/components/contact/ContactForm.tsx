@@ -122,14 +122,26 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <Checkbox id="contact-agree" checked={agreed} onChange={(event) => setAgreed(event.target.checked)}>
+        <Checkbox
+          id="contact-agree"
+          checked={agreed}
+          onChange={(event) => setAgreed(event.target.checked)}
+          aria-invalid={showAgreeError ? true : undefined}
+          aria-describedby={showAgreeError ? "contact-agree-error" : undefined}
+        >
           답변을 위한 개인정보(이메일, 문의 내용) 수집·이용에 동의해요
         </Checkbox>
-        <Link href="/privacy" className="-mt-1 ml-9 inline-flex min-h-11 items-center self-start type-caption text-accent-dark underline underline-offset-2 focus-ring">
-          개인정보처리방침 보기
+        {/* 새 탭으로 열어 쓰던 문의 내용이 사라지지 않게 한다. */}
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener"
+          className="-mt-1 ml-9 inline-flex min-h-11 items-center self-start type-caption text-accent-dark underline underline-offset-2 focus-ring"
+        >
+          개인정보처리방침 보기<span className="sr-only"> (새 탭에서 열려요)</span>
         </Link>
         {showAgreeError && (
-          <p className="ml-9 type-caption font-normal text-danger">동의해 주셔야 문의를 보낼 수 있어요</p>
+          <p id="contact-agree-error" className="ml-9 type-caption font-normal text-danger">동의해 주셔야 문의를 보낼 수 있어요</p>
         )}
       </div>
 
