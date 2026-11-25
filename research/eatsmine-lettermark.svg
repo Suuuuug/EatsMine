@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="EatsMine 이니셜 마크">
+  <style>.tile{fill:#1d6835}.letter{stroke:#fafdfa}@supports (color:oklch(0.46 0.11 150)){.tile{fill:oklch(0.46 0.11 150)}.letter{stroke:oklch(0.99 0.004 150)}}</style>
+  <rect class="tile" width="128" height="128" rx="29"/>
+  <g class="letter" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M53 43H31v42h22M31 64h18"/>
+    <path d="M68 85V43l14 19 14-19v42"/>
+  </g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="EatsMine 식당과 장소 마크">
+  <style>.tile{fill:#1d6835}.mark{stroke:#fafdfa}@supports (color:oklch(0.46 0.11 150)){.tile{fill:oklch(0.46 0.11 150)}.mark{stroke:oklch(0.99 0.004 150)}}</style>
+  <rect class="tile" width="128" height="128" rx="29"/>
+  <path d="M64 21c-20 0-36 15-36 34 0 24 36 53 36 53s36-29 36-53c0-19-16-34-36-34Z" fill="none" class="mark" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M45 57h38c-1 11-8 18-19 18s-18-7-19-18Z" fill="none" class="mark" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M56 49c-2-2-2-5 0-7m16 7c2-2 2-5 0-7" fill="none" class="mark" stroke-width="4" stroke-linecap="round"/>
+</svg>
