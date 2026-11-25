@@ -131,6 +131,53 @@ describe('GET /restaurants', () => {
     expect(res.body).not.toHaveProperty('matchedBy');
   });
 
+  it('업종 여러 개는 업종마다 조회해 중복 제거 후 지역 순위순으로 합친다', async () => {
+    const server = await createApp([SEOUL_JUNG]);
+    eatpl.search.mockImplementation(async ({ genre }: { genre: string }) =>
+      genre === '카페'
+        ? [place('a', '서울 중구 1', 5), place('x', '대전 중구 9', 1)]
+        : [
+            place('b', '서울 중구 2', 2),
+            place('a', '서울 중구 1', 5),
+            place('c', '서울 중구 3'),
+          ],
+    );
+
+    const res = await request(server)
+      .get('/restaurants?regionCode=11140&genre=카페&genre=분식&genre=카페')
+      .expect(200);
+
+    expect(eatpl.search).toHaveBeenCalledTimes(2);
+    expect(eatpl.search).toHaveBeenCalledWith({
+      location: '서울 중구',
+      genre: '카페',
+    });
+    expect(eatpl.search).toHaveBeenCalledWith({
+      location: '서울 중구',
+      genre: '분식',
+    });
+    expect(res.body.items.map((p: { id: string }) => p.id)).toEqual([
+      'b',
+      'a',
+      'c',
+    ]);
+    expect(res.body).not.toHaveProperty('matchedBy');
+  });
+
+  it('업종이 없으면 지역만으로 1번 조회한다', async () => {
+    const server = await createApp([SEOUL_JUNG]);
+    eatpl.search.mockResolvedValue([place('a', '서울 중구 1')]);
+    await request(server)
+      .get('/restaurants')
+      .query({ regionCode: '11140' })
+      .expect(200);
+    expect(eatpl.search).toHaveBeenCalledTimes(1);
+    expect(eatpl.search).toHaveBeenCalledWith({
+      location: '서울 중구',
+      genre: undefined,
+    });
+  });
+
   it('없는 지역은 404 NOT_FOUND', async () => {
     const server = await createApp([]);
     const res = await request(server)
@@ -147,6 +194,14 @@ describe('GET /restaurants', () => {
     [{ regionCode: '11140', genre: '한식' }, '43종 밖의 업종'],
     [{ foodId: '3', genre: '카페' }, 'genre와 foodId 동시 사용'],
     [{ foodId: 'abc' }, 'foodId가 숫자 아님'],
+    [{ regionCode: '11140', genre: ['카페', '한식'] }, '여러 업종 중 43종 밖'],
+    [
+      {
+        regionCode: '11140',
+        genre: ['카페', '분식', '치킨', '피자', '버거', '주점'],
+      },
+      '업종 6개',
+    ],
   ])('입력 오류는 400: %o (%s)', async (query, _reason) => {
     const server = await createApp([]);
     const res = await request(server)
