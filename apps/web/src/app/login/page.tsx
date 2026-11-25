@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { Icon } from "@/components/icon/Icon";
 import { isGoogleSignInConfigured } from "@/lib/auth/google";
 
 export const metadata: Metadata = {
@@ -14,7 +14,13 @@ export default function LoginPage() {
     <div className="em-theme flex flex-1 flex-col">
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col bg-background px-4 break-keep text-foreground">
       <div className="flex flex-1 flex-col justify-center gap-5 py-12">
-        <Icon name="eatsmine" size={64} className="text-foreground" />
+        <Image
+          src="/icon.svg"
+          alt="EatsMine"
+          width={56}
+          height={56}
+          className="shrink-0 object-contain"
+        />
         <h1 className="type-title text-balance">
           {ready ? "Google 계정으로 시작해요" : "로그인을 준비하고 있어요"}
         </h1>

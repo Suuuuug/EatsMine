@@ -18,7 +18,7 @@ export function MyPageView({ data, member }: MyPageViewProps) {
   const { profile, regionVisits, foodCollection, reviews } = data;
 
   return (
-    <div className="em-theme my-backdrop flex min-h-dvh flex-1 pt-16 pb-16 md:pb-0 md:pl-[76px]">
+    <div className="em-theme my-backdrop flex min-h-dvh flex-1 pb-16 md:pb-0 md:pl-[76px]">
       <ScrollActivity />
       <Sidebar />
       <main className="my-page mx-auto flex min-w-0 w-full max-w-2xl flex-1 flex-col break-keep text-foreground lg:max-w-none 2xl:max-w-7xl">
