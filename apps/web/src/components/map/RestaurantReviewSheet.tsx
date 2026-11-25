@@ -13,8 +13,12 @@ import { getSamplePlaceReviews, type PlaceReviewItem } from "@/data/map-mock";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
 import {
+  ApiError,
   createReview,
+  createReviewErrorMessage,
+  fetchFoodCandidates,
   fetchRestaurantReviews,
+  type FoodCandidate,
   type RestaurantReviewsDto,
 } from "@/lib/my-page/api";
 import type { EatplPlace } from "@/types/map";
@@ -60,8 +64,14 @@ export function RestaurantReviewSheet({
   const [writing, setWriting] = useState(false);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
-  // 리뷰를 공개할지는 쓸 때마다 정한다. 처음에는 나만 본다.
-  const [isPublic, setIsPublic] = useState(false);
+  // 리뷰를 공개할지는 쓸 때마다 정한다. 처음에는 공개(공개 리뷰만 영토·순위·매장 리뷰에 반영된다).
+  const [isPublic, setIsPublic] = useState(true);
+  // 먹은 음식(선택). 고르면 도감에 모인다. 후보는 매장 업종에 연결된 도감 음식이다.
+  const [foodId, setFoodId] = useState<number | null>(null);
+  const [foodCandidates, setFoodCandidates] = useState<{
+    genre: string;
+    items: FoodCandidate[];
+  } | null>(null);
   const session = useSession();
   const token =
     session.status === "ready" ? (session.session?.accessToken ?? null) : null;
@@ -110,6 +120,28 @@ export function RestaurantReviewSheet({
     loadRemote(placeMerchantId);
   }, [placeMerchantId, loadRemote]);
 
+  // 쓰기를 열면 매장 업종의 음식 후보를 한 번 읽는다(실패하면 음식 선택 없이 저장).
+  const placeGenre = place?.genre ?? null;
+  useEffect(() => {
+    if (!writing || !placeGenre || foodCandidates?.genre === placeGenre) return;
+    let cancelled = false;
+    fetchFoodCandidates(placeGenre).then(
+      (items) => {
+        if (!cancelled) setFoodCandidates({ genre: placeGenre, items });
+      },
+      () => {
+        if (!cancelled) setFoodCandidates({ genre: placeGenre, items: [] });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [writing, placeGenre, foodCandidates?.genre]);
+  const foods =
+    foodCandidates && foodCandidates.genre === placeGenre
+      ? foodCandidates.items
+      : [];
+
   const serverData =
     remote && remote.id === placeMerchantId ? remote.data : null;
   // 저장한 리뷰는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
@@ -154,7 +186,8 @@ export function RestaurantReviewSheet({
     setWriting(false);
     setContent("");
     setRating(5);
-    setIsPublic(false);
+    setIsPublic(true);
+    setFoodId(null);
     onClose();
   };
 
@@ -192,7 +225,8 @@ export function RestaurantReviewSheet({
     clearDraftPhotos(revokeUrls);
     setContent("");
     setRating(5);
-    setIsPublic(false);
+    setIsPublic(true);
+    setFoodId(null);
     setSubmitError("");
     setWriting(false);
   };
@@ -232,10 +266,15 @@ export function RestaurantReviewSheet({
           rating,
           content: trimmed,
           visibility,
+          ...(foodId != null && foods.some((f) => f.id === foodId)
+            ? { foodId }
+            : {}),
         });
-      } catch {
+      } catch (e) {
         if (draftId === draftIdRef.current) {
-          setSubmitError("리뷰를 저장하지 못했어요. 다시 시도해 주세요.");
+          setSubmitError(
+            createReviewErrorMessage(e instanceof ApiError ? e.status : 0),
+          );
           setSubmitting(false);
         }
         return;
@@ -408,6 +447,34 @@ export function RestaurantReviewSheet({
                       )}
                     </div>
                   }
+                  {canSave && foods.length > 0 && (
+                    <label className="flex flex-col gap-1.5">
+                      <span className="type-caption text-foreground">
+                        먹은 음식 <span className="text-muted">(선택)</span>
+                      </span>
+                      <select
+                        value={foodId ?? ""}
+                        onChange={(event) =>
+                          setFoodId(
+                            event.target.value
+                              ? Number(event.target.value)
+                              : null,
+                          )
+                        }
+                        className="field px-3.5 py-2.5 type-body"
+                      >
+                        <option value="">고르지 않기</option>
+                        {foods.map((food) => (
+                          <option key={food.id} value={food.id}>
+                            {food.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="type-caption text-muted">
+                        고른 음식은 도감에 모여요.
+                      </span>
+                    </label>
+                  )}
                 </ReviewFormFields>
 
                 {!token && (

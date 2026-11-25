@@ -1,9 +1,8 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { buildRegionSearchUrls, isPreviewMode, mergeSearchResults, territoriesUrl } from './map-data.ts';
+import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview } from './map-data.ts';
 
-const place = (id, rankLocal, merUrl = `https://web.paybooc.ai/mer/web/profile/${id}`) => ({ id, rankLocal, merUrl });
-const result = (items) => ({ region: { code: '11140', fullName: '서울 중구' }, items, source: 'eat.pl', fetchedAt: 'now' });
+const place = (id, merUrl = `https://web.paybooc.ai/mer/web/profile/${id}`) => ({ id, merUrl });
 
 test('API 주소가 없거나 preview=1이면 예시 모드', () => {
   assert.equal(isPreviewMode(undefined, ''), true);
@@ -11,23 +10,28 @@ test('API 주소가 없거나 preview=1이면 예시 모드', () => {
   assert.equal(isPreviewMode('http://api', '?region=11140'), false);
 });
 
-test('업종이 없으면 지역 1건, 여러 업종이면 업종마다 1건씩 조회', () => {
-  assert.deepEqual(buildRegionSearchUrls('http://api/', '11140', []), ['http://api/restaurants?regionCode=11140']);
-  assert.deepEqual(buildRegionSearchUrls('http://api', '11140', ['카페', '분식', '카페']), [
-    'http://api/restaurants?regionCode=11140&genre=%EC%B9%B4%ED%8E%98',
-    'http://api/restaurants?regionCode=11140&genre=%EB%B6%84%EC%8B%9D',
-  ]);
-  assert.deepEqual(buildRegionSearchUrls('http://api', '41', []), []);
+test('업종은 genre를 반복해 한 번에 보내고, 중복은 빼고 최대 개수까지만', () => {
+  assert.equal(buildRegionSearchUrl('http://api/', '11140', []), 'http://api/restaurants?regionCode=11140');
+  assert.equal(
+    buildRegionSearchUrl('http://api', '11140', ['카페', '분식', '카페']),
+    'http://api/restaurants?regionCode=11140&genre=%EC%B9%B4%ED%8E%98&genre=%EB%B6%84%EC%8B%9D',
+  );
+  const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  const url = new URL(buildRegionSearchUrl('http://api', '11140', many));
+  assert.equal(url.searchParams.getAll('genre').length, MAX_GENRES);
+  assert.equal(buildRegionSearchUrl('http://api', '41', []), null);
   assert.equal(territoriesUrl('http://api/'), 'http://api/territories');
 });
 
-test('합칠 때 중복·잘못된 잇플 링크를 빼고 여러 업종이면 지역 순위순', () => {
-  const merged = mergeSearchResults([
-    result([place('a', 5), place('bad', 1, 'https://evil.test/x')]),
-    result([place('b', 2), place('a', 5), place('c', null)]),
-  ]);
-  assert.deepEqual(merged.items.map((p) => p.id), ['b', 'a', 'c']);
-  assert.equal(merged.source, 'eat.pl');
-  assert.deepEqual(mergeSearchResults([result([place('z', 9), place('y', 1)])]).items.map((p) => p.id), ['z', 'y']);
-  assert.equal(mergeSearchResults([]), null);
+test('잘못된 잇플 링크 매장은 뺀다', () => {
+  const result = { region: { code: '11140', fullName: '서울 중구' }, items: [place('a'), place('bad', 'https://evil.test/x')], source: 'eat.pl', fetchedAt: 'now' };
+  assert.deepEqual(keepValidPlaces(result).items.map((p) => p.id), ['a']);
+});
+
+test('카드 리뷰 요약: 공개 리뷰가 없으면 null, 대표 리뷰가 없으면 글 없이', () => {
+  assert.equal(toCardReview(null), null);
+  assert.equal(toCardReview(undefined), null);
+  assert.equal(toCardReview({ average: 0, count: 0, featured: null }), null);
+  assert.deepEqual(toCardReview({ average: 4.5, count: 2, featured: { id: 1, nickname: 'a', rating: 5, content: ' 맛있어요 ' } }), { average: 4.5, count: 2, excerpt: '맛있어요' });
+  assert.deepEqual(toCardReview({ average: 3, count: 1, featured: null }), { average: 3, count: 1, excerpt: null });
 });

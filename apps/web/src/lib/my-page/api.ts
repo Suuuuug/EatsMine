@@ -103,7 +103,7 @@ export async function fetchRestaurantReviews(restaurantId: string): Promise<Rest
   return (await response.json()) as RestaurantReviewsDto;
 }
 
-export type CreateReviewInput = { merUrl: string; restaurantName: string; rating: number; content?: string; visibility: "private" | "public" };
+export type CreateReviewInput = { merUrl: string; restaurantName: string; rating: number; content?: string; visibility: "private" | "public"; foodId?: number };
 /** 리뷰 저장. merUrl은 잇플 응답값 그대로 보낸다. 사진은 API에 아직 없어 보내지 않는다. */
 export const createReview = (token: string, input: CreateReviewInput) =>
   apiFetch<{ id: number }>("/reviews", token, { method: "POST", body: JSON.stringify(input) });
@@ -115,3 +115,23 @@ export const updateReview = (token: string, id: string, patch: ReviewPatch) =>
 /** 내 리뷰 삭제. 이 리뷰로 받은 영토·도감 기록도 서버가 함께 되돌린다. */
 export const deleteReview = (token: string, id: string) =>
   apiFetch<void>(`/reviews/${encodeURIComponent(id)}`, token, { method: "DELETE" });
+
+export type FoodCandidate = { id: number; name: string };
+/** 리뷰에 고를 음식 후보(로그인 불필요): 매장 업종에 연결된 도감 음식. 고른 음식은 도감에 모인다. */
+export async function fetchFoodCandidates(genre: string): Promise<FoodCandidate[]> {
+  if (!apiBase) throw new ApiError(0);
+  const response = await fetch(`${apiBase}/foods?${new URLSearchParams({ genre })}`);
+  if (!response.ok) throw new ApiError(response.status);
+  const data = (await response.json()) as { items?: { id: number; name: string }[] };
+  return Array.isArray(data.items) ? data.items.map(({ id, name }) => ({ id, name })) : [];
+}
+
+/** 리뷰 저장 실패 문구. 409는 같은 매장에 이미 리뷰를 쓴 경우다(1인 1리뷰, 수정은 마이페이지). */
+export function createReviewErrorMessage(status: number): string {
+  if (status === 409) return "이미 리뷰를 남긴 매장이에요. 마이페이지에서 고칠 수 있어요.";
+  if (status === 401) return "로그인이 만료됐어요. 다시 로그인해 주세요.";
+  if (status === 429) return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
+  if (status === 400) return "입력한 내용을 확인해 주세요.";
+  return "리뷰를 저장하지 못했어요. 다시 시도해 주세요.";
+}
+

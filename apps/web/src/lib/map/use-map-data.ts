@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { errorMessage } from "@/lib/map/use-restaurants";
 import {
-  buildRegionSearchUrls,
-  mergeSearchResults,
+  buildRegionSearchUrl,
+  keepValidPlaces,
   territoriesUrl,
 } from "@/lib/map/map-data";
 import type {
@@ -33,18 +33,18 @@ export type MapRestaurantsState = {
   error: string;
 };
 
-/** GET /restaurants — 지역 + 고른 업종(여러 개면 업종마다 조회 후 합침). attempt를 올리면 다시 조회한다. */
+/** GET /restaurants — 지역 + 고른 업종(api가 업종별로 합쳐 지역 순위순으로 준다). attempt를 올리면 다시 조회한다. */
 export function useMapRestaurants(
   apiBase: string | null,
   regionCode: string | null,
   genres: readonly string[],
   attempt = 0,
 ): MapRestaurantsState {
-  const urls =
+  const url =
     apiBase && regionCode
-      ? buildRegionSearchUrls(apiBase, regionCode, genres)
-      : [];
-  const key = urls.length ? `${urls.join(" ")}#${attempt}` : "";
+      ? buildRegionSearchUrl(apiBase, regionCode, genres)
+      : null;
+  const key = url ? `${url}#${attempt}` : "";
   const [state, setState] = useState<{
     key: string;
     result: RestaurantSearchResult | null;
@@ -54,16 +54,11 @@ export function useMapRestaurants(
   useEffect(() => {
     if (!key) return;
     const controller = new AbortController();
-    const targets = key.slice(0, key.lastIndexOf("#")).split(" ");
-    Promise.all(
-      targets.map((url) =>
-        getJson<RestaurantSearchResult>(url, controller.signal),
-      ),
-    )
-      .then((results) => {
-        if (results.some((r) => !Array.isArray(r?.items)))
-          throw new ApiError(FALLBACK);
-        setState({ key, result: mergeSearchResults(results), error: "" });
+    const target = key.slice(0, key.lastIndexOf("#"));
+    getJson<RestaurantSearchResult>(target, controller.signal)
+      .then((data) => {
+        if (!Array.isArray(data?.items)) throw new ApiError(FALLBACK);
+        setState({ key, result: keepValidPlaces(data), error: "" });
       })
       .catch((e: unknown) => {
         if (controller.signal.aborted) return;

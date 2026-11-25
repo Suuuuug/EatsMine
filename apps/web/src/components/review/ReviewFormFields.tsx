@@ -51,7 +51,9 @@ export function ReviewFormFields({
         />
       </ul>
       <p className="-mt-2 type-caption text-muted">
-        {isPublic ? "다른 사람도 이 리뷰를 볼 수 있어요" : "나만 볼 수 있어요"}
+        {isPublic
+          ? "닉네임·프로필 사진과 함께 매장 리뷰와 지역 순위에 보여요"
+          : "나만 볼 수 있어요. 영토 주인·지역 순위에도 세지 않아요"}
       </p>
     </>
   );

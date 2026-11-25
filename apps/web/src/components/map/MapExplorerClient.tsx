@@ -22,7 +22,7 @@ import {
 } from "@/components/map/InteractiveTileMap";
 import { RestaurantReviewSheet } from "@/components/map/RestaurantReviewSheet";
 import { sortRegions, validEatplUrl } from "@/lib/map/home-contract";
-import { isPreviewMode } from "@/lib/map/map-data";
+import { MAX_GENRES, isPreviewMode, toCardReview } from "@/lib/map/map-data";
 import {
   useMapRestaurants,
   useTerritoryOwners,
@@ -619,6 +619,10 @@ export function MapExplorerClient({
   const handleToggleGenre = (genre: string) => {
     setActiveFood(null);
     setSelectedPlaceId(null);
+    if (!selectedGenres.includes(genre) && selectedGenres.length >= MAX_GENRES) {
+      showToast(`업종은 ${MAX_GENRES}개까지 고를 수 있어요`);
+      return;
+    }
     setSelectedGenres((prev) =>
       prev.includes(genre)
         ? prev.filter((item) => item !== genre)
@@ -1100,10 +1104,17 @@ export function MapExplorerClient({
             >
               {places.map((place) => {
                 const isSelected = place.id === selectedPlaceId;
-                const reviewSummary = getSamplePlaceReviews(
-                  place,
-                  localReviewsByPlace[place.id],
-                );
+                // 예시 모드는 예시 리뷰, 실제 모드는 api의 공개 리뷰 요약(없으면 null)을 쓴다.
+                const sample = isPreview
+                  ? getSamplePlaceReviews(place, localReviewsByPlace[place.id])
+                  : null;
+                const cardReview = sample
+                  ? {
+                      average: sample.averageRating,
+                      count: sample.reviewCount,
+                      excerpt: sample.featuredReview.content,
+                    }
+                  : toCardReview(place.reviewSummary);
                 // 잇플 외부 링크는 home-contract의 validEatplUrl로 검증한 API 응답 원본만 사용한다(쿼리 추가·변형 금지).
                 const safeEatplUrl = validEatplUrl(place.merUrl);
 
@@ -1224,21 +1235,31 @@ export function MapExplorerClient({
                         }}
                         className="pressable block w-full rounded-input px-1 py-1 text-left focus-ring"
                       >
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground tabular-nums">
-                          <Icon
-                            name="star"
-                            size={12}
-                            className="shrink-0 text-star"
-                          />
-                          <span>
-                            {reviewSummary.averageRating.toFixed(1)} · 리뷰{" "}
-                            {reviewSummary.reviewCount}개
-                            {reviewSummary.isSample ? "(예시)" : ""}
+                        {cardReview ? (
+                          <>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground tabular-nums">
+                              <Icon
+                                name="star"
+                                size={12}
+                                className="shrink-0 text-star"
+                              />
+                              <span>
+                                {cardReview.average.toFixed(1)} · 리뷰{" "}
+                                {cardReview.count}개
+                                {sample ? "(예시)" : ""}
+                              </span>
+                            </span>
+                            {cardReview.excerpt && (
+                              <span className="mt-0.5 block line-clamp-2 text-xs leading-relaxed text-muted">
+                                {cardReview.excerpt}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted">
+                            아직 공개된 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
                           </span>
-                        </span>
-                        <span className="mt-0.5 block line-clamp-2 text-xs leading-relaxed text-muted">
-                          {reviewSummary.featuredReview.content}
-                        </span>
+                        )}
                       </button>
 
                       {/* 하단 액션 줄: 리뷰 보기 */}
