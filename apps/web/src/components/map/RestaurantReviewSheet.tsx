@@ -10,6 +10,7 @@ import {
 import { Icon } from "@/components/icon/Icon";
 import { ReviewFormFields } from "@/components/review/ReviewFormFields";
 import { getSamplePlaceReviews, type PlaceReviewItem } from "@/data/map-mock";
+import { signInWithGoogle } from "@/lib/auth/google";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
 import { trackOutbound } from "@/lib/map/outbound";
@@ -230,6 +231,20 @@ export function RestaurantReviewSheet({
     setFoodId(null);
     setSubmitError("");
     setWriting(false);
+  };
+
+  // 구글 로그인 뒤 지금 지도 화면(지역 포함)으로 돌아온다. 쓰던 글은 이동하면서 사라지므로 다시 써야 한다.
+  const handleLogin = async () => {
+    const result = await signInWithGoogle(
+      `${window.location.pathname}${window.location.search}`,
+    );
+    if (!result.ok) {
+      setSubmitError(
+        result.reason === "not-configured"
+          ? "지금은 로그인을 쓸 수 없어요."
+          : "로그인을 시작하지 못했어요. 다시 시도해 주세요.",
+      );
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -480,9 +495,19 @@ export function RestaurantReviewSheet({
                 </ReviewFormFields>
 
                 {!token && (
-                  <p className="type-caption text-muted">
-                    로그인하면 리뷰가 저장돼요. 지금은 이 화면에서만 보여요.
-                  </p>
+                  <div className="flex items-center justify-between gap-3 rounded-input bg-fill/60 px-3 py-2.5">
+                    <p className="min-w-0 type-caption text-muted">
+                      로그인하면 리뷰가 저장돼요. 지금은 이 화면에서만 보여요.
+                    </p>
+                    <ActionButton
+                      variant="tinted"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleLogin}
+                    >
+                      로그인하고 저장하기
+                    </ActionButton>
+                  </div>
                 )}
                 {submitError && (
                   <p role="alert" className="type-caption text-danger">
