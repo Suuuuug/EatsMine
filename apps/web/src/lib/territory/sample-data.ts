@@ -61,11 +61,17 @@ for (const t of regionCodes.territories) {
   seen.set(t.parentCode, c + 1);
 }
 
+/** 제출·배포 전 NEXT_PUBLIC_DUMMY_DATA=off 로 한 번에 끈다. 꺼지면 영토 주인·순위·내 리뷰 수가 비어 실제 API 연결 전 상태가 된다. */
+export const DUMMY_ENABLED = process.env.NEXT_PUBLIC_DUMMY_DATA !== "off";
+
 // 시도는 모두 1위가 있어야 하므로 n을 건너뛰어 빈 지역 규칙(n % 6 === 5)을 피한다.
-export const DUMMY_TERRITORY_OWNERS: readonly TerritoryOwner[] = codes
+export const DUMMY_TERRITORY_OWNERS: readonly TerritoryOwner[] = (DUMMY_ENABLED ? codes : [])
   .map((code, n) => (n < regionCodes.provinces.length ? build(code, n * 6) : build(code, n)))
   .filter((o): o is TerritoryOwner => o !== null);
 
 export function getDummyOwner(regionCode: string): TerritoryOwner | null {
   return DUMMY_TERRITORY_OWNERS.find((o) => o.regionCode === regionCode) ?? null;
 }
+
+/** 내가 쓴 리뷰 수(개발 확인용). 실버 중간쯤이라 골드까지 남은 개수가 보인다. */
+export const DUMMY_MY_REVIEW_COUNT = DUMMY_ENABLED ? 7 : 0;

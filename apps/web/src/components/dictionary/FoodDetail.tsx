@@ -8,6 +8,7 @@ import { RestaurantRow } from "@/components/map/RestaurantRow";
 import { useRestaurants } from "@/lib/map/use-restaurants";
 import { escapeAction, groupByProvince, resolveActiveProvince, resolveSelectedRegion, type Territory } from "@/lib/dictionary/food-region-selection";
 import type { SeasonalFoodItem } from "@/types/dictionary";
+import { RegionLeaderboard } from "./RegionLeaderboard";
 import { FoodRegionList } from "./FoodRegionList";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL;
@@ -153,7 +154,7 @@ export function FoodDetail({ food, regionCode, onSelectRegion, onBack }: Props) 
           )}
           <div ref={listRef} className="min-w-0 overflow-hidden rounded-card border border-line bg-surface">
             <FoodRegionList regions={regions} selectedCode={selected} onSelect={chooseFromList} headings={headings} activeHeading={groups.find((g) => g.provinceCode === activeProvince)?.codes[0] ?? null}>
-              {selected && <RegionRestaurants regionCode={selected} />}
+              {selected && <><RegionLeaderboard regionCode={selected} /><RegionRestaurants regionCode={selected} /></>}
             </FoodRegionList>
           </div>
           </div>

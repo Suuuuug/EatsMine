@@ -12,13 +12,12 @@ export function RankProgress({ reviewCount, className = "" }: RankProgressProps)
   if (!p.next) {
     return <p className={`type-body font-medium text-foreground ${className}`}>가장 높은 랭크예요</p>;
   }
-  const span = p.next.min - p.current.min;
   return (
     <ProgressBar
       className={className}
       label={`${p.next.name}까지 리뷰 ${p.remaining}개 남았어요`}
-      value={span - p.remaining}
-      max={span}
+      value={p.next.min - p.remaining}
+      max={p.next.min}
       unit="개"
     />
   );

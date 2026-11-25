@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { RankSection } from "./RankSection";
+import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import { foodSelectionParams, parseFoodSelection } from "@/lib/dictionary/food-region-selection";
@@ -377,7 +379,7 @@ export function DictionaryClient() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-8 md:py-12">
+    <main className="flex w-full flex-col gap-6 px-4 pt-4 pb-8 lg:px-8 lg:pt-8 2xl:px-12">
       {selectedFood && (
         <FoodDetail
           key={selectedFood.id}
@@ -388,25 +390,25 @@ export function DictionaryClient() {
         />
       )}
       <div hidden={selectedFood !== null} className={selectedFood ? "hidden" : "flex flex-col gap-6"}>
-      {/* 1행: 1순위 페이지 제목 + 아담한 보조 검색창(h-9, 14px) */}
+      {/* 1행: 검색창(전체 폭, 16px). 큰 제목은 두지 않는다 */}
       <header className="flex flex-col gap-4">
         <h1 className="sr-only">제철음식 도감</h1>
 
         <form
           role="search"
           onSubmit={(event) => event.preventDefault()}
-          className="flex h-11 w-full items-center gap-2 rounded-input bg-surface/40 px-3 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-52"
+          className="flex h-12 w-full items-center gap-2 rounded-input bg-surface/70 px-4 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
         >
-          <Icon name="search" size={15} className="shrink-0 text-muted/80" />
+          <Icon name="search" size={20} className="shrink-0 text-muted" />
           <input
             ref={searchInputRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label="음식 또는 지역 검색"
-            placeholder="음식·지역 검색"
+            placeholder="음식이나 지역 이름을 입력해 주세요"
             enterKeyHint="search"
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted/75 [&::-webkit-search-cancel-button]:hidden"
+            className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
@@ -424,18 +426,18 @@ export function DictionaryClient() {
         </form>
       </header>
 
-      {/* 2행: 흰 표면 카드(shadow-card 단일 경계)로 감싼 수집 진행도 */}
-      <section aria-label="제철음식 수집 현황">
-        <div className="rounded-card border border-line bg-surface px-5 py-4">
+      {/* 2행: 수집 현황과 랭크를 한 카드로 */}
+      <RankSection
+        reviewCount={DUMMY_MY_REVIEW_COUNT}
+        collection={
           <ProgressBar
-            label={`${activeSeasonLabel}(예시)`}
+            label={activeSeasonLabel}
             value={activeSeasonStat.collected}
             max={activeSeasonStat.total}
             unit="종"
-            className="[&_span:first-child]:text-sm"
           />
-        </div>
-      </section>
+        }
+      />
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
       <section className="flex flex-col gap-4 sm:gap-6">

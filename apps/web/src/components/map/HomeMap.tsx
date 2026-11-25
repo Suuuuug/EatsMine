@@ -10,6 +10,12 @@ import { buildRestaurantUrl, parseSearch, reviewUrl, validEatplUrl, regionLabel,
 import regionSeed from "@/lib/map/region-seed.json";
 import { nearbyMapUrl } from "@/lib/map/nearby";
 import { IslandOutlines } from "@/components/map/IslandOutlines";
+import { OwnerLegend } from "@/components/territory/OwnerLegend";
+import { OwnerDetail } from "@/components/territory/OwnerDetail";
+import { OWNER_FILL } from "@/components/territory/owner-classes";
+import { buildOwnerView, fixOwnerSlots, legendRows, summarizeScope } from "@/lib/territory/owner-view";
+import { DUMMY_TERRITORY_OWNERS, getDummyOwner, ME_ID } from "@/lib/territory/sample-data";
+import adjacency from "@/data/region-adjacency.json";
 
 type Region = { code: string; parentCode: string | null; name: string; fullName: string };
 type Place = { id: string; name: string; address: string; genre: string | null; rankNational: number | null; estimatedHours: { start: string; end: string } | null; merUrl: string };
@@ -17,6 +23,8 @@ type Result = { items: Place[]; matchedBy?: "keyword" | "genre" };
 type Shape = { key: string; viewBox: string; paths: { code: string; d: string }[] };
 type MapMeta = { provinces: { code: string; svg: string }[] };
 const regions: Region[] = regionSeed;
+// 슬롯은 전체 소유 지역으로 한 번만 배정해 모든 화면에서 같은 사용자가 같은 색이다.
+const fixedOwnerSlots = fixOwnerSlots(DUMMY_TERRITORY_OWNERS, adjacency, ME_ID);
 const apiBase = process.env.NEXT_PUBLIC_API_URL;
 const attribution = "eat.pl 잇플 · BC카드 결제 데이터 기반";
 // 화면 구성만을 위한 가상 후기. 실제 식당 API 결과와 결합하지 않는다.
@@ -47,6 +55,7 @@ export function HomeMap() {
   const [province, setProvince] = useState<Region | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
   const [shape, setShape] = useState<Shape | null>(null);
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<{ code: string; x: number; y: number } | null>(null);
   const hoveredCode = hoveredRegion?.code ?? null;
   const [shapeError, setShapeError] = useState("");
@@ -64,6 +73,12 @@ export function HomeMap() {
   const searchResults = searchRegions(regions, regionQuery);
   const searching = Boolean(regionQuery.trim());
   const shapeKey = province?.code ?? "nation";
+  // 개발 확인용 더미 1위. 실제 API 연결 시 lookup만 교체한다.
+  const ownerView = buildOwnerView(list.map((r) => r.code), getDummyOwner, adjacency, ME_ID, fixedOwnerSlots);
+  const islandCode = province ? "47940" : "47";
+  const islandSlot = ownerView.slots[islandCode] ?? null;
+  const hatchSize = shape ? Math.max(Number(shape.viewBox.split(/[ ,]+/)[2]) / 90, 1) : 8;
+  const selectedRegion = selectedCode ? children.find((r) => r.code === selectedCode) ?? null : null;
 
   useEffect(() => {
     if (lastHandledSearch.current === search) return;
@@ -74,7 +89,7 @@ export function HomeMap() {
       const query = parseSearch(search);
       setFoodId(query.foodId); setUnsupportedFood(query.unsupportedFood);
       const { region: match, province: parent } = resolveRegionSelection(regions, params);
-      setRegionQuery("");
+      setRegionQuery(""); setSelectedCode(null);
       setNearby(null);
       navigated.current = true;
       setProvince(parent); setRegion(match); setResult(null); setError("");
@@ -145,7 +160,7 @@ export function HomeMap() {
   }
   function navigateRegion(nextProvince: Region | null, nextRegion: Region | null) {
     locationRequest.current++; setLocating(false); setLocationError("");
-    setRegionQuery(""); setHoveredRegion(null); navigated.current = true;
+    setRegionQuery(""); setHoveredRegion(null); setSelectedCode(null); navigated.current = true;
     // 같은 지역을 다시 고르면 기존 조회 결과를 유지해요.
     if (nextProvince?.code !== province?.code || nextRegion?.code !== region?.code) {
       setProvince(nextProvince); setRegion(nextRegion); setResult(null); setError("");
@@ -245,7 +260,7 @@ export function HomeMap() {
             </div>
           ) : <>
           {!region ? <>
-            <p className="mt-2 type-body text-muted">{province ? "시·군·구를 선택해 주세요." : "지역을 선택해 식당을 찾아보세요."}</p>
+            {province && <p className="mt-2 type-body text-foreground">시·군·구를 선택해 주세요.</p>}
 
             {<ul className="mt-4 divide-y divide-line">{list.map((r) => <li key={r.code}><button type="button" onClick={() => province ? chooseRegion(r) : chooseProvince(r)} className="pressable flex min-h-11 w-full items-center justify-between px-2 py-3 text-left focus-ring"><span>{regionLabel(r)}</span><span aria-hidden>›</span></button></li>)}</ul>}
           </> : <>
@@ -261,11 +276,21 @@ export function HomeMap() {
           </>}
           </>}
         </section>
-        <section aria-label="지역 지도" className="relative order-first min-h-80 rounded-card border border-line bg-surface/40 p-4 lg:order-last">
+        <div className={`order-first min-w-0 lg:order-last ${region ? "" : "xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-4"}`}>
+        <section aria-label="지역 지도" className="relative min-h-80 rounded-card border border-line bg-surface/90 p-4">
           {!province && <div className="absolute top-4 right-4 z-10 flex max-w-[min(19rem,80%)] flex-col items-end"><button type="button" onClick={findNearby} disabled={locating} className="glass-bar pressable focus-ring inline-flex min-h-11 items-center gap-2 rounded-button border border-line px-4 font-semibold text-foreground shadow-float"><Icon name="locate" size={18} />{locating ? "위치 확인 중…" : "내 위치"}</button>{locationError && <div className="mt-2 rounded-card border border-line bg-surface p-3 shadow-float"><p role="alert" className="type-caption text-foreground">{locationError}</p><button type="button" className="pressable focus-ring mt-1 min-h-11 px-2 font-semibold text-accent-dark" onClick={() => { setSampleLocation(true); setNearby(nearbyMapUrl(37.5665, 126.978)); }}>위치 없이 화면 보기</button></div>}</div>}
-          {region ? <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><p className="type-row font-semibold">{region.fullName}</p><p className="type-body text-muted">식당 위치를 지도에 표시할 수 있도록 준비하고 있어요.</p></div> : shape?.key === shapeKey ? <svg viewBox={shape.viewBox} role="img" aria-label={`${province ? regionLabel(province) : "전국"} 지도`} className="mx-auto h-[min(36vh,320px)] max-w-full md:h-[min(42vh,420px)] lg:h-[min(82vh,900px,calc(100vh-160px))]" onPointerMove={(event) => { const code = (event.target as Element).getAttribute("data-code"); setHoveredRegion(event.pointerType !== "touch" && code && list.some((item) => item.code === code) ? { code, x: Math.min(Math.max(event.clientX, 100), window.innerWidth - 100), y: Math.max(event.clientY - 14, 45) } : null); }} onPointerLeave={() => setHoveredRegion(null)} onClick={(event) => { const code = (event.target as Element).getAttribute("data-code"); const found = children.find((r) => r.code === code); if (found) { if (province) chooseRegion(found); else chooseProvince(found); } }}>{shape.paths.map((path) => <path key={path.code} data-code={path.code} d={path.d} fillRule="evenodd" vectorEffect="non-scaling-stroke" strokeWidth="1" className={`${hoveredCode === path.code ? "fill-map-partial" : "fill-map-empty"} stroke-map-line`} />)}<IslandOutlines province={province?.code ?? null} className={hoveredCode === (province ? "47940" : "47") ? "fill-map-partial" : "fill-map-empty"} /></svg> : <p className="flex min-h-80 items-center justify-center text-muted">{shapeError === shapeKey ? "지도를 불러오지 못했어요. 지역 목록에서 선택해 주세요." : "지도를 불러오고 있어요."}</p>}
+          {region ? <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><p className="type-row font-semibold">{region.fullName}</p><p className="type-body text-muted">식당 위치를 지도에 표시할 수 있도록 준비하고 있어요.</p></div> : shape?.key === shapeKey ? <svg viewBox={shape.viewBox} role="img" aria-label={`${province ? regionLabel(province) : "전국"} 지도`} className="mx-auto h-[min(36vh,320px)] max-w-full md:h-[min(42vh,420px)] lg:h-[min(82vh,900px,calc(100vh-160px))]" onPointerMove={(event) => { const code = (event.target as Element).getAttribute("data-code"); setHoveredRegion(event.pointerType !== "touch" && code && list.some((item) => item.code === code) ? { code, x: Math.min(Math.max(event.clientX, 100), window.innerWidth - 100), y: Math.max(event.clientY - 14, 45) } : null); }} onPointerLeave={() => setHoveredRegion(null)} onClick={(event) => { const code = (event.target as Element).getAttribute("data-code"); const found = children.find((r) => r.code === code); if (found) { if (province) chooseRegion(found); else chooseProvince(found); } }}><defs><pattern id="owner-hatch" width={hatchSize} height={hatchSize} patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2={hatchSize} className="stroke-foreground" strokeWidth={hatchSize / 5} /></pattern></defs>{[...shape.paths].sort((a, b) => Number(a.code === selectedCode) - Number(b.code === selectedCode)).map((path) => {
+            const slot = ownerView.slots[path.code] ?? null; const owner = ownerView.ownerByRegion[path.code];
+            const outline = path.code === selectedCode ? "stroke-foreground" : owner?.isMe ? "stroke-foreground" : "stroke-map-line";
+            return <g key={path.code}><path data-code={path.code} d={path.d} fillRule="evenodd" vectorEffect="non-scaling-stroke" strokeWidth={path.code === selectedCode ? 3 : owner?.isMe ? 2 : 1} className={`${slot ? OWNER_FILL[slot] : "fill-map-empty"} ${hoveredCode === path.code ? "opacity-75" : ""} ${outline}`} />{owner && ownerView.sharedSlotOwners.has(owner.ownerId) && <path d={path.d} fillRule="evenodd" fill="url(#owner-hatch)" opacity="0.5" pointerEvents="none" />}</g>;
+          })}<IslandOutlines province={province?.code ?? null} className={`${islandSlot ? OWNER_FILL[islandSlot] : "fill-map-empty"} ${hoveredCode === islandCode ? "opacity-75" : ""}`} /></svg> : <p className="flex min-h-80 items-center justify-center text-muted">{shapeError === shapeKey ? "지도를 불러오지 못했어요. 지역 목록에서 선택해 주세요." : "지도를 불러오고 있어요."}</p>}
           {hoveredRegion && hoveredRegion.code !== "47940" && <div aria-hidden="true" className="glass-bar pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-input border border-line px-3 py-2 type-caption font-semibold text-foreground shadow-float" style={{ left: hoveredRegion.x, top: hoveredRegion.y }}>{regionLabel(list.find((item) => item.code === hoveredRegion.code)!)}</div>}
         </section>
+        {!region && <div className="mt-4 space-y-4 xl:mt-0">
+          <OwnerDetail scopeName={province ? regionLabel(province) : "전국"} summary={summarizeScope(list.map((r) => ownerView.ownerByRegion[r.code] ?? null))} selected={selectedRegion ? { regionName: regionLabel(selectedRegion), owner: ownerView.ownerByRegion[selectedRegion.code] ?? null } : null} meId={ME_ID} onBack={() => setSelectedCode(null)} onViewRestaurants={() => { if (selectedRegion) { if (selectedRegion.parentCode) chooseRegion(selectedRegion); else chooseProvince(selectedRegion); } }} />
+          <OwnerLegend title="영토 주인" rows={legendRows(list.map((r) => r.code), ownerView)} regionName={(code) => { const found = children.find((r) => r.code === code); return found ? regionLabel(found) : code; }} selectedCode={selectedCode} onSelect={(code) => setSelectedCode(code === selectedCode ? null : code)} sharedSlotOwners={ownerView.sharedSlotOwners} />
+        </div>}
+        </div>
       </div>
     </main>
   );
