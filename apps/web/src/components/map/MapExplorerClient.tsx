@@ -667,7 +667,7 @@ export function MapExplorerClient({
       ...prev,
       [placeId]: [review, ...(prev[placeId] ?? [])],
     }));
-    showToast("리뷰를 남겼어요(예시)");
+    showToast(review.saved ? "후기를 저장했어요" : "리뷰를 남겼어요(예시)");
   };
 
   const visibleGenres = useMemo(() => {

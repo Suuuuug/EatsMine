@@ -9,8 +9,9 @@ import { HttpExceptionFilter } from '../common/http-exception.filter.js';
 import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { MeRecordsController } from './me-records.controller.js';
 import { MeRecordsService } from './me-records.service.js';
+import { RestaurantReviewsController } from './restaurant-reviews.controller.js';
 import { ReviewsController } from './reviews.controller.js';
-import { ReviewsService } from './reviews.service.js';
+import { ReviewsService, toRestaurantReviewsDto } from './reviews.service.js';
 
 const user = {
   id: '6f1c2a3e-1111-4222-8333-944455556666',
@@ -26,6 +27,7 @@ describe('리뷰·내 기록 API', () => {
     update: vi.fn(),
     remove: vi.fn(),
     listMine: vi.fn(),
+    listPublicForRestaurant: vi.fn(),
   };
   const records = { territories: vi.fn(), collection: vi.fn() };
   let loggedIn = true;
@@ -34,7 +36,11 @@ describe('리뷰·내 기록 API', () => {
     vi.clearAllMocks();
     loggedIn = true;
     const moduleRef = await Test.createTestingModule({
-      controllers: [ReviewsController, MeRecordsController],
+      controllers: [
+        ReviewsController,
+        MeRecordsController,
+        RestaurantReviewsController,
+      ],
       providers: [
         { provide: ReviewsService, useValue: reviews },
         { provide: MeRecordsService, useValue: records },
@@ -67,7 +73,7 @@ describe('리뷰·내 기록 API', () => {
   const server = () => app.getHttpServer();
 
   describe('POST /reviews', () => {
-    it('기본값(private)과 빈 후기 정리 후 서비스에 넘긴다', async () => {
+    it('기본값(public)과 빈 후기 정리 후 서비스에 넘긴다', async () => {
       reviews.create.mockResolvedValue({ id: 1 });
       await request(server())
         .post('/reviews')
@@ -83,7 +89,7 @@ describe('리뷰·내 기록 API', () => {
         restaurantName: '카페시나브로',
         rating: 5,
         content: undefined,
-        visibility: 'private',
+        visibility: 'public',
       });
     });
 
@@ -224,6 +230,76 @@ describe('리뷰·내 기록 API', () => {
         (await request(server()).get('/me/collection').expect(200)).body.total,
       ).toBe(43);
       expect(reviews.listMine).toHaveBeenCalledWith(user.id);
+    });
+  });
+
+  describe('GET /restaurants/:id/reviews', () => {
+    it('로그인 없이 매장 공개 후기를 돌려준다', async () => {
+      loggedIn = false;
+      const body = {
+        restaurantId: 'bQSyX0QU5duyTaDXVqWW5A',
+        summary: null,
+        items: [],
+      };
+      reviews.listPublicForRestaurant.mockResolvedValue(body);
+      const res = await request(server()).get(
+        '/restaurants/bQSyX0QU5duyTaDXVqWW5A/reviews',
+      );
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(body);
+      expect(reviews.listPublicForRestaurant).toHaveBeenCalledWith(
+        'bQSyX0QU5duyTaDXVqWW5A',
+      );
+    });
+
+    it('매장 ID 형식이 틀리면 400', async () => {
+      const res = await request(server()).get('/restaurants/bad.id/reviews');
+      expect(res.status).toBe(400);
+      expect(reviews.listPublicForRestaurant).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('toRestaurantReviewsDto', () => {
+  const row = {
+    id: 3,
+    rating: 4,
+    content: '맛있어요',
+    visitedAt: '2026-11-20',
+    createdAt: new Date('2026-11-21T00:00:00Z'),
+    updatedAt: new Date('2026-11-22T00:00:00Z'),
+    nickname: '미식탐험가4821',
+    rank: 'local' as const,
+    avatarUrl: 'https://example.com/a.png',
+    foodId: null,
+    foodName: null,
+  };
+
+  it('작성자 닉네임·등급·사진과 평균(소수 첫째 자리)을 담는다', () => {
+    const dto = toRestaurantReviewsDto('r1', { n: 3, avg: '4.3333' }, [row]);
+    expect(dto.summary).toEqual({ average: 4.3, count: 3 });
+    expect(dto.items[0]).toEqual({
+      id: 3,
+      author: {
+        nickname: '미식탐험가4821',
+        rank: 'local',
+        rankLabel: '동네 미식가',
+        avatarUrl: 'https://example.com/a.png',
+      },
+      food: null,
+      rating: 4,
+      content: '맛있어요',
+      visitedAt: '2026-11-20',
+      createdAt: '2026-11-21T00:00:00.000Z',
+      updatedAt: '2026-11-22T00:00:00.000Z',
+    });
+  });
+
+  it('공개 후기가 없으면 summary는 null', () => {
+    expect(toRestaurantReviewsDto('r1', { n: 0, avg: null }, [])).toEqual({
+      restaurantId: 'r1',
+      summary: null,
+      items: [],
     });
   });
 });

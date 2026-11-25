@@ -12,6 +12,10 @@ import {
 } from '../eatpl/eatpl.types.js';
 import { FoodsService } from '../foods/foods.service.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
+import {
+  type ReviewSummaryDto,
+  ReviewSummaryService,
+} from '../reviews/review-summary.service.js';
 
 /**
  * 음식 검색에서 매장을 찾은 방법 (잇플에는 메뉴 정보가 없음)
@@ -20,12 +24,17 @@ import { AddressMatcher } from '../regions/address-matcher.js';
  */
 export type MatchedBy = 'keyword' | 'genre';
 
+/** 잇플 매장 + 우리 서비스의 공개 후기 요약 (후기 없으면 null) */
+export type RestaurantListItem = EatplPlace & {
+  reviewSummary: ReviewSummaryDto | null;
+};
+
 export type RestaurantSearchResult = {
   region: { code: string; fullName: string };
   /** foodId로 검색했을 때만 */
   food?: { id: number; name: string };
   matchedBy?: MatchedBy;
-  items: EatplPlace[];
+  items: RestaurantListItem[];
   source: string;
   fetchedAt: string;
 };
@@ -39,16 +48,23 @@ export class RestaurantsService {
     private readonly eatpl: EatplClient,
     private readonly addressMatcher: AddressMatcher,
     private readonly foods: FoodsService,
+    private readonly reviewSummaries: ReviewSummaryService,
   ) {}
 
-  /** 지역(+업종) 잇플 검색 (D3, D4) */
+  /**
+   * 지역(+업종) 잇플 검색 (D3, D4)
+   * 업종이 0~1개면 잇플 순서 그대로, 여러 개면 업종별로 조회해 합치고 지역 순위순
+   */
   async search(
     regionCode: string,
-    genre?: string,
+    genres: readonly string[] = [],
   ): Promise<RestaurantSearchResult> {
     const region = await this.findRegion(regionCode);
-    const items = await this.searchInRegion(region, { genre });
-    return this.result(region, items);
+    if (genres.length <= 1) {
+      const items = await this.searchInRegion(region, { genre: genres[0] });
+      return this.result(region, items);
+    }
+    return this.result(region, await this.searchGenres(region, genres));
   }
 
   /**
@@ -81,18 +97,26 @@ export class RestaurantsService {
         return this.result(region, byKeyword, foodRef, 'keyword');
     }
 
+    const byGenre = await this.searchGenres(region, food.genres);
+    return this.result(region, byGenre, foodRef, 'genre');
+  }
+
+  /** 업종별로 조회해 합친다: 중복 제거, 지역 순위순 (순위 없으면 뒤로) */
+  private async searchGenres(
+    region: Region,
+    genres: readonly string[],
+  ): Promise<EatplPlace[]> {
     const perGenre = await Promise.all(
-      food.genres.map((genre) => this.searchInRegion(region, { genre })),
+      genres.map((genre) => this.searchInRegion(region, { genre })),
     );
     const merged = new Map<string, EatplPlace>();
     for (const place of perGenre.flat())
       if (!merged.has(place.id)) merged.set(place.id, place);
-    const byGenre = [...merged.values()].sort(
+    return [...merged.values()].sort(
       (a, b) =>
         (a.rankLocal ?? Number.POSITIVE_INFINITY) -
         (b.rankLocal ?? Number.POSITIVE_INFINITY),
     );
-    return this.result(region, byGenre, foodRef, 'genre');
   }
 
   private async findRegion(code: string): Promise<Region> {
@@ -130,16 +154,22 @@ export class RestaurantsService {
     return places.filter((_, i) => matched[i] === region.code);
   }
 
-  private result(
+  private async result(
     region: Region,
-    items: EatplPlace[],
+    places: EatplPlace[],
     food?: { id: number; name: string },
     matchedBy?: MatchedBy,
-  ): RestaurantSearchResult {
+  ): Promise<RestaurantSearchResult> {
+    const summaries = await this.reviewSummaries.forRestaurants(
+      places.map((p) => p.id),
+    );
     return {
       region: { code: region.code, fullName: region.fullName },
       ...(food && { food, matchedBy }),
-      items,
+      items: places.map((p) => ({
+        ...p,
+        reviewSummary: summaries.get(p.id) ?? null,
+      })),
       source: EATPL_ATTRIBUTION,
       fetchedAt: new Date().toISOString(),
     };
