@@ -145,20 +145,19 @@ html[data-dictionary-season="summer"] .season-backdrop { --season-background: ur
 html[data-dictionary-season="autumn"] .season-backdrop { --season-background: url('/images/seasons/autumn.webp'); }
 html[data-dictionary-season="winter"] .season-backdrop { --season-background: url('/images/seasons/winter.webp'); }
 
-/* 배경은 화면의 역할을 구분하면서 같은 토큰을 공유한다. */
-.em-theme.explore-backdrop {
-  background-image:
-    radial-gradient(85% 65% at 0% 0%, color-mix(in oklab, var(--color-accent) 20%, transparent), transparent 75%),
-    radial-gradient(75% 65% at 100% 35%, color-mix(in oklab, var(--color-star) 11%, transparent), transparent 75%),
-    linear-gradient(155deg, var(--color-background), color-mix(in oklab, var(--color-accent-weak) 40%, var(--color-background)));
-}
+/* 지도·마이는 도감과 같은 구조: 위쪽 일러스트가 아래로 갈수록 배경 단색으로 이어진다. */
+.em-theme.explore-backdrop,
 .em-theme.my-backdrop {
   background-image:
-    radial-gradient(85% 65% at 100% 0%, color-mix(in oklab, var(--color-accent) 19%, transparent), transparent 75%),
-    radial-gradient(70% 55% at 0% 55%, color-mix(in oklab, var(--color-star) 9%, transparent), transparent 75%),
-    linear-gradient(160deg, var(--color-surface), var(--color-background) 75%);
-  background-attachment: fixed;
+    linear-gradient(to bottom, light-dark(oklch(0.968 0.006 150 / 0.5), oklch(0.17 0.008 150 / 0.86)), var(--color-background) 680px),
+    var(--page-backdrop);
+  background-size: 100% 680px, max(100%, 1632px) auto;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
 }
+.em-theme.explore-backdrop { --page-backdrop: url('/images/backdrops/map.webp'); }
+.em-theme.my-backdrop { --page-backdrop: url('/images/backdrops/my.webp'); }
 .brand-dark { display: none; }
 html[data-theme="dark"] .brand-light { display: none; }
 html[data-theme="dark"] .brand-dark { display: block; }

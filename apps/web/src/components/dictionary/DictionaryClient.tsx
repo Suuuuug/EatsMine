@@ -481,29 +481,11 @@ export function DictionaryClient() {
 
                 return (
                   <li key={food.id}>
-                    <div className="flex h-full flex-col rounded-card border border-line bg-surface p-4">
+                    <div className="flex h-full flex-col gap-3 rounded-card border border-line bg-surface p-4">
                       <div className="rounded-input bg-illustration-surface py-4">
-                        <FoodTile name={food.name} src={food.src} collected={isCollected} imageSize={76} />
+                        <FoodTile name={food.name} src={food.src} collected={isCollected} imageSize={76} showName={false} />
                       </div>
-
-                      <div className="mt-3 flex flex-1 flex-col gap-2 border-t border-line pt-3">
-                        <p className="type-caption text-foreground">{food.description}</p>
-                        <p className="text-xs font-medium text-muted">
-                          {isCollected ? "수집함 · 예시" : "미수집 · 예시"}
-                        </p>
-
-                        {food.regions.length > 0 && (
-                          <ul aria-label="추천 지역" className="flex flex-col gap-1 type-caption text-muted">
-                            {food.regions.map((region) => (
-                              <li key={region.code}>{region.name}</li>
-                            ))}
-                          </ul>
-                        )}
-
-                        <p className="mt-0.5 text-xs font-medium text-muted/80 tabular-nums">
-                          {food.seasonLabel}
-                        </p>
-                      </div>
+                      <p className={`type-row font-semibold ${isCollected ? "text-foreground" : "text-muted"}`}>{food.name}</p>
                     </div>
                   </li>
                 );
