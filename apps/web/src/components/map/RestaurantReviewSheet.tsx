@@ -1,39 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionButton,
   BottomSheet,
-  RatingStars,
   actionButtonClass,
 } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
-import { ReviewFormFields } from "@/components/review/ReviewFormFields";
-import { getSamplePlaceReviews, type PlaceReviewItem } from "@/data/map-mock";
-import { useSession } from "@/lib/auth/session";
-import { validEatplUrl } from "@/lib/map/home-contract";
 import {
-  createReview,
-  fetchRestaurantReviews,
-  type RestaurantReviewsDto,
-} from "@/lib/my-page/api";
+  getSamplePlaceReviews,
+  type PlaceReviewItem,
+} from "@/data/map-mock";
+import { validEatplUrl } from "@/lib/map/home-contract";
 import type { EatplPlace } from "@/types/map";
 
 const MAX_REVIEW_PHOTOS = 4;
-
-/** 잇플 상세 주소 끝의 매장 고유값. API의 매장 ID와 같다. */
-function merchantId(merUrl: string | null): string | null {
-  if (!merUrl) return null;
-  try {
-    return (
-      new URL(merUrl).pathname.match(
-        /^\/mer\/web\/profile\/([A-Za-z0-9_-]{1,100})\/?$/,
-      )?.[1] ?? null
-    );
-  } catch {
-    return null;
-  }
-}
 
 type DraftPhoto = {
   id: string;
@@ -60,22 +41,6 @@ export function RestaurantReviewSheet({
   const [writing, setWriting] = useState(false);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
-  // 후기를 공개할지는 쓸 때마다 정한다. 처음에는 나만 본다.
-  const [isPublic, setIsPublic] = useState(false);
-  const session = useSession();
-  const token =
-    session.status === "ready" ? (session.session?.accessToken ?? null) : null;
-  const userId =
-    session.status === "ready" ? (session.session?.user.id ?? null) : null;
-  // 서버에서 읽은 공개 후기. null이면 아직 없거나 읽을 수 없는 매장이라 예시 후기를 쓴다.
-  const [remote, setRemote] = useState<{
-    id: string;
-    data: RestaurantReviewsDto;
-  } | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  // 저장 요청이 끝났을 때 폼이 그대로인지 확인한다(취소·닫기·새로 쓰기가 있었으면 이 값이 바뀐다).
-  const draftIdRef = useRef(0);
   const [draftPhotos, setDraftPhotos] = useState<DraftPhoto[]>([]);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,47 +59,9 @@ export function RestaurantReviewSheet({
     };
   }, []);
 
+  const summary = place ? getSamplePlaceReviews(place, userReviews) : null;
   // 잇플 링크는 home-contract의 validEatplUrl로 검증한 API 응답 원본 URL만 허용한다(쿼리 추가·변형 금지).
   const safeEatplUrl = place ? validEatplUrl(place.merUrl) : null;
-  const placeMerchantId = merchantId(safeEatplUrl);
-  const canSave = Boolean(token && safeEatplUrl && placeMerchantId);
-
-  const loadRemote = useCallback((id: string) => {
-    fetchRestaurantReviews(id).then(
-      (data) => setRemote({ id, data }),
-      () => setRemote(null),
-    );
-  }, []);
-  useEffect(() => {
-    if (!placeMerchantId) return;
-    loadRemote(placeMerchantId);
-  }, [placeMerchantId, loadRemote]);
-
-  const serverData =
-    remote && remote.id === placeMerchantId ? remote.data : null;
-  // 저장한 후기는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
-  const ownReviews = userReviews.filter(
-    (r) => !r.saved || r.ownerId === userId,
-  );
-  const sample = place ? getSamplePlaceReviews(place, ownReviews) : null;
-  // 서버 후기가 있으면 그것을, 없으면 예시를 보여 준다. 내가 방금 쓴 나만 보기 후기는 목록 맨 위에 둔다.
-  const summary = serverData
-    ? {
-        averageRating: serverData.summary?.average ?? null,
-        reviewCount: serverData.summary?.count ?? 0,
-        isSample: false,
-        reviews: [
-          ...ownReviews.filter((r) => r.saved && r.visibility === "private"),
-          ...serverData.items.map<PlaceReviewItem>((item) => ({
-            id: `server-${item.id}`,
-            authorNickname: item.author.nickname,
-            rating: item.rating,
-            content: item.content ?? "",
-            visitedAt: item.visitedAt ?? item.createdAt.slice(0, 10),
-          })),
-        ],
-      }
-    : sample;
 
   const clearDraftPhotos = (revokeUrls: boolean) => {
     if (revokeUrls) {
@@ -147,15 +74,19 @@ export function RestaurantReviewSheet({
   };
 
   const handleClose = () => {
-    draftIdRef.current += 1;
-    setSubmitting(false);
     clearDraftPhotos(true);
     setLightboxUrl(null);
     setWriting(false);
     setContent("");
     setRating(5);
-    setIsPublic(false);
     onClose();
+  };
+
+  const handleCancelWriting = () => {
+    clearDraftPhotos(true);
+    setContent("");
+    setRating(5);
+    setWriting(false);
   };
 
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,13 +99,11 @@ export function RestaurantReviewSheet({
     setDraftPhotos((prev) => {
       const remaining = MAX_REVIEW_PHOTOS - prev.length;
       if (remaining <= 0) return prev;
-      const added: DraftPhoto[] = files
-        .slice(0, remaining)
-        .map((file, idx) => ({
-          id: `photo-${Date.now()}-${idx}`,
-          url: URL.createObjectURL(file),
-          name: file.name,
-        }));
+      const added: DraftPhoto[] = files.slice(0, remaining).map((file, idx) => ({
+        id: `photo-${Date.now()}-${idx}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+      }));
       return [...prev, ...added];
     });
   };
@@ -187,74 +116,29 @@ export function RestaurantReviewSheet({
     });
   };
 
-  const resetDraft = (revokeUrls = true) => {
-    draftIdRef.current += 1;
-    clearDraftPhotos(revokeUrls);
-    setContent("");
-    setRating(5);
-    setIsPublic(false);
-    setSubmitError("");
-    setWriting(false);
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!place || submitting) return;
+    if (!place) return;
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    const visibility = isPublic ? "public" : "private";
-    const local = (saved: boolean): PlaceReviewItem => ({
+    const today = new Date().toISOString().slice(0, 10);
+    const photoUrls = draftPhotos.map((p) => p.url);
+    onAddReview(place.id, {
       id: `local-${Date.now()}`,
-      authorNickname: saved ? "나" : "나(예시)",
+      authorNickname: "나(예시)",
       rating,
       content: trimmed,
-      visitedAt: new Date().toISOString().slice(0, 10),
-      photos:
-        !saved && draftPhotos.length > 0
-          ? draftPhotos.map((p) => p.url)
-          : undefined,
+      visitedAt: today,
+      photos: photoUrls.length > 0 ? photoUrls : undefined,
       isSample: false,
-      saved,
-      ownerId: saved ? (userId ?? undefined) : undefined,
-      visibility,
     });
 
-    // 로그인했고 잇플 매장이면 우리 API에 저장한다. 아니면 이 화면에서만 보이는 예시로 남긴다.
-    if (token && safeEatplUrl && placeMerchantId) {
-      const draftId = draftIdRef.current;
-      setSubmitting(true);
-      setSubmitError("");
-      try {
-        await createReview(token, {
-          merUrl: safeEatplUrl,
-          restaurantName: place.name,
-          rating,
-          content: trimmed,
-          visibility,
-        });
-      } catch {
-        if (draftId === draftIdRef.current) {
-          setSubmitError("후기를 저장하지 못했어요. 다시 시도해 주세요.");
-          setSubmitting(false);
-        }
-        return;
-      }
-      if (draftId !== draftIdRef.current) {
-        // 저장 중에 폼을 닫았거나 취소했다. 새 입력은 건드리지 않고 공개 후기 목록만 갱신한다.
-        if (visibility === "public") loadRemote(placeMerchantId);
-        return;
-      }
-      setSubmitting(false);
-      // 공개 후기는 서버 목록에서 다시 읽고, 나만 보기 후기는 이 화면에 보여 준다.
-      if (visibility === "public") loadRemote(placeMerchantId);
-      else onAddReview(place.id, local(true));
-      resetDraft();
-      return;
-    }
-    onAddReview(place.id, local(false));
     // 등록된 리뷰가 object URL을 계속 표시할 수 있도록 revoke하지 않고 드래프트만 비움
-    resetDraft(false);
+    clearDraftPhotos(false);
+    setContent("");
+    setRating(5);
+    setWriting(false);
   };
 
   return (
@@ -310,198 +194,188 @@ export function RestaurantReviewSheet({
       }
     >
       {place && summary && (
-        <div
-          className="flex flex-col gap-4"
-          // 시트 안쪽에 옅은 빛번짐만 깐다(DESIGN.md §1: 카드·글자에는 그라데이션 금지)
-          style={{
-            backgroundImage:
-              "radial-gradient(90% 180px at 50% 0%, color-mix(in oklab, var(--color-accent) 14%, transparent), transparent 75%)",
-          }}
-        >
+        <div className="flex flex-col gap-4">
           {/* 식당 주소 + 평균 평점 요약 */}
-          <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-1.5 type-caption text-muted">
-              <Icon name="pin" size={16} className="shrink-0" />
-              <span className="min-w-0 flex-1 truncate">{place.address}</span>
-              {place.genre && <span className="shrink-0">{place.genre}</span>}
-            </p>
-            {summary.averageRating != null ? (
-              <div className="flex items-center gap-2">
-                <span className="type-row tabular-nums">
+          <div className="flex items-center justify-between gap-3 rounded-card bg-fill/75 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted">{place.address}</p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Icon name="star" size={16} className="text-star" />
+                <span className="text-base font-bold text-foreground tabular-nums">
                   {summary.averageRating.toFixed(1)}
                 </span>
-                <RatingStars value={summary.averageRating} size={20} />
-                <span className="type-caption text-muted tabular-nums">
-                  후기 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
+                <span className="text-xs text-muted tabular-nums">
+                  리뷰 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
                 </span>
               </div>
-            ) : (
-              <p className="type-caption text-muted">
-                아직 공개된 후기가 없어요
-              </p>
+            </div>
+            {place.genre && (
+              <span className="shrink-0 text-xs font-medium text-muted">
+                {place.genre}
+              </span>
             )}
           </div>
 
           {/* 리뷰 작성 폼 */}
           {writing && (
-            <form onSubmit={handleSubmit} className="glass rounded-card p-4">
-              {/* 저장하는 동안에는 입력·공개 범위·취소를 막아 보낸 값과 화면 값이 달라지지 않게 한다 */}
-              <fieldset
-                disabled={submitting}
-                className="flex min-w-0 flex-col gap-4 border-0 p-0"
-              >
-                <ReviewFormFields
-                  rating={rating}
-                  onRating={setRating}
-                  content={content}
-                  onContent={setContent}
-                  isPublic={isPublic}
-                  onPublic={setIsPublic}
-                  placeholder="여행 중 다녀온 후기를 남겨 주세요."
-                  contentLabel="여행 후기 입력"
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-3 rounded-card bg-surface p-3.5 shadow-card"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground">
+                  별점 선택
+                </span>
+                <div
+                  role="radiogroup"
+                  aria-label="별점"
+                  className="flex items-center gap-1"
                 >
-                  {/* 사진 첨부 영역 (최대 4장). 화면은 만들어 두었고 사진 저장소가 없어 서버에는 보내지 않는다 */}
-                  {
-                    <div className="flex flex-col gap-1.5">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFilesSelected}
-                        aria-label="리뷰 사진 선택"
-                        className="sr-only"
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      key={score}
+                      type="button"
+                      role="radio"
+                      aria-checked={rating === score}
+                      aria-label={`${score}점`}
+                      onClick={() => setRating(score)}
+                      className="cursor-pointer p-0.5 focus-ring"
+                    >
+                      <Icon
+                        name="star"
+                        size={20}
+                        className={
+                          score <= rating ? "text-star" : "text-muted/35"
+                        }
                       />
-                      <div className="flex items-center gap-2 overflow-x-auto py-0.5">
-                        {draftPhotos.length < MAX_REVIEW_PHOTOS && (
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="pressable flex size-16 shrink-0 flex-col items-center justify-center gap-1 rounded-input border border-dashed border-line bg-fill/60 text-muted hover:text-foreground focus-ring"
-                          >
-                            <Icon name="camera" size={18} />
-                            <span className="type-caption tabular-nums">
-                              {draftPhotos.length}/{MAX_REVIEW_PHOTOS}
-                            </span>
-                          </button>
-                        )}
-
-                        {draftPhotos.map((photo) => (
-                          <div
-                            key={photo.id}
-                            className="relative size-16 shrink-0 overflow-hidden rounded-input bg-fill ring-1 ring-line"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={photo.url}
-                              alt={photo.name}
-                              className="size-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDraftPhoto(photo.id)}
-                              aria-label={`${photo.name} 삭제`}
-                              className="absolute top-1 right-1 inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-foreground/75 text-surface hover:bg-foreground focus-ring"
-                            >
-                              <Icon name="close" size={11} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      {canSave && draftPhotos.length > 0 && (
-                        <p className="type-caption text-muted">
-                          사진은 아직 저장되지 않아요. 글과 별점만 저장돼요.
-                        </p>
-                      )}
-                    </div>
-                  }
-                </ReviewFormFields>
-
-                {!token && (
-                  <p className="type-caption text-muted">
-                    로그인하면 후기가 저장돼요. 지금은 이 화면에서만 보여요.
-                  </p>
-                )}
-                {submitError && (
-                  <p role="alert" className="type-caption text-danger">
-                    {submitError}
-                  </p>
-                )}
-
-                <div className="flex justify-end gap-2">
-                  <ActionButton
-                    variant="gray"
-                    size="sm"
-                    onClick={() => resetDraft()}
-                  >
-                    취소
-                  </ActionButton>
-                  <ActionButton
-                    type="submit"
-                    variant="fill"
-                    size="sm"
-                    disabled={!content.trim() || submitting}
-                  >
-                    {submitting ? "저장하고 있어요" : "등록하기"}
-                  </ActionButton>
+                    </button>
+                  ))}
                 </div>
-              </fieldset>
+              </div>
+
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="여행 중 다녀온 후기를 남겨 주세요."
+                aria-label="여행 후기 입력"
+                className="field resize-none px-3 py-2.5 text-sm"
+              />
+
+              {/* 사진 첨부 영역 (최대 4장) */}
+              <div className="flex flex-col gap-1.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFilesSelected}
+                  aria-label="리뷰 사진 선택"
+                  className="sr-only"
+                />
+                <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+                  {draftPhotos.length < MAX_REVIEW_PHOTOS && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="pressable flex size-16 shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-line bg-fill/60 text-muted hover:text-foreground focus-ring"
+                    >
+                      <Icon name="camera" size={18} />
+                      <span className="text-[11px] font-medium tabular-nums">
+                        {draftPhotos.length}/{MAX_REVIEW_PHOTOS}
+                      </span>
+                    </button>
+                  )}
+
+                  {draftPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="relative size-16 shrink-0 overflow-hidden rounded-[10px] bg-fill ring-1 ring-line"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={photo.name}
+                        className="size-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDraftPhoto(photo.id)}
+                        aria-label={`${photo.name} 삭제`}
+                        className="absolute top-1 right-1 inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-foreground/75 text-surface hover:bg-foreground focus-ring"
+                      >
+                        <Icon name="close" size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <ActionButton
+                  variant="gray"
+                  size="sm"
+                  onClick={handleCancelWriting}
+                >
+                  취소
+                </ActionButton>
+                <ActionButton
+                  type="submit"
+                  variant="fill"
+                  size="sm"
+                  disabled={!content.trim()}
+                >
+                  등록하기
+                </ActionButton>
+              </div>
             </form>
           )}
 
           {/* 리뷰 목록 */}
-          {summary.reviews.length === 0 ? (
-            <p className="py-2 type-body text-muted">첫 후기를 남겨 보세요.</p>
-          ) : (
-            <ul aria-label="식당 리뷰 목록" className="list-divided">
-              {summary.reviews.map((review) => (
-                <li key={review.id} className="flex flex-col gap-2 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate type-caption font-semibold text-foreground">
+          <ul aria-label="식당 리뷰 목록" className="list-divided">
+            {summary.reviews.map((review) => (
+              <li key={review.id} className="flex flex-col gap-1.5 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
                       {review.authorNickname}
                     </span>
-                    <span className="flex shrink-0 items-center gap-2 type-caption text-muted">
-                      {review.visibility === "private" && (
-                        <span className="inline-flex items-center gap-1">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src="/images/rating/lock-private.svg"
-                            alt=""
-                            width={16}
-                            height={16}
-                          />
-                          나만 보기
-                        </span>
-                      )}
-                      <span className="tabular-nums">{review.visitedAt}</span>
+                    <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-foreground tabular-nums">
+                      <Icon name="star" size={12} className="text-star" />
+                      {review.rating.toFixed(1)}
                     </span>
                   </div>
-                  <RatingStars value={review.rating} size={16} />
-                  <p className="type-body text-foreground">{review.content}</p>
-                  {review.photos && review.photos.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-0.5">
-                      {review.photos.map((photoUrl, idx) => (
-                        <button
-                          key={`${review.id}-photo-${idx}`}
-                          type="button"
-                          onClick={() => setLightboxUrl(photoUrl)}
-                          aria-label={`리뷰 사진 ${idx + 1} 크게 보기`}
-                          className="pressable relative size-20 shrink-0 overflow-hidden rounded-input bg-fill ring-1 ring-line focus-ring"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={photoUrl}
-                            alt=""
-                            className="size-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+                  <span className="text-[11px] text-muted tabular-nums">
+                    {review.visitedAt}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground">
+                  {review.content}
+                </p>
+                {review.photos && review.photos.length > 0 && (
+                  <div className="mt-1 flex gap-2 overflow-x-auto pb-0.5">
+                    {review.photos.map((photoUrl, idx) => (
+                      <button
+                        key={`${review.id}-photo-${idx}`}
+                        type="button"
+                        onClick={() => setLightboxUrl(photoUrl)}
+                        aria-label={`리뷰 사진 ${idx + 1} 크게 보기`}
+                        className="pressable relative size-20 shrink-0 overflow-hidden rounded-[10px] bg-fill ring-1 ring-line focus-ring"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photoUrl}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
 
           {/* 리뷰 사진 크게 보기 오버레이 */}
           {lightboxUrl && (

@@ -5,7 +5,6 @@ export { IconButton } from "./IconButton";
 export { TextField } from "./TextField";
 export { SearchField } from "./SearchField";
 export { Switch, SwitchTrack } from "./Switch";
-export { RatingInput, RatingStars } from "./RatingStars";
 export { Checkbox } from "./Checkbox";
 export { SegmentedControl } from "./SegmentedControl";
 export { FilterChip } from "./FilterChip";

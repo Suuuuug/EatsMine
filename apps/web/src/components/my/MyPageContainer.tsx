@@ -13,10 +13,8 @@ import type { MyPageData } from "@/types/my-page";
 type Load = { key: string; data: MyPageData | null; error: string };
 
 function errorText(error: unknown) {
-  if (error instanceof ApiError && error.status === 401)
-    return "로그인이 만료됐어요. 다시 로그인해 주세요.";
-  if (error instanceof ApiError && error.status === 429)
-    return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
+  if (error instanceof ApiError && error.status === 401) return "로그인이 만료됐어요. 다시 로그인해 주세요.";
+  if (error instanceof ApiError && error.status === 429) return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
   return "기록을 불러오지 못했어요. 다시 시도해 주세요.";
 }
 
@@ -25,68 +23,32 @@ export function MyPageContainer() {
   const state = useSession();
   const [attempt, setAttempt] = useState(0);
   const [load, setLoad] = useState<Load | null>(null);
-  const token =
-    state.status === "ready" ? (state.session?.accessToken ?? null) : null;
-  const key = token
-    ? `${state.status === "ready" ? state.session?.user.id : ""}#${attempt}`
-    : "";
+  const token = state.status === "ready" ? (state.session?.accessToken ?? null) : null;
+  const key = token ? `${state.status === "ready" ? state.session?.user.id : ""}#${attempt}` : "";
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
     fetchMyPage(token)
       .then((data) => !cancelled && setLoad({ key, data, error: "" }))
-      .catch(
-        (e: unknown) =>
-          !cancelled && setLoad({ key, data: null, error: errorText(e) }),
-      );
+      .catch((e: unknown) => !cancelled && setLoad({ key, data: null, error: errorText(e) }));
     return () => {
       cancelled = true;
     };
   }, [token, key]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
-  // 화면을 깜빡이지 않고 기록만 다시 읽는다. 읽지 못하면 이전 화면을 그대로 둔다.
-  const reload = useCallback(() => {
-    if (!token) return;
-    fetchMyPage(token).then(
-      (data) =>
-        setLoad((current) =>
-          current && current.key === key ? { key, data, error: "" } : current,
-        ),
-      () => undefined,
-    );
-  }, [token, key]);
 
   if (state.status === "loading" || (token && load?.key !== key)) {
-    return (
-      <Shell>
-        <p role="status" className="type-body">
-          불러오는 중이에요
-        </p>
-      </Shell>
-    );
+    return <Shell><p role="status" className="type-body">불러오는 중이에요</p></Shell>;
   }
-  if (!token)
-    return <MyPageView data={SAMPLE_MY_PAGE} member={false} token={null} />;
-  if (load?.data)
-    return (
-      <MyPageView
-        data={load.data}
-        member
-        token={token}
-        onReviewDeleted={reload}
-      />
-    );
+  if (!token) return <MyPageView data={SAMPLE_MY_PAGE} member={false} token={null} />;
+  if (load?.data) return <MyPageView data={load.data} member token={token} />;
   return (
     <Shell>
-      <p role="alert" className="type-body">
-        {load?.error}
-      </p>
+      <p role="alert" className="type-body">{load?.error}</p>
       <div className="flex w-full max-w-xs flex-col gap-2">
-        <ActionButton variant="fill" size="md" block onClick={retry}>
-          다시 불러오기
-        </ActionButton>
+        <ActionButton variant="fill" size="md" block onClick={retry}>다시 불러오기</ActionButton>
         <SignOutButton />
       </div>
     </Shell>

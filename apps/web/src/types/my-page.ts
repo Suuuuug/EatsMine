@@ -40,6 +40,16 @@ export type MyReview = {
   created_at: string;
 };
 
+/**
+ * 프로필 단위 공개 범위. ERD에 아직 컬럼이 없다(reviews.visibility, share_links만 있음).
+ * 백엔드 설계 때 profiles 컬럼이나 별도 테이블로 정한다. 기본값은 모두 꺼짐(기획서 §8).
+ */
+export type PrivacySettings = {
+  territoryPublic: boolean;
+  collectionPublic: boolean;
+  newReviewsPublic: boolean;
+};
+
 export type MyPageData = {
   /** true면 화면에 예시 데이터라고 밝힌다. */
   isSample: boolean;
@@ -49,3 +59,8 @@ export type MyPageData = {
   reviews: MyReview[];
 };
 
+export const DEFAULT_PRIVACY: PrivacySettings = {
+  territoryPublic: false,
+  collectionPublic: false,
+  newReviewsPublic: false,
+};
