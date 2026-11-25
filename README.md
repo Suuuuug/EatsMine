@@ -1,53 +1,28 @@
-<div align="center">
-
-<img src="apps/web/public/android-chrome-192x192.png" width="96" height="96" alt="EatsMine 아이콘">
-
 # EatsMine
 
-지역과 제철 음식을 골라 맛집을 찾고, 다녀온 곳을 내 영토와 도감으로 모으는 웹 서비스
+지역과 음식을 탐색하고 나만의 방문 기록을 모으는 서비스입니다.
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js%2016-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React%2019-087EA4?logo=react&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS%204-06B6D4?logo=tailwindcss&logoColor=white)
-![NestJS](https://img.shields.io/badge/NestJS%2012-E0234E?logo=nestjs&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)
-![Drizzle](https://img.shields.io/badge/Drizzle%20ORM-C5F74F?logo=drizzle&logoColor=black)
-![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white)
+## 마이페이지 미리보기
 
-[![EatsMine 열기](https://img.shields.io/badge/Open%20Website-2f7d4f?style=for-the-badge&logo=vercel&logoColor=white)](https://eatsmine.vercel.app/)
+마이페이지의 반응형 화면입니다. 화면의 프로필, 방문 지역, 음식과 후기는 **예시 데이터**입니다. Google 로그인, 실제 기록 조회, 공개 설정과 공유는 아직 연결되지 않았습니다.
 
-</div>
-
-## 화면
-
-<table>
-<tr>
-<th width="33%">지도</th>
-<th width="33%">도감</th>
-<th width="33%">마이페이지</th>
-</tr>
-<tr>
-<td><img src="assets/readme/map-pc-light.png" alt="지도 화면"></td>
-<td><img src="assets/readme/dictionary-pc-light.png" alt="도감 화면"></td>
-<td><img src="assets/readme/my-pc-light.png" alt="마이페이지 화면"></td>
-</tr>
-</table>
-
-## 구성
-
-| 폴더 | 내용 |
+| 비로그인 · PC | 비로그인 · 모바일 |
 | --- | --- |
-| `apps/web` | Next.js 웹 (지도, 도감, 마이페이지) |
-| `apps/api` | NestJS API, Drizzle, Supabase Postgres |
-| `supabase` | DB 마이그레이션 |
+| ![비로그인 PC 마이페이지](assets/screenshots/my-guest-desktop.png) | ![비로그인 모바일 마이페이지](assets/screenshots/my-guest-mobile.png) |
 
-## 실행
+| 로그인 후 예시 · PC | 로그인 후 예시 · 모바일 |
+| --- | --- |
+| ![로그인 후 PC 마이페이지 예시](assets/screenshots/my-member-desktop.png) | ![로그인 후 모바일 마이페이지 예시](assets/screenshots/my-member-mobile.png) |
 
-Node.js 22 이상. `apps/web/.env.example`, `apps/api/.env.example`을 참고해 환경변수를 채웁니다.
+로그인 후 예시 화면은 개발 환경의 `/my/preview`에서 확인할 수 있으며, 운영 빌드에는 노출되지 않습니다. 현재 홈은 기본 화면이고 도감은 아직 연결되지 않아 `/dictionary`로 이동하면 404가 표시됩니다.
+
+## 로컬 실행
+
+Node.js 22 이상이 필요합니다.
 
 ```bash
 npm install
-npm run dev      # 웹 :3000, API :4000
+npm run dev:web
 ```
+
+웹은 `http://localhost:3000`에서 실행됩니다. API도 함께 실행하려면 `npm run dev`를 사용합니다.
