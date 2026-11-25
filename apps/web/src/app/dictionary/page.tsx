@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function DictionaryPage() {
   return (
-    <div className="em-theme season-backdrop min-h-screen pt-16 pb-16 md:pb-0 md:pl-[76px]">
+    <div className="em-theme season-backdrop min-h-screen pb-16 md:pb-0 md:pl-[76px]">
       <ScrollActivity />
       <Sidebar />
       <Suspense fallback={<p className="px-4 py-10">도감을 불러오고 있어요</p>}>

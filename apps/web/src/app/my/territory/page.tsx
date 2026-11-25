@@ -6,7 +6,7 @@ import { TerritoryMap } from "@/components/em/TerritoryMap";
 export const metadata: Metadata = { title: "나의 영토 | EatsMine" };
 
 export default function MyTerritoryPage() {
-  return <div className="em-theme min-h-dvh pt-16 pb-20 md:pb-0 md:pl-[76px]">
+  return <div className="em-theme min-h-dvh pb-20 md:pb-0 md:pl-[76px]">
     <Sidebar />
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 md:px-8">
       <Link href="/my" className="focus-ring inline-flex min-h-11 w-fit items-center rounded-input px-2 font-medium text-accent-dark">마이페이지로</Link>

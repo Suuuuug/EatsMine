@@ -35,15 +35,31 @@ export function Sidebar() {
 
   return (
     <>
-      <header className="glass-bar fixed inset-x-0 top-0 z-40 flex h-14 items-center border-b border-line px-4 md:px-5">
-        <Link href="/" aria-label="EatsMine 지도" className="focus-ring inline-flex min-h-11 items-center rounded-input">
-          <Image src="/images/brand/eatsmine-wordmark-light.svg" alt="EatsMine" className="brand-light" width={108} height={34} priority />
-          <Image src="/images/brand/eatsmine-wordmark.svg" alt="EatsMine" className="brand-dark" width={108} height={34} priority />
+      {/* 데스크톱 왼쪽 고정 사이드바 */}
+      <aside
+        aria-label="주요 메뉴"
+        className="material-sidebar fixed top-0 bottom-0 left-0 z-40 hidden w-[76px] flex-col border-r border-line md:flex"
+      >
+        {/* 제일 상단 EatsMine 아이콘 로고 */}
+        <Link
+          href="/"
+          aria-label="EatsMine 홈"
+          className="pressable flex h-[76px] w-full shrink-0 flex-col items-center justify-center gap-1 border-b border-line focus-ring"
+        >
+          <Image
+            src="/icon.svg"
+            alt=""
+            width={28}
+            height={28}
+            className="shrink-0 rounded-[7px]"
+          />
+          <span className="text-[11px] leading-none font-semibold tracking-tight text-foreground">
+            EatsMine
+          </span>
         </Link>
-      </header>
-      <aside aria-label="주요 메뉴" className="material-sidebar fixed bottom-0 left-0 top-14 z-30 hidden w-[76px] flex-col border-r border-line md:flex">
+
         {/* 지도 · 도감 · 마이페이지 */}
-        <nav className="flex flex-1 flex-col">
+        <nav className="flex flex-1 flex-col gap-1.5 py-2.5">
           {NAV_ITEMS.map((item) => {
             const active = isActivePath(pathname, item.href);
             return (
