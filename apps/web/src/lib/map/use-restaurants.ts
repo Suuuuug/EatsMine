@@ -10,6 +10,17 @@ import { normalizeApiBase } from "@/lib/dictionary/dictionary-api";
  * - merUrl은 validEatplUrl로 검증만 하고 원본 그대로 둔다(쿼리 추가·변형 금지).
  */
 
+export type PlaceReviewSummary = {
+  average: number;
+  count: number;
+  featured: {
+    id: number;
+    nickname: string;
+    rating: number;
+    content: string;
+  } | null;
+};
+
 export type Place = {
   id: string;
   name: string;
@@ -18,6 +29,7 @@ export type Place = {
   rankNational: number | null;
   estimatedHours: { start: string; end: string } | null;
   merUrl: string;
+  reviewSummary?: PlaceReviewSummary | null;
 };
 
 export type RestaurantResult = {

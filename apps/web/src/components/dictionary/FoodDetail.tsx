@@ -9,6 +9,7 @@ import {
   fetchFoodDetail,
   mergeFoodDetailWithApi,
   normalizeApiBase,
+  paginateItems,
   recordOutboundEvent,
   type ApiTerritoryOwner,
 } from "@/lib/dictionary/dictionary-api";
@@ -37,6 +38,10 @@ type Props = {
   territoryWindowDays?: number;
   /** GET /territories 영토 주인 맵 */
   territoryOwners?: Readonly<Record<string, ApiTerritoryOwner>>;
+  /** 로그인 사용자의 프로필 ID */
+  myUserId?: string | null;
+  /** 로그인 사용자의 Bearer 토큰(지역 순위 내 위치 확인용) */
+  accessToken?: string | null;
   onSelectRegion: (code: string | null) => void;
   onBack: () => void;
 };
@@ -48,6 +53,8 @@ export function FoodDetail({
   territoryLive = false,
   territoryWindowDays = 30,
   territoryOwners = {},
+  myUserId = null,
+  accessToken = null,
   onSelectRegion,
   onBack,
 }: Props) {
@@ -271,6 +278,8 @@ export function FoodDetail({
                       territoryLive={territoryLive}
                       windowDays={territoryWindowDays}
                       liveOwner={territoryOwners[selected] ?? null}
+                      myUserId={myUserId}
+                      accessToken={accessToken}
                     />
                     <RegionRestaurants
                       regionCode={selected}
@@ -288,6 +297,8 @@ export function FoodDetail({
   );
 }
 
+const RESTAURANTS_PER_PAGE = 5;
+
 function RegionRestaurants({
   regionCode,
   foodId,
@@ -298,6 +309,11 @@ function RegionRestaurants({
   foodName: string;
 }) {
   const [attempt, setAttempt] = useState(0);
+  const [pageState, setPageState] = useState<{ key: string; page: number }>({
+    key: "",
+    page: 1,
+  });
+  const listTopRef = useRef<HTMLDivElement>(null);
   const { result, loading, error } = useRestaurants(regionCode, foodId, attempt);
 
   if (!apiBase) {
@@ -338,6 +354,23 @@ function RegionRestaurants({
     );
   }
 
+  const pageKey = `${regionCode}:${foodId ?? ""}:${result.items.length}`;
+  const requestedPage = pageState.key === pageKey ? pageState.page : 1;
+  const paged = paginateItems(
+    result.items,
+    requestedPage,
+    RESTAURANTS_PER_PAGE,
+  );
+
+  const goToPage = (nextPage: number) => {
+    setPageState({ key: pageKey, page: nextPage });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    listTopRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    });
+  };
+
   const matchHint =
     result.matchedBy === "keyword"
       ? `${foodName} 관련 이름으로 찾은 식당이에요.`
@@ -346,12 +379,17 @@ function RegionRestaurants({
         : null;
 
   return (
-    <div>
-      {matchHint && (
-        <p className="pt-3 pb-1 type-caption text-muted">{matchHint}</p>
-      )}
+    <div ref={listTopRef}>
+      <div className="flex items-baseline justify-between gap-2 pt-3 pb-1">
+        <p className="min-w-0 truncate type-caption text-muted">
+          {matchHint ?? "추천 식당 목록이에요."}
+        </p>
+        <span className="shrink-0 type-caption text-muted tabular-nums">
+          총 {result.items.length}곳
+        </span>
+      </div>
       <ul className="m-0 list-none p-0">
-        {result.items.map((p) => (
+        {paged.items.map((p) => (
           <li key={p.id}>
             <RestaurantRow
               name={p.name}
@@ -359,6 +397,7 @@ function RegionRestaurants({
               rankNational={p.rankNational}
               estimatedHours={p.estimatedHours}
               merUrl={p.merUrl}
+              reviewSummary={p.reviewSummary ?? null}
               onOutboundClick={() =>
                 recordOutboundEvent(apiBase, {
                   restaurantKey: p.id,
@@ -370,6 +409,55 @@ function RegionRestaurants({
           </li>
         ))}
       </ul>
+
+      {paged.totalPages > 1 && (
+        <nav
+          aria-label="식당 목록 페이지 이동"
+          className="flex items-center justify-center gap-1 pt-3"
+        >
+          <button
+            type="button"
+            disabled={paged.page <= 1}
+            aria-label="이전 페이지"
+            onClick={() => goToPage(paged.page - 1)}
+            className="pressable inline-flex size-9 items-center justify-center rounded-button text-foreground hover:bg-fill focus-ring disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <Icon name="back" size={16} />
+          </button>
+
+          {paged.pageNumbers.map((num) => {
+            const active = num === paged.page;
+            return (
+              <button
+                key={num}
+                type="button"
+                aria-current={active ? "page" : undefined}
+                aria-label={`${num}페이지`}
+                onClick={() => goToPage(num)}
+                className={
+                  "pressable inline-flex size-9 items-center justify-center rounded-button text-xs font-semibold tabular-nums transition-colors focus-ring " +
+                  (active
+                    ? "bg-accent text-on-accent"
+                    : "text-muted hover:bg-fill hover:text-foreground")
+                }
+              >
+                {num}
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            disabled={paged.page >= paged.totalPages}
+            aria-label="다음 페이지"
+            onClick={() => goToPage(paged.page + 1)}
+            className="pressable inline-flex size-9 items-center justify-center rounded-button text-foreground hover:bg-fill focus-ring disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <Icon name="chevron-right" size={16} />
+          </button>
+        </nav>
+      )}
+
       <p className="py-3 type-caption text-muted">
         {result.source || "eat.pl 잇플 · BC카드 결제 데이터 기반"}
       </p>

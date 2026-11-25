@@ -4,6 +4,8 @@ import {
   mergeFoodDetailWithApi,
   mergeFoodsWithApi,
   normalizeApiBase,
+  normalizeRegionRanking,
+  paginateItems,
   resolveCollectedSlugs,
   toTerritoryOwnerMap,
   validHttpsUrl,
@@ -119,4 +121,108 @@ test("GET /territories 응답과 /me/collection 수집 기록을 정확히 매�
   assert.equal(collected.has("yellowtail-sashimi"), false);
   assert.equal(normalizeApiBase("https://eatsmine-api.vercel.app///"), "https://eatsmine-api.vercel.app");
   assert.equal(normalizeApiBase("   "), null);
+});
+
+test("식당 목록 페이지네이션이 페이지 범위와 5개 페이지 번호 창을 안전하게 계산한다", () => {
+  const list = Array.from({ length: 37 }, (_, i) => i + 1);
+  const first = paginateItems(list, 0, 5);
+  assert.equal(first.page, 1);
+  assert.equal(first.totalPages, 8);
+  assert.deepEqual(first.items, [1, 2, 3, 4, 5]);
+  assert.deepEqual(first.pageNumbers, [1, 2, 3, 4, 5]);
+
+  const mid = paginateItems(list, 5, 5);
+  assert.equal(mid.page, 5);
+  assert.deepEqual(mid.items, [21, 22, 23, 24, 25]);
+  assert.deepEqual(mid.pageNumbers, [3, 4, 5, 6, 7]);
+
+  const last = paginateItems(list, 99, 5);
+  assert.equal(last.page, 8);
+  assert.deepEqual(last.items, [36, 37]);
+  assert.deepEqual(last.pageNumbers, [4, 5, 6, 7, 8]);
+});
+
+test("GET /territories가 3위까지 확장되어도 top 배열과 다중 행 형식을 모두 수용한다", () => {
+  const withTop = toTerritoryOwnerMap({
+    windowDays: 30,
+    items: [
+      {
+        regionCode: "48220",
+        ownerId: "u1",
+        ownerNickname: "통영왕",
+        reviewCount: 9,
+        top: [
+          { ownerId: "u2", nickname: "굴러버", reviewCount: 6 },
+          { ownerId: "u3", nickname: "바다여행", reviewCount: 3 },
+        ],
+      },
+    ],
+  });
+  assert.equal(withTop.ownersByRegion["48220"].top?.length, 2);
+  assert.equal(withTop.ownersByRegion["48220"].top?.[0].nickname, "굴러버");
+
+  const multiRows = toTerritoryOwnerMap({
+    windowDays: 30,
+    items: [
+      { regionCode: "50130", ownerNickname: "서귀포2위", reviewCount: 4 },
+      { regionCode: "50130", ownerNickname: "서귀포1위", reviewCount: 8 },
+      { regionCode: "50130", ownerNickname: "서귀포3위", reviewCount: 2 },
+      { regionCode: "50130", ownerNickname: "서귀포4위", reviewCount: 1 },
+    ],
+  });
+  assert.equal(multiRows.ownersByRegion["50130"].ownerNickname, "서귀포1위");
+  assert.deepEqual(
+    multiRows.ownersByRegion["50130"].top?.map((c) => c.nickname),
+    ["서귀포2위", "서귀포3위"],
+  );
+});
+
+test("GET /territories/:regionCode/ranking 응답에서 Top 3와 내 순위·1위까지 남은 개수를 계산한다", () => {
+  const mk = (position, nickname, reviewCount, isMe = false) => ({
+    position,
+    nickname,
+    rank: "local",
+    rankLabel: "동네 미식가",
+    avatarUrl: null,
+    reviewCount,
+    isMe,
+  });
+
+  // 3위 밖(5위)에 있는 로그인 사용자
+  const outOfTop3 = normalizeRegionRanking({
+    region: { code: "48220", fullName: "경상남도 통영시" },
+    windowDays: 30,
+    items: [
+      mk(2, "둘째", 7),
+      mk(1, "통영왕", 10),
+      mk(4, "넷째", 3),
+      mk(3, "셋째", 5),
+    ],
+    me: mk(5, "나", 2, true),
+  });
+  assert.equal(outOfTop3.windowDays, 30);
+  assert.deepEqual(
+    outOfTop3.items.map((i) => `${i.position}:${i.nickname}`),
+    ["1:통영왕", "2:둘째", "3:셋째"],
+  );
+  assert.deepEqual(outOfTop3.standing, { rank: 5, toFirst: 9 });
+
+  // 내가 이미 1위인 경우
+  const first = normalizeRegionRanking({
+    region: { code: "48220", fullName: "경상남도 통영시" },
+    windowDays: 30,
+    items: [mk(1, "나", 8, true), mk(2, "둘째", 4)],
+    me: mk(1, "나", 8, true),
+  });
+  assert.deepEqual(first.standing, { rank: 1, toFirst: 0 });
+
+  // 비로그인(me: null) 및 빈 지역
+  const guest = normalizeRegionRanking({
+    region: { code: "48220", fullName: "경상남도 통영시" },
+    windowDays: 30,
+    items: [],
+    me: null,
+  });
+  assert.equal(guest.items.length, 0);
+  assert.equal(guest.standing, null);
 });

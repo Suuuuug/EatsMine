@@ -22,15 +22,57 @@ export type ApiFoodDetailResponse = ApiFoodListItem & {
   genres: string[];
 };
 
+export type ApiTerritoryContender = {
+  ownerId?: string;
+  nickname?: string;
+  ownerNickname?: string;
+  reviewCount: number;
+};
+
 export type ApiTerritoryOwner = {
   regionCode: string;
+  ownerId?: string;
   ownerNickname: string;
   reviewCount: number;
+  /** 백엔드가 추후 2·3위까지 확장해 내려줄 경우 사용 */
+  top?: ApiTerritoryContender[];
 };
 
 export type ApiTerritoriesResponse = {
   windowDays: number;
   items: ApiTerritoryOwner[];
+};
+
+export type ApiRankingEntry = {
+  position: number;
+  nickname: string;
+  rank: string;
+  rankLabel: string;
+  avatarUrl: string | null;
+  reviewCount: number;
+  isMe: boolean;
+};
+
+export type ApiRegionRankingResponse = {
+  region: { code: string; fullName: string };
+  windowDays: number;
+  items: ApiRankingEntry[];
+  me: ApiRankingEntry | null;
+};
+
+export type NormalizedRegionRanking = {
+  windowDays: number;
+  items: ApiRankingEntry[];
+  me: ApiRankingEntry | null;
+  standing: { rank: number; toFirst: number } | null;
+};
+
+export type MyDictionaryState = {
+  userId: string | null;
+  collectedFoodIds: number[];
+  collectedFoodNames: string[];
+  reviewCount: number;
+  nickname: string | null;
 };
 
 export type ApiMyCollectionItem = {
@@ -52,18 +94,8 @@ export type ApiMyProfileResponse = {
   rank: string;
   rankLabel: string;
   avatarUrl: string | null;
+  reviewCount?: number;
   createdAt: string;
-};
-
-export type ApiMyReviewsResponse = {
-  items: { id: string }[];
-};
-
-export type MyDictionaryState = {
-  collectedFoodIds: number[];
-  collectedFoodNames: string[];
-  reviewCount: number;
-  nickname: string | null;
 };
 
 const ILLUSTRATIONS: Readonly<Record<string, string>> = FOOD_ILLUSTRATIONS;
@@ -172,7 +204,25 @@ export function mergeFoodDetailWithApi(
   };
 }
 
-/** GET /territories 응답을 regionCode → 영토 주인 맵으로 변환한다. */
+function normalizeContender(
+  c: ApiTerritoryContender,
+  fallbackId: string,
+): { ownerId: string; nickname: string; reviewCount: number } | null {
+  const nickname = (c.nickname ?? c.ownerNickname ?? "").trim();
+  if (!nickname || typeof c.reviewCount !== "number" || c.reviewCount <= 0) {
+    return null;
+  }
+  return {
+    ownerId: c.ownerId?.trim() || fallbackId,
+    nickname,
+    reviewCount: c.reviewCount,
+  };
+}
+
+/**
+ * GET /territories 응답을 regionCode → 영토 주인(+선택적 2·3위) 맵으로 변환한다.
+ * - 현재 백엔드(지역당 1명)와 향후 3위 확장(`top` 배열 또는 같은 regionCode 다중 행)을 모두 호환한다.
+ */
 export function toTerritoryOwnerMap(
   response: ApiTerritoriesResponse,
 ): { windowDays: number; ownersByRegion: Record<string, ApiTerritoryOwner> } {
@@ -181,17 +231,77 @@ export function toTerritoryOwnerMap(
       ? response.windowDays
       : 30;
   const ownersByRegion: Record<string, ApiTerritoryOwner> = {};
-  if (Array.isArray(response.items)) {
-    for (const item of response.items) {
-      if (
-        item &&
-        /^\d{5}$/.test(item.regionCode) &&
-        typeof item.ownerNickname === "string" &&
-        item.ownerNickname.trim() &&
-        typeof item.reviewCount === "number" &&
-        item.reviewCount > 0
-      ) {
-        ownersByRegion[item.regionCode] = item;
+  if (!Array.isArray(response.items)) {
+    return { windowDays, ownersByRegion };
+  }
+
+  for (const item of response.items) {
+    if (
+      !item ||
+      !/^\d{5}$/.test(item.regionCode) ||
+      typeof item.ownerNickname !== "string" ||
+      !item.ownerNickname.trim() ||
+      typeof item.reviewCount !== "number" ||
+      item.reviewCount <= 0
+    ) {
+      continue;
+    }
+
+    const existing = ownersByRegion[item.regionCode];
+    if (!existing) {
+      const top = Array.isArray(item.top)
+        ? item.top
+            .map((c, idx) =>
+              normalizeContender(c, `${item.regionCode}-rank-${idx + 2}`),
+            )
+            .filter(
+              (c): c is { ownerId: string; nickname: string; reviewCount: number } =>
+                c !== null,
+            )
+            .slice(0, 2)
+        : undefined;
+
+      ownersByRegion[item.regionCode] = {
+        regionCode: item.regionCode,
+        ...(item.ownerId ? { ownerId: item.ownerId } : {}),
+        ownerNickname: item.ownerNickname.trim(),
+        reviewCount: item.reviewCount,
+        ...(top && top.length > 0 ? { top } : {}),
+      };
+    } else {
+      // 같은 regionCode로 2·3위 행이 여러 개 내려오는 백엔드 확장 형태도 자동 병합(최대 Top 3)
+      const combined = [
+        {
+          ownerId: existing.ownerId || `${item.regionCode}-rank-1`,
+          nickname: existing.ownerNickname,
+          reviewCount: existing.reviewCount,
+        },
+        ...(existing.top ?? []).map((c, idx) => ({
+          ownerId: c.ownerId || `${item.regionCode}-rank-${idx + 2}`,
+          nickname: (c.nickname ?? c.ownerNickname ?? "").trim(),
+          reviewCount: c.reviewCount,
+        })),
+        {
+          ownerId:
+            item.ownerId ||
+            `${item.regionCode}-rank-${(existing.top?.length ?? 0) + 2}`,
+          nickname: item.ownerNickname.trim(),
+          reviewCount: item.reviewCount,
+        },
+      ]
+        .filter((c) => Boolean(c.nickname))
+        .sort((a, b) => b.reviewCount - a.reviewCount)
+        .slice(0, 3);
+
+      const [first, ...rest] = combined;
+      if (first) {
+        ownersByRegion[item.regionCode] = {
+          regionCode: item.regionCode,
+          ownerId: first.ownerId,
+          ownerNickname: first.nickname,
+          reviewCount: first.reviewCount,
+          ...(rest.length > 0 ? { top: rest } : {}),
+        };
       }
     }
   }
@@ -267,7 +377,99 @@ export async function fetchTerritories(
 }
 
 /**
- * 로그인된 사용자의 내 도감 수집 현황·리뷰 수·프로필을 병렬 조회한다.
+ * GET /territories/:regionCode/ranking 응답을 도감 "이 지역 순위" 표시용으로 정규화한다.
+ * - 상위 topLimit명(기본 3명)만 추리고, 로그인 사용자가 3위 밖이어도 내 순위(me)와 1위까지 남은 리뷰 수를 계산한다.
+ */
+export function normalizeRegionRanking(
+  response: ApiRegionRankingResponse,
+  topLimit = 3,
+): NormalizedRegionRanking {
+  const windowDays =
+    typeof response.windowDays === "number" && response.windowDays > 0
+      ? response.windowDays
+      : 30;
+  const safeLimit = Math.max(1, Math.floor(topLimit));
+
+  const normalizeEntry = (entry: ApiRankingEntry | null | undefined): ApiRankingEntry | null => {
+    if (
+      !entry ||
+      typeof entry.position !== "number" ||
+      !Number.isInteger(entry.position) ||
+      entry.position < 1 ||
+      typeof entry.nickname !== "string" ||
+      !entry.nickname.trim() ||
+      typeof entry.reviewCount !== "number" ||
+      entry.reviewCount <= 0
+    ) {
+      return null;
+    }
+    return {
+      position: entry.position,
+      nickname: entry.nickname.trim(),
+      rank: typeof entry.rank === "string" ? entry.rank : "rookie",
+      rankLabel: typeof entry.rankLabel === "string" ? entry.rankLabel : "",
+      avatarUrl: validHttpsUrl(entry.avatarUrl),
+      reviewCount: entry.reviewCount,
+      isMe: Boolean(entry.isMe),
+    };
+  };
+
+  const validItems = Array.isArray(response.items)
+    ? response.items
+        .map((item) => normalizeEntry(item))
+        .filter((item): item is ApiRankingEntry => item !== null)
+        .sort((a, b) => a.position - b.position)
+    : [];
+
+  const items = validItems.slice(0, safeLimit);
+  const me =
+    normalizeEntry(response.me) ??
+    validItems.find((item) => item.isMe) ??
+    null;
+
+  let standing: { rank: number; toFirst: number } | null = null;
+  if (me && validItems.length > 0) {
+    if (me.position === 1) {
+      standing = { rank: 1, toFirst: 0 };
+    } else {
+      standing = {
+        rank: me.position,
+        toFirst: Math.max(1, validItems[0].reviewCount - me.reviewCount + 1),
+      };
+    }
+  }
+
+  return { windowDays, items, me, standing };
+}
+
+export async function fetchRegionRanking(
+  apiBase: string,
+  regionCode: string,
+  accessToken: string | null = null,
+  signal?: AbortSignal,
+): Promise<NormalizedRegionRanking> {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const response = await fetch(
+    `${apiBase}/territories/${encodeURIComponent(regionCode)}/ranking`,
+    {
+      headers,
+      signal,
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`GET /territories/${regionCode}/ranking failed (${response.status})`);
+  }
+  const data = (await response.json()) as ApiRegionRankingResponse;
+  return normalizeRegionRanking(data, 3);
+}
+
+/**
+ * 로그인된 사용자의 내 도감 수집 현황·총 리뷰 수·프로필을 병렬 조회한다.
+ * GET /me 응답의 reviewCount를 사용해 /me/reviews 추가 호출 없이 한 번에 동기화한다.
  * 토큰 만료(401) 시 null을 반환해 비로그인 상태로 안전하게 폴백한다.
  */
 export async function fetchMyDictionaryState(
@@ -276,37 +478,35 @@ export async function fetchMyDictionaryState(
   signal?: AbortSignal,
 ): Promise<MyDictionaryState | null> {
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const [profileRes, collectionRes, reviewsRes] = await Promise.all([
+  const [profileRes, collectionRes] = await Promise.all([
     fetch(`${apiBase}/me`, { headers, signal, cache: "no-store" }),
     fetch(`${apiBase}/me/collection`, { headers, signal, cache: "no-store" }),
-    fetch(`${apiBase}/me/reviews`, { headers, signal, cache: "no-store" }),
   ]);
 
-  if (
-    profileRes.status === 401 ||
-    collectionRes.status === 401 ||
-    reviewsRes.status === 401
-  ) {
+  if (profileRes.status === 401 || collectionRes.status === 401) {
     return null;
   }
-  if (!profileRes.ok || !collectionRes.ok || !reviewsRes.ok) {
+  if (!profileRes.ok || !collectionRes.ok) {
     throw new Error("내 도감 정보를 불러오지 못했어요.");
   }
 
-  const [profile, collection, reviews] = (await Promise.all([
+  const [profile, collection] = (await Promise.all([
     profileRes.json(),
     collectionRes.json(),
-    reviewsRes.json(),
-  ])) as [ApiMyProfileResponse, ApiMyCollectionResponse, ApiMyReviewsResponse];
+  ])) as [ApiMyProfileResponse, ApiMyCollectionResponse];
 
   return {
+    userId: profile.id ?? null,
     collectedFoodIds: Array.isArray(collection.items)
       ? collection.items.map((item) => item.foodId)
       : [],
     collectedFoodNames: Array.isArray(collection.items)
       ? collection.items.map((item) => item.foodName)
       : [],
-    reviewCount: Array.isArray(reviews.items) ? reviews.items.length : 0,
+    reviewCount:
+      typeof profile.reviewCount === "number" && Number.isFinite(profile.reviewCount)
+        ? Math.max(0, profile.reviewCount)
+        : 0,
     nickname: profile.nickname ?? null,
   };
 }
@@ -365,4 +565,39 @@ export function recordOutboundEvent(
   } catch {
     // 클릭 기록 실패는 무시하고 링크 이동 유지
   }
+}
+
+/** 목록을 pageSize 단위로 나누고 좁은 컬럼에 맞는 최대 5개 페이지 번호 창을 계산한다. */
+export function paginateItems<T>(
+  items: readonly T[],
+  requestedPage: number,
+  pageSize: number,
+): {
+  items: T[];
+  page: number;
+  totalPages: number;
+  pageNumbers: number[];
+} {
+  const safeSize = Math.max(1, Math.floor(pageSize));
+  const totalPages = Math.max(1, Math.ceil(items.length / safeSize));
+  const page = Math.min(Math.max(1, Math.floor(requestedPage)), totalPages);
+  const start = (page - 1) * safeSize;
+  const sliced = items.slice(start, start + safeSize);
+
+  const windowSize = 5;
+  let winStart = Math.max(1, page - Math.floor(windowSize / 2));
+  const winEnd = Math.min(totalPages, winStart + windowSize - 1);
+  winStart = Math.max(1, winEnd - windowSize + 1);
+
+  const pageNumbers: number[] = [];
+  for (let p = winStart; p <= winEnd; p += 1) {
+    pageNumbers.push(p);
+  }
+
+  return {
+    items: sliced,
+    page,
+    totalPages,
+    pageNumbers,
+  };
 }

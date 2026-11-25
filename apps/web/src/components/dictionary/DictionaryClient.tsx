@@ -7,7 +7,7 @@ import { RankSection } from "./RankSection";
 import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
-import { getAccessToken } from "@/lib/auth/session";
+import { useSession } from "@/lib/auth/session";
 import {
   fetchFoods,
   fetchMyDictionaryState,
@@ -264,6 +264,12 @@ export function DictionaryClient() {
   }, [collectionParam]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const sessionState = useSession();
+  const accessToken =
+    sessionState.status === "ready"
+      ? (sessionState.session?.accessToken ?? null)
+      : null;
+
   // 백엔드 GET /foods 목록 동기화 (초기 렌더는 스냅샷으로 즉시 표시하고 응답 시 숫자 apiId·최신 DB 데이터 반영)
   const [foods, setFoods] = useState<SeasonalFoodItem[]>(SEASONAL_FOODS);
   const [foodsSyncError, setFoodsSyncError] = useState(false);
@@ -273,7 +279,12 @@ export function DictionaryClient() {
     windowDays: number;
     ownersByRegion: Record<string, ApiTerritoryOwner>;
   }>({ live: false, windowDays: 30, ownersByRegion: {} });
-  const [myState, setMyState] = useState<MyDictionaryState | null>(null);
+  const [myStateLoad, setMyStateLoad] = useState<{
+    token: string;
+    data: MyDictionaryState;
+  } | null>(null);
+  const myState =
+    accessToken && myStateLoad?.token === accessToken ? myStateLoad.data : null;
 
   useEffect(() => {
     if (!apiBase) return;
@@ -307,21 +318,19 @@ export function DictionaryClient() {
     return () => controller.abort();
   }, []);
 
-  // 로그인 세션 토큰이 있을 때만 인증 API(GET /me, /me/collection, /me/reviews) 조회
+  // 로그인 세션 토큰이 있을 때만 인증 API(GET /me, /me/collection) 조회
   useEffect(() => {
-    if (!apiBase) return;
-    const accessToken = getAccessToken();
-    if (!accessToken) return;
+    if (!apiBase || !accessToken) return;
     const controller = new AbortController();
     fetchMyDictionaryState(apiBase, accessToken, controller.signal)
       .then((state) => {
-        if (state) setMyState(state);
+        if (state) setMyStateLoad({ token: accessToken, data: state });
       })
       .catch(() => {
         // 인증 조회 실패 시 예시 폴백 유지
       });
     return () => controller.abort();
-  }, []);
+  }, [accessToken]);
 
   // 음식·지역 선택은 URL이 정본이다. pushState로 바꾸면 Next가 useSearchParams에 반영하고, 뒤로 가기·새로고침도 같은 경로로 복원된다.
   const knownSlugs = useMemo(() => new Set(foods.map((f) => f.id)), [foods]);
@@ -475,6 +484,8 @@ export function DictionaryClient() {
           territoryLive={territoryState.live}
           territoryWindowDays={territoryState.windowDays}
           territoryOwners={territoryState.ownersByRegion}
+          myUserId={myState?.userId ?? null}
+          accessToken={accessToken}
           onSelectRegion={(code) => writeSelection(selectedFood.id, code)}
           onBack={clearFood}
         />
