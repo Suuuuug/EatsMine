@@ -11,8 +11,13 @@ import {
 import request from 'supertest';
 import { HttpExceptionFilter } from '../common/http-exception.filter.js';
 import type { AuthUser } from './auth-user.js';
-import { Auth, CurrentUser } from './auth.decorators.js';
-import { AuthGuard } from './auth.guard.js';
+import {
+  Auth,
+  CurrentUser,
+  OptionalAuth,
+  OptionalUser,
+} from './auth.decorators.js';
+import { AuthGuard, OptionalAuthGuard } from './auth.guard.js';
 import { SUPABASE_JWKS, SupabaseJwtVerifier } from './supabase-jwt.verifier.js';
 
 const SUPABASE_URL = 'https://test-ref.supabase.co';
@@ -30,6 +35,12 @@ class TestController {
   @Get('public')
   open() {
     return { ok: true };
+  }
+
+  @Get('optional')
+  @OptionalAuth()
+  optional(@OptionalUser() user: AuthUser | null) {
+    return { userId: user?.id ?? null };
   }
 }
 
@@ -67,6 +78,7 @@ describe('Supabase 토큰 인증', () => {
       providers: [
         SupabaseJwtVerifier,
         AuthGuard,
+        OptionalAuthGuard,
         { provide: SUPABASE_JWKS, useValue: jwks },
         { provide: ConfigService, useValue: { get: () => SUPABASE_URL } },
       ],
@@ -129,6 +141,21 @@ describe('Supabase 토큰 인증', () => {
       .get('/private')
       .set('authorization', `Basic ${token}`)
       .expect(401);
+  });
+
+  it('@OptionalAuth(): 맞는 토큰은 사용자, 없거나 틀린 토큰은 비로그인으로 통과', async () => {
+    const optional = (token?: string) => {
+      const req = request(app.getHttpServer()).get('/optional');
+      return token ? req.set('authorization', `Bearer ${token}`) : req;
+    };
+    expect((await optional(await sign({})).expect(200)).body).toEqual({
+      userId: USER_ID,
+    });
+    expect((await optional().expect(200)).body).toEqual({ userId: null });
+    const expired = await sign({}, { exp: '-5m' });
+    expect((await optional(expired).expect(200)).body).toEqual({
+      userId: null,
+    });
   });
 
   it('@Auth()가 없는 라우트는 토큰 없이 열린다', async () => {

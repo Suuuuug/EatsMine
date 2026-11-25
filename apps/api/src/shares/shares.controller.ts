@@ -31,6 +31,12 @@ const shareIdSchema = z
 export class MeSharesController {
   constructor(private readonly shares: SharesService) {}
 
+  /** GET /me/shares — 영토·도감 공유가 켜져 있는지 (링크 있으면 { id, type, createdAt }, 없으면 null) */
+  @Get()
+  list(@CurrentUser() user: AuthUser) {
+    return this.shares.listMine(user.id);
+  }
+
   /** POST /me/shares { type } — 공유 링크 만들기 (있으면 같은 링크). 프론트는 /share/{id} 주소를 만든다 */
   @Post()
   @RateLimit(10, 60_000)
