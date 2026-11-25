@@ -10,7 +10,11 @@ import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { TerritoriesController } from '../territories/territories.controller.js';
 import { TerritoriesService } from '../territories/territories.service.js';
 import { MeSharesController, SharesController } from './shares.controller.js';
-import { generateShareId, SharesService } from './shares.service.js';
+import {
+  generateShareId,
+  SharesService,
+  toMySharesDto,
+} from './shares.service.js';
 
 const user = {
   id: '6f1c2a3e-1111-4222-8333-944455556666',
@@ -20,7 +24,12 @@ const user = {
 
 describe('공유 링크·공유 영토 API', () => {
   let app: INestApplication;
-  const shares = { create: vi.fn(), remove: vi.fn(), view: vi.fn() };
+  const shares = {
+    create: vi.fn(),
+    remove: vi.fn(),
+    view: vi.fn(),
+    listMine: vi.fn(),
+  };
   const territories = { owners: vi.fn() };
 
   beforeEach(async () => {
@@ -78,6 +87,17 @@ describe('공유 링크·공유 영토 API', () => {
     },
   );
 
+  it('GET /me/shares: 종류별 공유 상태', async () => {
+    const body = {
+      territory: { id: 'k3Xz9aQ2mP', type: 'territory', createdAt: 'x' },
+      collection: null,
+    };
+    shares.listMine.mockResolvedValue(body);
+    const res = await request(server()).get('/me/shares').expect(200);
+    expect(shares.listMine).toHaveBeenCalledWith(user.id);
+    expect(res.body).toEqual(body);
+  });
+
   it('DELETE /me/shares/:type → 204', async () => {
     await request(server()).delete('/me/shares/collection').expect(204);
     expect(shares.remove).toHaveBeenCalledWith(user.id, 'collection');
@@ -115,6 +135,28 @@ describe('공유 링크·공유 영토 API', () => {
     expect(res.body).toEqual({
       windowDays: 30,
       items: [{ regionCode: '11140', ownerNickname: 'A', reviewCount: 3 }],
+    });
+  });
+});
+
+describe('toMySharesDto', () => {
+  it('없는 종류는 null, 있는 종류는 링크', () => {
+    expect(toMySharesDto([])).toEqual({ territory: null, collection: null });
+    expect(
+      toMySharesDto([
+        {
+          id: 'AbCdE12345',
+          shareType: 'collection',
+          createdAt: new Date('2026-11-25T00:00:00Z'),
+        },
+      ]),
+    ).toEqual({
+      territory: null,
+      collection: {
+        id: 'AbCdE12345',
+        type: 'collection',
+        createdAt: '2026-11-25T00:00:00.000Z',
+      },
     });
   });
 });
