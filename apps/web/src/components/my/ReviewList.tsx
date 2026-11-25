@@ -6,6 +6,7 @@ import { MySection } from "@/components/my/MySection";
 import { ReviewEditSheet } from "@/components/my/ReviewEditSheet";
 import { GlassCard } from "@/components/ui";
 import { formatMonthDay } from "@/lib/my-page/format";
+import { trackOutbound } from "@/lib/map/outbound";
 import type { MyReview } from "@/types/my-page";
 
 const visibilityLabel = { private: "나만 보기", public: "공개" } as const;
@@ -58,6 +59,7 @@ export function ReviewList({
                           href={review.mer_url}
                           target="_blank"
                           rel="noopener"
+                          onClick={() => review.mer_url && trackOutbound(review.mer_url, "list")}
                           className="pressable inline-flex min-h-11 items-center"
                         >
                           {review.restaurant_name}

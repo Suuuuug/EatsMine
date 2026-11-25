@@ -196,7 +196,7 @@ function RegionRestaurants({ regionCode }: { regionCode: string }) {
       <ul className="m-0 list-none p-0">
         {result.items.map((p) => (
           <li key={p.id}>
-            <RestaurantRow name={p.name} address={p.address} rankNational={p.rankNational} estimatedHours={p.estimatedHours} merUrl={p.merUrl} />
+            <RestaurantRow name={p.name} address={p.address} rankNational={p.rankNational} estimatedHours={p.estimatedHours} merUrl={p.merUrl} regionCode={regionCode} />
           </li>
         ))}
       </ul>

@@ -12,6 +12,7 @@ import { ReviewFormFields } from "@/components/review/ReviewFormFields";
 import { getSamplePlaceReviews, type PlaceReviewItem } from "@/data/map-mock";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
+import { trackOutbound } from "@/lib/map/outbound";
 import {
   ApiError,
   createReview,
@@ -320,6 +321,7 @@ export function RestaurantReviewSheet({
                 href={safeEatplUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackOutbound(safeEatplUrl, "list")}
                 className={actionButtonClass({
                   variant: writing ? "gray" : "tinted",
                   size: "md",

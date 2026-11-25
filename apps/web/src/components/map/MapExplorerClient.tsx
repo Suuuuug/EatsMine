@@ -29,6 +29,7 @@ import {
   pagePlaces,
   toCardReview,
 } from "@/lib/map/map-data";
+import { rememberSourceChannel, trackOutbound } from "@/lib/map/outbound";
 import {
   useMapRestaurants,
   useTerritoryOwners,
@@ -160,6 +161,11 @@ export function MapExplorerClient({
   );
   const apiBase = isPreview ? null : (process.env.NEXT_PUBLIC_API_URL ?? null);
   const [searchAttempt, setSearchAttempt] = useState(0);
+
+  // 잇플 이동 기록용: 지역을 고르면 주소가 바뀌어 utm이 사라지므로 첫 진입 때 유입 채널을 남겨 둔다.
+  useEffect(() => {
+    rememberSourceChannel();
+  }, []);
 
   // 프론트 내장 전국 16개 시·도 + 230개 시·군·구 목록 (직관적 목록 탐색 + 0ms 자동완성 검색용)
   const [allProvinces, setAllProvinces] = useState<
@@ -1182,6 +1188,11 @@ export function MapExplorerClient({
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setSelectedPlaceId(place.id);
+                                trackOutbound(
+                                  safeEatplUrl,
+                                  "list",
+                                  selectedRegion?.code,
+                                );
                               }}
                               className={`${thumbClass} pressable`}
                             >
@@ -1205,6 +1216,11 @@ export function MapExplorerClient({
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     setSelectedPlaceId(place.id);
+                                    trackOutbound(
+                                      safeEatplUrl,
+                                      "list",
+                                      selectedRegion?.code,
+                                    );
                                   }}
                                   className="rounded-input hover:underline underline-offset-4 focus-ring"
                                 >
