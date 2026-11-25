@@ -708,7 +708,7 @@ export function MapExplorerClient({
   }, [showAllGenres]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-5 pt-5 pb-8 md:px-8 lg:grid lg:h-dvh lg:grid-cols-[minmax(320px,388px)_minmax(0,1fr)] lg:gap-7 lg:overflow-hidden lg:py-6">
+    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-5 pt-5 pb-8 md:px-8 lg:grid lg:h-dvh lg:grid-cols-[minmax(320px,388px)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-7 lg:overflow-hidden lg:py-6">
       {/* 왼쪽: EatsMine 에디토리얼 탐색·식당 목록 컬럼 */}
       <aside
         id="map-list-panel"
@@ -1015,7 +1015,8 @@ export function MapExplorerClient({
         </div>
 
         {/* 지역 드릴다운 목록(미선택 시) 또는 식당 목록 스크롤 영역 */}
-        <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+        {/* relative: 카드 안 sr-only(absolute) 글자가 문서 기준으로 빠져나가 페이지 높이를 늘리지 않게 이 영역 안에 가둔다 */}
+        <div className="relative min-h-0 flex-1 overflow-y-auto pr-0.5">
           {!selectedRegion ? (
             <div className="overflow-hidden rounded-card border border-line bg-surface/75">
               {browsingProvince ? (

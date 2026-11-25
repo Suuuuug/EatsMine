@@ -75,7 +75,7 @@ const homeJsonLd = {
 
 export default function HomePage() {
   return (
-    <div className="em-theme explore-backdrop min-h-dvh pb-16 md:pb-0 md:pl-[76px]">
+    <div className="em-theme explore-backdrop relative min-h-dvh pb-16 md:pb-0 md:pl-[76px]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd) }}
