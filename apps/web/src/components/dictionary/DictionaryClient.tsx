@@ -389,10 +389,8 @@ export function DictionaryClient() {
       )}
       <div hidden={selectedFood !== null} className={selectedFood ? "hidden" : "flex flex-col gap-6"}>
       {/* 1행: 1순위 페이지 제목 + 아담한 보조 검색창(h-9, 14px) */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl leading-tight font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
-          제철음식 도감
-        </h1>
+      <header className="flex flex-col gap-4">
+        <h1 className="sr-only">제철음식 도감</h1>
 
         <form
           role="search"

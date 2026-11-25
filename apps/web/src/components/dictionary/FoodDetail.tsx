@@ -6,7 +6,7 @@ import { actionButtonClass, EmptyState, SkeletonRow, TerritoryMap } from "@/comp
 import { Icon } from "@/components/icon/Icon";
 import { RestaurantRow } from "@/components/map/RestaurantRow";
 import { useRestaurants } from "@/lib/map/use-restaurants";
-import { escapeAction, groupByProvince, resolveSelectedRegion, type Territory } from "@/lib/dictionary/food-region-selection";
+import { escapeAction, groupByProvince, resolveActiveProvince, resolveSelectedRegion, type Territory } from "@/lib/dictionary/food-region-selection";
 import type { SeasonalFoodItem } from "@/types/dictionary";
 import { FoodRegionList } from "./FoodRegionList";
 
@@ -23,29 +23,36 @@ type Props = {
 /** 음식을 고른 뒤의 화면: 왼쪽 지역·식당 목록, 오른쪽 영토 지도(좁은 화면은 지도 위, 목록 아래). */
 export function FoodDetail({ food, regionCode, onSelectRegion, onBack }: Props) {
   const [territories, setTerritories] = useState<Territory[]>([]);
+  const [provinceNames, setProvinceNames] = useState<Record<string, string>>({});
+  const [pickedProvince, setPickedProvince] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetch("/images/maps/region-codes.json", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((data: { territories: Territory[] }) => setTerritories(data.territories))
+      .then((data: { territories: Territory[]; provinces: { code: string; name: string }[] }) => {
+        setTerritories(data.territories);
+        setProvinceNames(Object.fromEntries(data.provinces.map((p) => [p.code, p.name])));
+      })
       .catch(() => {});
     return () => controller.abort();
   }, []);
 
+  // 추천 지역을 시도별로 묶어 시도 순서대로 놓는다(목록 소제목과 큰 지도 전환의 기준).
+  const groups = useMemo(() => groupByProvince(food.regions.map((r) => r.code), territories), [food.regions, territories]);
   const regions = useMemo(() => {
     if (territories.length === 0) return food.regions;
-    const valid = new Set(groupByProvince(food.regions.map((r) => r.code), territories).flatMap((g) => g.codes));
-    return food.regions.filter((r) => valid.has(r.code));
-  }, [food.regions, territories]);
+    const byCode = new Map(food.regions.map((r) => [r.code, r]));
+    return groups.flatMap((g) => g.codes.map((c) => byCode.get(c)!));
+  }, [food.regions, territories, groups]);
   const codes = useMemo(() => regions.map((r) => r.code), [regions]);
-
-  // 추천 지역이 한 도(시도) 안에만 있으면 그 도의 시군구 지도로 바로 보여 준다. 여러 도에 걸치면 전국 시군구 지도.
-  const onlyProvince = useMemo(() => {
-    const set = new Set(regions.map((r) => territories.find((t) => t.code === r.code)?.parentCode ?? ""));
-    return set.size === 1 && !set.has("") ? [...set][0] : null;
-  }, [regions, territories]);
+  const multiProvince = groups.length > 1;
+  const headings = useMemo(() => {
+    if (!multiProvince) return undefined;
+    return Object.fromEntries(groups.map((g) => [g.codes[0], provinceNames[g.provinceCode] ?? ""]));
+  }, [groups, multiProvince, provinceNames]);
 
   const selected = resolveSelectedRegion(regions, regionCode);
+  const activeProvince = resolveActiveProvince(groups, selected, pickedProvince);
   const selectedName = regions.find((r) => r.code === selected)?.name ?? "";
 
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -76,7 +83,15 @@ export function FoodDetail({ food, regionCode, onSelectRegion, onBack }: Props) 
       if (regions.length > 1) onSelectRegion(null);
       return;
     }
+    setPickedProvince(null);
     onSelectRegion(code);
+  }
+
+  function pickProvince(provinceCode: string) {
+    if (!groups.some((g) => g.provinceCode === provinceCode)) return;
+    setPickedProvince(provinceCode);
+    // 다른 시도의 시군구가 열려 있으면 닫아 큰 지도와 목록이 어긋나지 않게 한다.
+    if (selected && !groups.find((g) => g.provinceCode === provinceCode)?.codes.includes(selected)) onSelectRegion(null);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLElement>) {
@@ -117,16 +132,30 @@ export function FoodDetail({ food, regionCode, onSelectRegion, onBack }: Props) 
             <TerritoryMap
               visited={[]}
               highlighted={codes}
-              {...(onlyProvince ? { province: onlyProvince, onProvinceChange: () => {} } : { territoryView: true })}
+              {...(activeProvince ? { province: activeProvince, onProvinceChange: () => {} } : { territoryView: true })}
               selectedCode={selected}
-              onSelectTerritory={({ code }) => { if (codes.includes(code)) onSelectRegion(code); }}
-              className="[&>div:first-child]:hidden [&_ul]:hidden [&>div.relative]:max-h-[min(42vh,420px)] lg:[&>div.relative]:max-h-[min(70vh,620px)]"
+              onSelectTerritory={({ code }) => { if (codes.includes(code)) { setPickedProvince(null); onSelectRegion(code); } }}
+              className="[&>div:first-child]:hidden [&_ul]:hidden [&>div.relative]:max-h-[min(42vh,420px)] lg:[&>div.relative]:max-h-[min(58vh,520px)]"
             />
           </div>
-          <div ref={listRef} className="min-w-0 overflow-hidden rounded-card border border-line bg-surface lg:col-start-1 lg:row-start-1">
-            <FoodRegionList regions={regions} selectedCode={selected} onSelect={chooseFromList}>
+          <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
+          {multiProvince && (
+            <div aria-hidden="true" className="mx-auto w-full max-w-[180px] lg:mx-0 lg:max-w-[150px]">
+              <TerritoryMap
+                visited={[]}
+                highlighted={codes}
+                province=""
+                onProvinceChange={pickProvince}
+                selectedCode={activeProvince}
+                className="[&>div:first-child]:hidden [&_ul]:hidden [&>p]:hidden [&>div.relative]:max-h-40"
+              />
+            </div>
+          )}
+          <div ref={listRef} className="min-w-0 overflow-hidden rounded-card border border-line bg-surface">
+            <FoodRegionList regions={regions} selectedCode={selected} onSelect={chooseFromList} headings={headings} activeHeading={groups.find((g) => g.provinceCode === activeProvince)?.codes[0] ?? null}>
               {selected && <RegionRestaurants regionCode={selected} />}
             </FoodRegionList>
+          </div>
           </div>
         </div>
       )}

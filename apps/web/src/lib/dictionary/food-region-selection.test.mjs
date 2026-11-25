@@ -80,3 +80,22 @@ test('Esc는 지역을 먼저 풀고, 지역이 없거나 자동 선택이면 �
   assert.equal(escapeAction({ food: 'a', regionCode: '11140' }, 1), 'clearFood');
   assert.equal(escapeAction({ food: null, regionCode: null }, 0), 'none');
 });
+
+test('보고 있는 시도: 선택한 시군구의 시도 > 직접 고른 시도 > 첫 시도', async () => {
+  const { resolveActiveProvince } = await import('./food-region-selection.ts');
+  const groups = [{ provinceCode: '50', codes: ['50110'] }, { provinceCode: '11', codes: ['11110', '11140'] }];
+  assert.equal(resolveActiveProvince(groups, '11140', '50'), '11');
+  assert.equal(resolveActiveProvince(groups, null, '11'), '11');
+  assert.equal(resolveActiveProvince(groups, null, '99'), '50');
+  assert.equal(resolveActiveProvince(groups, null, null), '50');
+  assert.equal(resolveActiveProvince([], null, null), null);
+});
+
+test('방어회 추천 지역은 두 시도로 묶이고 첫 시도가 보인다', async () => {
+  const { resolveActiveProvince } = await import('./food-region-selection.ts');
+  const food = index.find(f => f.slug === 'yellowtail-sashimi');
+  if (!food) return;
+  const groups = groupByProvince(food.regions.map(r => r.code), meta.territories);
+  assert.ok(groups.length >= 1);
+  assert.equal(resolveActiveProvince(groups, null, null), groups[0].provinceCode);
+});

@@ -76,3 +76,15 @@ export function escapeAction(selection: FoodSelection, regionCount: number): 'cl
   if (!selection.food) return 'none';
   return selection.regionCode && regionCount > 1 ? 'clearRegion' : 'clearFood';
 }
+
+/** 큰 지도가 보여 줄 시도. 선택한 시군구가 속한 시도가 먼저, 없으면 직접 고른 시도(추천이 든 곳만), 그것도 없으면 첫 시도. */
+export function resolveActiveProvince(
+  groups: readonly { provinceCode: string; codes: readonly string[] }[],
+  selectedCode: string | null,
+  preferred: string | null,
+): string | null {
+  const bySelected = selectedCode ? groups.find(g => g.codes.includes(selectedCode)) : undefined;
+  if (bySelected) return bySelected.provinceCode;
+  if (preferred && groups.some(g => g.provinceCode === preferred)) return preferred;
+  return groups[0]?.provinceCode ?? null;
+}
