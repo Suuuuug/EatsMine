@@ -81,7 +81,6 @@ export class SharesService {
     throw new Error('공유 링크를 만들지 못했습니다');
   }
 
-  /** 공유 취소 (링크 무효). 없어도 성공으로 본다 */
   /** 내 공유 상태. 읽기 전용이라 프로필을 만들지 않는다 */
   async listMine(userId: string): Promise<MySharesDto> {
     const rows = await this.db
@@ -91,6 +90,7 @@ export class SharesService {
     return toMySharesDto(rows);
   }
 
+  /** 공유 취소 (링크 무효). 없어도 성공으로 본다 */
   async remove(userId: string, type: ShareType): Promise<void> {
     await this.db
       .delete(shareLinks)
