@@ -9,12 +9,14 @@ import { rankOf } from "@/lib/rank/ranks";
 
 type Props = {
   reviewCount: number;
+  /** 백엔드 로그인 데이터 연동 전 예시 상태 여부 */
+  isSample?: boolean;
   /** 같은 카드 안에 함께 보여 줄 수집 진행도 */
   collection?: ReactNode;
 };
 
 /** 내 랭크 한 줄. 누르면 같은 화면 아래에 5단계 사다리가 펴진다(Esc·뒤로 가기로 닫는다). */
-export function RankSection({ reviewCount, collection }: Props) {
+export function RankSection({ reviewCount, isSample = true, collection }: Props) {
   const [open, setOpen] = useState(false);
   const pushed = useRef(false);
   const panelId = useId();
@@ -53,7 +55,9 @@ export function RankSection({ reviewCount, collection }: Props) {
 
   return (
     <section aria-label="내 도감과 랭크" onKeyDown={onKeyDown} className="rounded-card border border-line bg-surface px-4 py-3">
-      <p className="type-caption text-muted">수집 현황과 랭크는 예시예요.</p>
+      {isSample && (
+        <p className="type-caption text-muted">로그인 전이라 수집 현황과 랭크는 예시예요.</p>
+      )}
       <button
         type="button"
         aria-expanded={open}
