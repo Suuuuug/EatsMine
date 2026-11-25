@@ -279,11 +279,11 @@ export type PlaceReviewItem = {
   visitedAt: string;
   photos?: string[];
   isSample?: boolean;
-  /** 작성자가 정한 공개 여부. 없으면 공개(예시 후기). 나만 보기 후기는 평균·개수에 넣지 않는다. */
+  /** 작성자가 정한 공개 여부. 없으면 공개(예시 리뷰). 나만 보기 리뷰는 평균·개수에 넣지 않는다. */
   visibility?: "private" | "public";
-  /** true면 서버에 저장된 후기, 아니면 이 화면에서만 보이는 예시 */
+  /** true면 서버에 저장된 리뷰, 아니면 이 화면에서만 보이는 예시 */
   saved?: boolean;
-  /** 저장한 후기의 작성자. 다른 계정으로 바뀌면 나만 보기 후기를 보여 주지 않는다. */
+  /** 저장한 리뷰의 작성자. 다른 계정으로 바뀌면 나만 보기 리뷰를 보여 주지 않는다. */
   ownerId?: string;
 };
 

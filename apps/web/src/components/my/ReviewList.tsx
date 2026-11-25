@@ -9,14 +9,14 @@ import { formatMonthDay } from "@/lib/my-page/format";
 import type { MyReview } from "@/types/my-page";
 
 const visibilityLabel = { private: "나만 보기", public: "공개" } as const;
-/** 처음에는 최근 후기만 둔다. 같은 줄 카드와 높이가 크게 벌어지지 않게 한다. */
+/** 처음에는 최근 리뷰만 둔다. 같은 줄 카드와 높이가 크게 벌어지지 않게 한다. */
 const SHOWN = 2;
 
 type ReviewListProps = {
   reviews: MyReview[];
-  /** 로그인한 사람의 토큰. 있으면 후기를 고치고 지울 수 있다. 예시 화면은 null. */
+  /** 로그인한 사람의 토큰. 있으면 리뷰를 고치고 지울 수 있다. 예시 화면은 null. */
   token?: string | null;
-  /** 후기를 지운 뒤 영토·도감 같은 다른 기록도 다시 읽을 때 부른다. */
+  /** 리뷰를 지운 뒤 영토·도감 같은 다른 기록도 다시 읽을 때 부른다. */
   onDeleted?: () => void;
   className?: string;
 };
@@ -30,7 +30,7 @@ export function ReviewList({
   const [reviews, setReviews] = useState(initial);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  // 저장·삭제가 끝나기 전에는 같은 후기를 다시 열 수 없다(시트를 닫아도 요청은 계속된다).
+  // 저장·삭제가 끝나기 전에는 같은 리뷰를 다시 열 수 없다(시트를 닫아도 요청은 계속된다).
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
   const editing = reviews.find((review) => review.id === editingId) ?? null;
   const shown = expanded ? reviews : reviews.slice(0, SHOWN);
@@ -38,13 +38,13 @@ export function ReviewList({
   return (
     <MySection
       id="my-reviews-title"
-      title="내가 남긴 후기"
+      title="내가 남긴 리뷰"
       className={className}
     >
       <GlassCard className="flex-1 px-4">
         {reviews.length === 0 ? (
           <p className="py-4 type-body text-foreground">
-            아직 남긴 후기가 없어요. 다녀온 맛집에 별점을 남기면 여기에 모여요.
+            아직 남긴 리뷰가 없어요. 다녀온 맛집에 별점을 남기면 여기에 모여요.
           </p>
         ) : (
           <>
@@ -73,7 +73,7 @@ export function ReviewList({
                         size="sm"
                         className="-mr-3.5 shrink-0"
                         disabled={busyIds.has(review.id)}
-                        aria-label={`${review.restaurant_name} 후기 수정`}
+                        aria-label={`${review.restaurant_name} 리뷰 수정`}
                         onClick={() => setEditingId(review.id)}
                       >
                         수정
@@ -107,7 +107,7 @@ export function ReviewList({
                   block
                   onClick={() => setExpanded((value) => !value)}
                 >
-                  {expanded ? "접기" : `후기 ${reviews.length}개 모두 보기`}
+                  {expanded ? "접기" : `리뷰 ${reviews.length}개 모두 보기`}
                 </ActionButton>
               </div>
             )}
@@ -128,7 +128,7 @@ export function ReviewList({
               return next;
             })
           }
-          // 요청이 끝났을 때 사용자가 다른 후기를 열어 두었다면 그 시트는 닫지 않는다
+          // 요청이 끝났을 때 사용자가 다른 리뷰를 열어 두었다면 그 시트는 닫지 않는다
           onSaved={(updated) => {
             setReviews((list) =>
               list.map((review) =>

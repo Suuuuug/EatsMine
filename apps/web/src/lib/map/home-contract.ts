@@ -29,12 +29,12 @@ export function regionLabel(region: { code: string; name: string }): string {
 export function sortRegions<T extends { code: string; name: string }>(regions: readonly T[]): T[] {
   return [...regions].sort((a, b) => regionLabel(a).localeCompare(regionLabel(b), 'ko'));
 }
-/** 후기 조회 API에서 받은 집계만 표시하며, 값이 없으면 0점으로 간주하지 않는다. */
+/** 리뷰 조회 API에서 받은 집계만 표시하며, 값이 없으면 0점으로 간주하지 않는다. */
 export function formatReviewSummary(summary: { average: number; count: number } | null): string | null {
   if (!summary || !Number.isFinite(summary.average) || summary.average < 0 || summary.average > 5 || !Number.isInteger(summary.count) || summary.count < 1) return null;
-  return `사용자 평점 ${summary.average.toFixed(1)}점 · 후기 ${summary.count}개`;
+  return `사용자 평점 ${summary.average.toFixed(1)}점 · 리뷰 ${summary.count}개`;
 }
-/** 후기 목록에서 같은 목록의 평균·건수·대표 후기를 계산한다. */
+/** 리뷰 목록에서 같은 목록의 평균·건수·대표 리뷰를 계산한다. */
 export function summarizeReviews(reviews: readonly { rating: number; text: string }[]): { average: number; count: number; excerpt: string } | null {
   if (!reviews.length || reviews.some((review) => !Number.isFinite(review.rating) || review.rating < 0 || review.rating > 5)) return null;
   return { average: reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length, count: reviews.length, excerpt: reviews[0].text };

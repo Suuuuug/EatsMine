@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { reviewReturnHref, reviewStatusText, cleanRestaurantName } from './reviews-navigation.ts';
 
-test('후기에서 돌아갈 때 검증된 지역과 음식 검색 조건을 보존한다', () => {
+test('리뷰에서 돌아갈 때 검증된 지역과 음식 검색 조건을 보존한다', () => {
   assert.equal(reviewReturnHref(new URLSearchParams('regionCode=11140&foodId=3')), '/?regionCode=11140&foodId=3');
   assert.equal(reviewReturnHref(new URLSearchParams('regionCode=11140')), '/?regionCode=11140');
 });

@@ -60,14 +60,14 @@ export function RestaurantReviewSheet({
   const [writing, setWriting] = useState(false);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
-  // 후기를 공개할지는 쓸 때마다 정한다. 처음에는 나만 본다.
+  // 리뷰를 공개할지는 쓸 때마다 정한다. 처음에는 나만 본다.
   const [isPublic, setIsPublic] = useState(false);
   const session = useSession();
   const token =
     session.status === "ready" ? (session.session?.accessToken ?? null) : null;
   const userId =
     session.status === "ready" ? (session.session?.user.id ?? null) : null;
-  // 서버에서 읽은 공개 후기. null이면 아직 없거나 읽을 수 없는 매장이라 예시 후기를 쓴다.
+  // 서버에서 읽은 공개 리뷰. null이면 아직 없거나 읽을 수 없는 매장이라 예시 리뷰를 쓴다.
   const [remote, setRemote] = useState<{
     id: string;
     data: RestaurantReviewsDto;
@@ -112,12 +112,12 @@ export function RestaurantReviewSheet({
 
   const serverData =
     remote && remote.id === placeMerchantId ? remote.data : null;
-  // 저장한 후기는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
+  // 저장한 리뷰는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
   const ownReviews = userReviews.filter(
     (r) => !r.saved || r.ownerId === userId,
   );
   const sample = place ? getSamplePlaceReviews(place, ownReviews) : null;
-  // 서버 후기가 있으면 그것을, 없으면 예시를 보여 준다. 내가 방금 쓴 나만 보기 후기는 목록 맨 위에 둔다.
+  // 서버 리뷰가 있으면 그것을, 없으면 예시를 보여 준다. 내가 방금 쓴 나만 보기 리뷰는 목록 맨 위에 둔다.
   const summary = serverData
     ? {
         averageRating: serverData.summary?.average ?? null,
@@ -235,18 +235,18 @@ export function RestaurantReviewSheet({
         });
       } catch {
         if (draftId === draftIdRef.current) {
-          setSubmitError("후기를 저장하지 못했어요. 다시 시도해 주세요.");
+          setSubmitError("리뷰를 저장하지 못했어요. 다시 시도해 주세요.");
           setSubmitting(false);
         }
         return;
       }
       if (draftId !== draftIdRef.current) {
-        // 저장 중에 폼을 닫았거나 취소했다. 새 입력은 건드리지 않고 공개 후기 목록만 갱신한다.
+        // 저장 중에 폼을 닫았거나 취소했다. 새 입력은 건드리지 않고 공개 리뷰 목록만 갱신한다.
         if (visibility === "public") loadRemote(placeMerchantId);
         return;
       }
       setSubmitting(false);
-      // 공개 후기는 서버 목록에서 다시 읽고, 나만 보기 후기는 이 화면에 보여 준다.
+      // 공개 리뷰는 서버 목록에서 다시 읽고, 나만 보기 리뷰는 이 화면에 보여 준다.
       if (visibility === "public") loadRemote(placeMerchantId);
       else onAddReview(place.id, local(true));
       resetDraft();
@@ -310,14 +310,7 @@ export function RestaurantReviewSheet({
       }
     >
       {place && summary && (
-        <div
-          className="flex flex-col gap-4"
-          // 시트 안쪽에 옅은 빛번짐만 깐다(DESIGN.md §1: 카드·글자에는 그라데이션 금지)
-          style={{
-            backgroundImage:
-              "radial-gradient(90% 180px at 50% 0%, color-mix(in oklab, var(--color-accent) 14%, transparent), transparent 75%)",
-          }}
-        >
+        <div className="flex flex-col gap-4">
           {/* 식당 주소 + 평균 평점 요약 */}
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1.5 type-caption text-muted">
@@ -332,12 +325,12 @@ export function RestaurantReviewSheet({
                 </span>
                 <RatingStars value={summary.averageRating} size={20} />
                 <span className="type-caption text-muted tabular-nums">
-                  후기 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
+                  리뷰 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
                 </span>
               </div>
             ) : (
               <p className="type-caption text-muted">
-                아직 공개된 후기가 없어요
+                아직 공개된 리뷰가 없어요
               </p>
             )}
           </div>
@@ -357,8 +350,8 @@ export function RestaurantReviewSheet({
                   onContent={setContent}
                   isPublic={isPublic}
                   onPublic={setIsPublic}
-                  placeholder="여행 중 다녀온 후기를 남겨 주세요."
-                  contentLabel="여행 후기 입력"
+                  placeholder="여행 중 다녀온 리뷰를 남겨 주세요."
+                  contentLabel="여행 리뷰 입력"
                 >
                   {/* 사진 첨부 영역 (최대 4장). 화면은 만들어 두었고 사진 저장소가 없어 서버에는 보내지 않는다 */}
                   {
@@ -419,7 +412,7 @@ export function RestaurantReviewSheet({
 
                 {!token && (
                   <p className="type-caption text-muted">
-                    로그인하면 후기가 저장돼요. 지금은 이 화면에서만 보여요.
+                    로그인하면 리뷰가 저장돼요. 지금은 이 화면에서만 보여요.
                   </p>
                 )}
                 {submitError && (
@@ -451,7 +444,7 @@ export function RestaurantReviewSheet({
 
           {/* 리뷰 목록 */}
           {summary.reviews.length === 0 ? (
-            <p className="py-2 type-body text-muted">첫 후기를 남겨 보세요.</p>
+            <p className="py-2 type-body text-muted">첫 리뷰를 남겨 보세요.</p>
           ) : (
             <ul aria-label="식당 리뷰 목록" className="list-divided">
               {summary.reviews.map((review) => (

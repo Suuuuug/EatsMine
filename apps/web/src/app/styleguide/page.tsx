@@ -65,10 +65,10 @@ const radii = [
 ];
 
 const emptyStates: { illustration: EmptyIllustration; message: string; action: string }[] = [
-  { illustration: "empty-visits", message: "후기를 남기면 지도에 영토가 칠해져요.", action: "식당 찾기" },
+  { illustration: "empty-visits", message: "리뷰를 남기면 지도에 영토가 칠해져요.", action: "식당 찾기" },
   { illustration: "empty-dictionary", message: "제철 음식을 기록하면 도감이 채워져요.", action: "제철 음식 보기" },
   { illustration: "empty-search", message: "‘해운대 냉면’에 맞는 식당을 찾지 못했어요.", action: "부산 전체에서 찾기" },
-  { illustration: "empty-reviews", message: "아직 남긴 후기가 없어요.", action: "후기 남기기" },
+  { illustration: "empty-reviews", message: "아직 남긴 리뷰가 없어요.", action: "리뷰 남기기" },
   { illustration: "empty-bookmarks", message: "아직 저장한 식당이 없어요.", action: "식당 찾기" },
   { illustration: "load-error", message: "식당 정보를 불러오지 못했어요.", action: "다시 불러오기" },
 ];
@@ -243,7 +243,7 @@ export default function StyleguidePage() {
         <Canvas label="하단 고정 버튼">
           <BottomCtaDemo />
         </Canvas>
-        <Code>{`<ActionButton>후기 남기기</ActionButton>
+        <Code>{`<ActionButton>리뷰 남기기</ActionButton>
 <ActionButton variant="tinted" size="sm">지도에서 보기</ActionButton>
 <Link href="/my" className={actionButtonClass({ size: "lg", block: true })}>내 영토 보기</Link>`}</Code>
       </DocSection>
@@ -341,7 +341,7 @@ export default function StyleguidePage() {
         title="영토 지도"
         rules={[
           "16개 시도 → 시도 안의 영토로 들어가요. 키보드는 지도 아래 지역 버튼으로 조작해요.",
-          "칠함은 후기 기준이에요. 결제·방문 인증처럼 표현하지 않아요.",
+          "칠함은 리뷰 기준이에요. 결제·방문 인증처럼 표현하지 않아요.",
         ]}
       >
         <Canvas>
@@ -435,7 +435,7 @@ export default function StyleguidePage() {
               image={<Image src="/images/foods/yellowtail.svg" alt="" width={160} height={160} className="size-full" />}
               meta={<StarRating value={4.5} />}
             />
-            <ReviewCard name="김잇플" rating={5} content="국물이 진하고 고기가 많아요. 예시 후기예요." />
+            <ReviewCard name="김잇플" rating={5} content="국물이 진하고 고기가 많아요. 예시 리뷰예요." />
           </div>
           <GlassCard className="p-6">
             <p className="text-muted">유리 카드 안에 내용을 넣어요.</p>

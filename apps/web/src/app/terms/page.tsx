@@ -13,8 +13,8 @@ export default function TermsPage() {
         <p>식당 정보와 매출 순위는 잇플 제공 정보를 바탕으로 해요. 실제 영업시간이나 만족도와 다를 수 있어요.</p>
         <p>예약·결제는 잇플 상세 페이지에서 이뤄지고, EatsMine은 관여하지 않아요.</p>
       </LegalSection>
-      <LegalSection title="후기와 기록">
-        <p>내가 쓴 후기와 기록의 책임은 나에게 있어요. 다른 사람을 해치거나 광고인 글은 지울 수 있어요.</p>
+      <LegalSection title="리뷰와 기록">
+        <p>내가 쓴 리뷰와 기록의 책임은 나에게 있어요. 다른 사람을 해치거나 광고인 글은 지울 수 있어요.</p>
       </LegalSection>
       <LegalSection title="이용 제한">
         <p>자동으로 대량 수집하거나 부정한 방법으로 이용하면 이용을 막을 수 있어요.</p>

@@ -1763,7 +1763,7 @@ export function InteractiveTileMap({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate type-row">{entry.nickname}</span>
                       <span className="block type-caption font-normal text-muted tabular-nums">
-                        후기 {entry.totalReviews}개
+                        리뷰 {entry.totalReviews}개
                       </span>
                     </span>
                     <span className="type-row font-semibold tabular-nums">{entry.regionCount}곳</span>

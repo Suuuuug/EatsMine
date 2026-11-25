@@ -22,7 +22,7 @@ const visitedAtSchema = z.iso
 const contentSchema = z
   .string()
   .trim()
-  .max(500, '후기는 500자 이하로 써 주세요');
+  .max(500, '리뷰는 500자 이하로 써 주세요');
 const ratingSchema = z
   .number({ error: '별점은 1~5 숫자예요' })
   .int()
@@ -42,11 +42,11 @@ const createSchema = z.object(
       .min(1)
       .max(100),
     rating: ratingSchema,
-    /** 빈 문자열은 후기 없음으로 */
+    /** 빈 문자열은 리뷰 없음으로 */
     content: contentSchema.optional().transform((v) => v || undefined),
     visitedAt: visitedAtSchema.optional(),
     foodId: foodIdSchema.optional(),
-    /** 기본 공개 — 공개 후기만 영토 주인·지역 순위·매장 후기에 반영된다. 나만 보기는 작성 시 직접 고른다 */
+    /** 기본 공개 — 공개 리뷰만 영토 주인·지역 순위·매장 리뷰에 반영된다. 나만 보기는 작성 시 직접 고른다 */
     visibility: visibilitySchema.default('public'),
   },
   { error: '본문은 JSON 객체여야 해요' },

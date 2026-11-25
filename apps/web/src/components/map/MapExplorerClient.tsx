@@ -693,7 +693,7 @@ export function MapExplorerClient({
       ...prev,
       [placeId]: [review, ...(prev[placeId] ?? [])],
     }));
-    showToast(review.saved ? "후기를 저장했어요" : "리뷰를 남겼어요(예시)");
+    showToast(review.saved ? "리뷰를 저장했어요" : "리뷰를 남겼어요(예시)");
   };
 
   const visibleGenres = useMemo(() => {
@@ -1215,7 +1215,7 @@ export function MapExplorerClient({
                         </div>
                       </div>
 
-                      {/* 중단: 평점 · 대표 후기(최대 2줄) */}
+                      {/* 중단: 평점 · 대표 리뷰(최대 2줄) */}
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1231,7 +1231,7 @@ export function MapExplorerClient({
                             className="shrink-0 text-star"
                           />
                           <span>
-                            {reviewSummary.averageRating.toFixed(1)} · 후기{" "}
+                            {reviewSummary.averageRating.toFixed(1)} · 리뷰{" "}
                             {reviewSummary.reviewCount}개
                             {reviewSummary.isSample ? "(예시)" : ""}
                           </span>
@@ -1241,7 +1241,7 @@ export function MapExplorerClient({
                         </span>
                       </button>
 
-                      {/* 하단 액션 줄: 후기 보기 */}
+                      {/* 하단 액션 줄: 리뷰 보기 */}
                       <div className="flex items-center gap-3 px-1">
                         <button
                           type="button"
@@ -1251,7 +1251,7 @@ export function MapExplorerClient({
                           }}
                           className="pressable inline-flex min-h-8 items-center gap-0.5 rounded-input text-xs font-semibold text-accent-dark underline underline-offset-4 focus-ring"
                         >
-                          <span>후기 보기</span>
+                          <span>리뷰 보기</span>
                           <span aria-hidden="true">›</span>
                         </button>
                       </div>
