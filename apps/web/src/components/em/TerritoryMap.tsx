@@ -34,6 +34,8 @@ type TerritoryMapProps = {
   onProvinceChange?: (code: string) => void;
   /** 작은 읽기 전용 미리보기. 지역 버튼 목록과 출처 문구를 숨기고 클릭을 막는다. */
   compact?: boolean;
+  /** 전국 화면을 시도가 아니라 시·군·구(광역시는 구) 경계로 그린다. 내 영토처럼 칠한 곳을 한눈에 볼 때 쓴다. */
+  territoryView?: boolean;
   className?: string;
 };
 
@@ -45,6 +47,7 @@ export function TerritoryMap({
   province: provinceProp,
   onProvinceChange,
   compact = false,
+  territoryView = false,
   className = "",
 }: TerritoryMapProps) {
   const [meta, setMeta] = useState<RegionMeta | null>(null);
@@ -81,7 +84,7 @@ export function TerritoryMap({
   useEffect(() => {
     if (!meta) return;
     const controller = new AbortController();
-    const file = meta.provinces.find((p) => p.code === province)?.svg ?? "korea.svg";
+    const file = province === NATION && territoryView ? "korea-territories.svg" : meta.provinces.find((p) => p.code === province)?.svg ?? "korea.svg";
     fetch(`${BASE}/${file}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(String(response.status));
@@ -103,7 +106,7 @@ export function TerritoryMap({
         if (!controller.signal.aborted) setShapeError(shapeKey);
       });
     return () => controller.abort();
-  }, [meta, province, shapeKey]);
+  }, [meta, province, shapeKey, territoryView]);
 
   // 시도를 바꾼 뒤 키보드 사용자가 길을 잃지 않게 제목으로 포커스를 옮긴다(누른 버튼이 사라지므로).
   useEffect(() => {
@@ -125,8 +128,9 @@ export function TerritoryMap({
   const provinceName = meta?.provinces.find((p) => p.code === province)?.name;
   const regions = province === NATION ? meta?.provinces ?? [] : territoriesOf.get(province) ?? [];
 
+  const territoryShapes = territoryView && province === NATION;
   function ratioOf(code: string) {
-    if (province !== NATION) return owned.has(code) ? 1 : 0;
+    if (province !== NATION || territoryShapes) return owned.has(code) ? 1 : 0;
     const list = territoriesOf.get(code) ?? [];
     if (list.length === 0) return 0;
     return list.filter((t) => owned.has(t.code)).length / list.length;
@@ -134,13 +138,14 @@ export function TerritoryMap({
 
   // 강조 지역은 전국에서는 시도 단위, 시도 안에서는 시군구 단위로 칠한다(칠한 영토와 같은 map-partial 색).
   function markedAt(code: string) {
-    if (province !== NATION) return marked.has(code);
+    if (province !== NATION || territoryShapes) return marked.has(code);
     return (territoriesOf.get(code) ?? []).some((t) => marked.has(t.code));
   }
   function fillOf(code: string) {
     const ratio = ratioOf(code);
     if (ratio === 1) return "fill-map-full";
-    return ratio > 0 || markedAt(code) ? "fill-map-partial" : "fill-map-empty";
+    if (markedAt(code)) return "fill-map-full"; // 추천 지역은 주변과 확실히 구분되도록 가장 진한 색
+    return ratio > 0 ? "fill-map-partial" : "fill-map-empty";
   }
 
   // 칠한 지역을 글로도 알린다(색만으로 전하지 않는다).
@@ -164,6 +169,13 @@ export function TerritoryMap({
       setSelectedState(code);
       onSelectTerritory?.({ code, name });
     }
+  }
+
+  function choosePath(code: string, name: string) {
+    if (territoryShapes) {
+      setSelectedState(code);
+      onSelectTerritory?.({ code, name });
+    } else choose(code, name);
   }
 
   function backToNation() {
@@ -194,7 +206,7 @@ export function TerritoryMap({
         </h3>
       </div>
 
-      <div className="relative aspect-[4/5] max-h-[min(65vh,560px)] w-full">
+      <div className={`relative aspect-[4/5] w-full ${compact ? "max-h-80" : "max-h-[min(65vh,560px)]"}`}>
         {failed ? (
           <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <p className="type-body">지도를 불러오지 못했어요.</p>
@@ -221,7 +233,7 @@ export function TerritoryMap({
               const target = event.target as Element;
               const code = target.getAttribute("data-code");
               const name = target.getAttribute("data-name");
-              if (code && name) choose(code, name);
+              if (code && name) choosePath(code, name);
             }}
           >
             {shape.paths.map((path) => {
@@ -245,7 +257,7 @@ export function TerritoryMap({
                 </path>
               );
             })}
-            <IslandOutlines province={province || null} className={fillOf(province || "47")} />
+            {!territoryShapes && <IslandOutlines province={province || null} className={fillOf(province || "47")} />}
           </svg>
         )}
       </div>
@@ -254,8 +266,9 @@ export function TerritoryMap({
 
       {!compact && regions.length > 0 && (
         <ul aria-label={`${provinceName ?? "전국"} 지역 목록`} className="flex flex-wrap gap-2">
-          {regions.map((region) => {
+          {(marked.size > 0 ? regions.filter((r) => (province === NATION ? markedAt(r.code) : marked.has(r.code))) : regions).map((region) => {
             const ratio = ratioOf(region.code);
+            const markedCount = province === NATION ? (territoriesOf.get(region.code) ?? []).filter((t) => marked.has(t.code)).length : 0;
             const count = province === NATION ? territoriesOf.get(region.code)?.length ?? 0 : 0;
             const done = province === NATION ? Math.round(ratio * count) : 0;
             const isSelected = selected === region.code;
@@ -274,7 +287,7 @@ export function TerritoryMap({
                   {region.name}
                   {province === NATION ? (
                     <span className="text-muted tabular-nums">
-                      {done}/{count}
+                      {marked.size > 0 ? `추천 지역 ${markedCount}곳` : `${done}/${count}`}
                     </span>
                   ) : (
                     <>

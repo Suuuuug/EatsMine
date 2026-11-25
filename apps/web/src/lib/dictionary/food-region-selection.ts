@@ -64,3 +64,15 @@ export function groupByProvince(
   }
   return [...groups].map(([provinceCode, list]) => ({ provinceCode, codes: list }));
 }
+
+/** 화면에서 선택된 지역. 목록에 있는 코드만 인정하고, 추천 지역이 1곳이면 자동으로 그 지역이다. */
+export function resolveSelectedRegion(regions: readonly FoodRegion[], regionCode: string | null): string | null {
+  if (regions.length === 1) return regions[0].code;
+  return regionCode && regions.some(r => r.code === regionCode) ? regionCode : null;
+}
+
+/** Esc 한 번의 동작. 지역을 직접 골랐으면 지역만 풀고, 아니면 음식을 푼다. */
+export function escapeAction(selection: FoodSelection, regionCount: number): 'clearRegion' | 'clearFood' | 'none' {
+  if (!selection.food) return 'none';
+  return selection.regionCode && regionCount > 1 ? 'clearRegion' : 'clearFood';
+}

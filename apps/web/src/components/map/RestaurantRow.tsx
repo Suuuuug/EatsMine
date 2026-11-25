@@ -14,8 +14,7 @@ export function RestaurantRow({ name, address, rankNational, estimatedHours, mer
       <h3 className="truncate type-row font-semibold">{name}</h3>
       <p className="truncate type-caption text-muted">{address}</p>
       {facts.length > 0 && <p className="truncate type-caption text-muted">{facts.join(" · ")}</p>}
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 flex-1 truncate type-caption text-muted">후기 정보를 준비하고 있어요</p>
+      <div className="flex items-center justify-end gap-3">
         {merUrl && <a className="pressable inline-flex min-h-11 shrink-0 items-center rounded-input type-caption font-semibold text-accent-dark focus-ring" href={merUrl} target="_blank" rel="noopener">잇플에서 상세 보기</a>}
       </div>
     </article>

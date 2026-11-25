@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { parseFoodSelection, foodSelectionParams, buildFoodIndex, findFoodRegions, groupByProvince } from './food-region-selection.ts';
+import { parseFoodSelection, foodSelectionParams, buildFoodIndex, findFoodRegions, groupByProvince, resolveSelectedRegion, escapeAction } from './food-region-selection.ts';
 
 const root = resolve(import.meta.dirname, '../../..');
 const foods = JSON.parse(readFileSync(resolve(root, 'src/data/dictionary-foods.json'), 'utf8'));
@@ -62,4 +62,21 @@ test('5자리 코드를 시도로 모으고 모르는 코드는 버린다', () =
     { provinceCode: '44', codes: ['44180'] },
   ]);
   assert.deepEqual(groupByProvince([], meta.territories), []);
+});
+
+test('추천 지역이 1곳이면 자동 선택하고, 목록에 없는 코드는 무시한다', () => {
+  const one = [{ code: '50110', name: '제주시', reason: 'r' }];
+  const two = [...one, { code: '11140', name: '중구', reason: 'r' }];
+  assert.equal(resolveSelectedRegion(one, null), '50110');
+  assert.equal(resolveSelectedRegion(two, null), null);
+  assert.equal(resolveSelectedRegion(two, '11140'), '11140');
+  assert.equal(resolveSelectedRegion(two, '99999'), null);
+  assert.equal(resolveSelectedRegion([], '11140'), null);
+});
+
+test('Esc는 지역을 먼저 풀고, 지역이 없거나 자동 선택이면 음식을 푼다', () => {
+  assert.equal(escapeAction({ food: 'a', regionCode: '11140' }, 2), 'clearRegion');
+  assert.equal(escapeAction({ food: 'a', regionCode: null }, 2), 'clearFood');
+  assert.equal(escapeAction({ food: 'a', regionCode: '11140' }, 1), 'clearFood');
+  assert.equal(escapeAction({ food: null, regionCode: null }, 0), 'none');
 });

@@ -2,9 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
+import { foodSelectionParams, parseFoodSelection } from "@/lib/dictionary/food-region-selection";
+import { FoodDetail } from "./FoodDetail";
 import {
   SAMPLE_COLLECTED_FOOD_IDS,
   SEASONAL_FOODS,
@@ -240,6 +242,38 @@ export function DictionaryClient() {
     return () => window.clearTimeout(timer);
   }, [collectionParam]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // 음식·지역 선택은 URL이 정본이다. pushState로 바꾸면 Next가 useSearchParams에 반영하고, 뒤로 가기·새로고침도 같은 경로로 복원된다.
+  const knownSlugs = useMemo(() => new Set(SEASONAL_FOODS.map((f) => f.id)), []);
+  const selection = parseFoodSelection(new URLSearchParams(searchParams.toString()), knownSlugs);
+  const selectedFood = SEASONAL_FOODS.find((f) => f.id === selection.food) ?? null;
+  const gridScroll = useRef<number | null>(null);
+  const lastTile = useRef<string | null>(null);
+  const hadFood = useRef(false);
+
+  function writeSelection(food: string | null, regionCode: string | null) {
+    const next = foodSelectionParams(new URLSearchParams(window.location.search), { food, regionCode }).toString();
+    if (next === window.location.search.replace(/^\?/, "")) return;
+    window.history.pushState(null, "", `${window.location.pathname}${next ? `?${next}` : ""}`);
+  }
+  function selectFood(id: string) {
+    gridScroll.current = window.scrollY;
+    lastTile.current = id;
+    writeSelection(id, null);
+  }
+  function clearFood() {
+    writeSelection(null, null);
+  }
+
+  // 음식을 풀면 격자 스크롤 위치를 되돌리고 방금 누른 타일로 포커스를 돌려 준다.
+  useLayoutEffect(() => {
+    if (selectedFood) { hadFood.current = true; return; }
+    if (!hadFood.current) return;
+    hadFood.current = false;
+    if (gridScroll.current !== null) window.scrollTo(0, gridScroll.current);
+    const tile = lastTile.current ? document.querySelector<HTMLElement>(`[data-food-id="${lastTile.current}"] button`) : null;
+    tile?.focus({ preventScroll: true });
+  }, [selectedFood]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabIdPrefix = useId();
   const panelId = useId();
@@ -344,6 +378,16 @@ export function DictionaryClient() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-8 md:py-12">
+      {selectedFood && (
+        <FoodDetail
+          key={selectedFood.id}
+          food={selectedFood}
+          regionCode={selection.regionCode}
+          onSelectRegion={(code) => writeSelection(selectedFood.id, code)}
+          onBack={clearFood}
+        />
+      )}
+      <div hidden={selectedFood !== null} className={selectedFood ? "hidden" : "flex flex-col gap-6"}>
       {/* 1행: 1순위 페이지 제목 + 아담한 보조 검색창(h-9, 14px) */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="text-3xl leading-tight font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
@@ -394,8 +438,6 @@ export function DictionaryClient() {
           />
         </div>
       </section>
-
-      <p className="type-caption text-muted">음식별 식당 연결을 준비하고 있어요.</p>
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
       <section className="flex flex-col gap-4 sm:gap-6">
@@ -480,12 +522,12 @@ export function DictionaryClient() {
                 const isCollected = collectedSet.has(food.id);
 
                 return (
-                  <li key={food.id}>
-                    <div className="flex h-full flex-col gap-3 rounded-card border border-line bg-surface p-4">
+                  <li key={food.id} data-food-id={food.id}>
+                    <div onClick={(e) => { if (!(e.target as Element).closest("button")) selectFood(food.id); }} className="flex h-full cursor-pointer flex-col gap-3 rounded-card border border-line bg-surface p-4">
                       <div className="rounded-input bg-illustration-surface py-4">
-                        <FoodTile name={food.name} src={food.src} collected={isCollected} imageSize={76} showName={false} />
+                        <FoodTile name={food.name} src={food.src} collected={isCollected} imageSize={76} showName={false} onSelect={() => selectFood(food.id)} />
                       </div>
-                      <p className={`type-row font-semibold ${isCollected ? "text-foreground" : "text-muted"}`}>{food.name}</p>
+                      <p aria-hidden="true" className={`type-row font-semibold ${isCollected ? "text-foreground" : "text-muted"}`}>{food.name}</p>
                     </div>
                   </li>
                 );
@@ -494,6 +536,7 @@ export function DictionaryClient() {
           )}
         </div>
       </section>
+      </div>
     </main>
   );
 }
