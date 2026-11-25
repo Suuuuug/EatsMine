@@ -8,7 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { FilterChip, useToast } from "@/components/em";
+import {
+  ActionButton,
+  EmptyState,
+  FilterChip,
+  SkeletonRow,
+  useToast,
+} from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import {
   InteractiveTileMap,
@@ -16,6 +22,11 @@ import {
 } from "@/components/map/InteractiveTileMap";
 import { RestaurantReviewSheet } from "@/components/map/RestaurantReviewSheet";
 import { sortRegions, validEatplUrl } from "@/lib/map/home-contract";
+import { isPreviewMode } from "@/lib/map/map-data";
+import {
+  useMapRestaurants,
+  useTerritoryOwners,
+} from "@/lib/map/use-map-data";
 import {
   SITE_NAME,
   formatTravelFullName,
@@ -136,6 +147,13 @@ export function MapExplorerClient({
 }: MapExplorerClientProps = {}) {
   const searchParams = useSearchParams();
   const { show: showToast, toast } = useToast();
+
+  // 예시 모드(API 주소 미설정 또는 /?preview=1). 지역 선택 시 URL에서 preview가 빠져도 유지되도록 진입 시 한 번만 정한다.
+  const [isPreview] = useState(() =>
+    isPreviewMode(process.env.NEXT_PUBLIC_API_URL, searchParams.toString()),
+  );
+  const apiBase = isPreview ? null : (process.env.NEXT_PUBLIC_API_URL ?? null);
+  const [searchAttempt, setSearchAttempt] = useState(0);
 
   // 프론트 내장 전국 16개 시·도 + 230개 시·군·구 목록 (직관적 목록 탐색 + 0ms 자동완성 검색용)
   const [allProvinces, setAllProvinces] = useState<
@@ -390,27 +408,35 @@ export function MapExplorerClient({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [suggestionsOpen]);
 
-  // 공유 영토 땅따먹기 주인 맵 (예시 데이터 — 백엔드 연동 시 GET /territories로 교체)
+  // 공유 영토 땅따먹기 주인 맵 (실제: GET /territories, 예시 모드: 예시 데이터)
+  const apiOwners = useTerritoryOwners(apiBase);
   const ownersByRegion = useMemo(() => {
     const map = new Map<string, TerritoryOwner>();
-    for (const owner of MOCK_TERRITORY_OWNERS) {
+    for (const owner of isPreview ? MOCK_TERRITORY_OWNERS : apiOwners) {
       map.set(owner.regionCode, owner);
     }
     return map;
-  }, []);
+  }, [isPreview, apiOwners]);
 
-  // 현재 조건에 맞는 예시 식당 검색 결과
-  // TODO(api): 백엔드 연동 시 이 지점에서 NEXT_PUBLIC_API_URL과 /?preview=1 분기를 연결한다.
-  // - 실제 모드: home-contract의 buildRestaurantUrl(apiBase, selectedRegion.code, foodId)로 GET /restaurants 호출,
-  //   HTTP 401/403/502/503 오류 상태 안내 UI를 표시하고 후기 집계는 formatReviewSummary, 외부 링크는 validEatplUrl(원본 그대로, 쿼리 추가 금지)을 재사용한다.
-  // - 예시 모드(/?preview=1 또는 API 미설정): 아래 buildMockSearchResult 결과를 표시한다.
-  const result = useMemo(() => {
-    if (!selectedRegion) return null;
+  // 식당 검색 결과
+  // - 실제 모드: GET /restaurants?regionCode=&genre= (업종 여러 개면 업종마다 조회해 합침). 음식 진입(/?food=slug)은 프리셋의 지역·업종으로 조회한다.
+  // - 예시 모드(/?preview=1 또는 API 미설정): buildMockSearchResult 결과를 표시한다.
+  const apiSearch = useMapRestaurants(
+    apiBase,
+    selectedRegion?.code ?? null,
+    selectedGenres,
+    searchAttempt,
+  );
+  const mockResult = useMemo(() => {
+    if (!isPreview || !selectedRegion) return null;
     return buildMockSearchResult(selectedRegion, {
       genres: selectedGenres,
       foodLabel: activeFood?.name ?? null,
     });
-  }, [selectedRegion, selectedGenres, activeFood]);
+  }, [isPreview, selectedRegion, selectedGenres, activeFood]);
+  const result = isPreview ? mockResult : apiSearch.result;
+  const searchLoading = !isPreview && apiSearch.loading;
+  const searchError = isPreview ? "" : apiSearch.error;
 
   const places = result?.items ?? [];
   const currentOwner = selectedRegion
@@ -744,7 +770,8 @@ export function MapExplorerClient({
                   <span className="font-semibold text-foreground">
                     {currentOwner.ownerNickname}
                   </span>{" "}
-                  · 리뷰 {currentOwner.reviewCount}(예시)
+                  · 리뷰 {currentOwner.reviewCount}
+                  {isPreview ? "(예시)" : ""}
                 </p>
               )}
               {selectedGenres.map((genre) => (
@@ -1037,8 +1064,40 @@ export function MapExplorerClient({
                 </ul>
               )}
             </div>
+          ) : searchLoading ? (
+            <div aria-busy="true" aria-label="식당 목록을 불러오는 중">
+              {Array.from({ length: 4 }, (_, i) => (
+                <SkeletonRow key={i} />
+              ))}
+            </div>
+          ) : searchError ? (
+            <EmptyState
+              illustration="load-error"
+              message={searchError}
+              action={
+                <ActionButton
+                  variant="tinted"
+                  size="sm"
+                  onClick={() => setSearchAttempt((n) => n + 1)}
+                >
+                  다시 시도
+                </ActionButton>
+              }
+            />
+          ) : places.length === 0 ? (
+            <EmptyState
+              illustration="empty-search"
+              message={
+                selectedGenres.length
+                  ? "고른 업종의 식당이 없어요. 필터를 바꿔 보세요."
+                  : "이 지역의 식당 정보를 찾지 못했어요."
+              }
+            />
           ) : (
-            <ul aria-label="식당 목록(예시)" className="divide-y divide-line">
+            <ul
+              aria-label={isPreview ? "식당 목록(예시)" : "식당 목록"}
+              className="divide-y divide-line"
+            >
               {places.map((place) => {
                 const isSelected = place.id === selectedPlaceId;
                 const reviewSummary = getSamplePlaceReviews(
@@ -1276,7 +1335,7 @@ export function MapExplorerClient({
           userLocation={userLocation}
           fitTrigger={fitTrigger}
           ownersByRegion={ownersByRegion}
-          isSampleOwners
+          isSampleOwners={isPreview}
           selectedRegionCode={selectedRegion?.code ?? null}
           onSelectRegion={handleSelectRegion}
           focusProvinceCode={browsingProvinceCode}
