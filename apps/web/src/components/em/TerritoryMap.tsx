@@ -523,7 +523,7 @@ export function TerritoryMap({
 
       {!compact && markedText && <p className="sr-only">추천 지역: {markedText}</p>}
       {!compact && meta && (
-        <p className="type-caption font-normal text-muted">
+        <p className="truncate text-right text-[clamp(9px,2.5vw,12px)] leading-tight font-normal tracking-tight whitespace-nowrap text-muted sm:text-xs sm:tracking-normal">
           통계청 SGIS({meta.sourceDate}) · krmap · admdongkor (CC BY 4.0) 행정구역
           경계 기준
         </p>

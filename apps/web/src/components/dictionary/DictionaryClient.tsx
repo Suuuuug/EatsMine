@@ -3,10 +3,21 @@
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { RankSection } from "./RankSection";
+import { RankSection, type RankSectionStatus } from "./RankSection";
 import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
+import { useSession } from "@/lib/auth/session";
+import {
+  fetchFoods,
+  fetchMyDictionaryState,
+  fetchTerritories,
+  mergeFoodsWithApi,
+  normalizeApiBase,
+  resolveCollectedSlugs,
+  type ApiTerritoryOwner,
+  type MyDictionaryState,
+} from "@/lib/dictionary/dictionary-api";
 import { foodSelectionParams, parseFoodSelection } from "@/lib/dictionary/food-region-selection";
 import { FoodDetail } from "./FoodDetail";
 import {
@@ -15,7 +26,9 @@ import {
   SEASON_TABS,
 } from "@/data/seasonal-foods";
 import { currentSeason } from "@/lib/theme/theme";
-import type { SeasonKey } from "@/types/dictionary";
+import type { SeasonKey, SeasonalFoodItem } from "@/types/dictionary";
+
+const apiBase = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL);
 
 const subscribeToSeason = () => () => {};
 const serverSeason = (): SeasonKey => "all";
@@ -251,10 +264,113 @@ export function DictionaryClient() {
   }, [collectionParam]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const sessionState = useSession();
+  const accessToken =
+    sessionState.status === "ready"
+      ? (sessionState.session?.accessToken ?? null)
+      : null;
+
+  // 백엔드 GET /foods 목록 동기화 (초기 렌더는 스냅샷으로 즉시 표시하고 응답 시 숫자 apiId·최신 DB 데이터 반영)
+  const [foods, setFoods] = useState<SeasonalFoodItem[]>(SEASONAL_FOODS);
+  const [foodsAttempt, setFoodsAttempt] = useState(0);
+  const [foodsLoad, setFoodsLoad] = useState<{
+    attempt: number;
+    status: "ready" | "error";
+  } | null>(null);
+  const foodsStatus: "loading" | "ready" | "error" = !apiBase
+    ? "ready"
+    : foodsLoad?.attempt === foodsAttempt
+      ? foodsLoad.status
+      : "loading";
+  const foodsSyncError = foodsStatus === "error";
+
+  const [territoryState, setTerritoryState] = useState<{
+    live: boolean;
+    windowDays: number;
+    ownersByRegion: Record<string, ApiTerritoryOwner>;
+  }>({ live: false, windowDays: 30, ownersByRegion: {} });
+
+  const [myAttempt, setMyAttempt] = useState(0);
+  const myKey = accessToken ? `${accessToken}#${myAttempt}` : "";
+  const [myLoad, setMyLoad] = useState<
+    | { key: string; status: "ready"; data: MyDictionaryState }
+    | { key: string; status: "unauthorized" | "error" }
+    | null
+  >(null);
+
+  const myRecordStatus: RankSectionStatus =
+    sessionState.status === "loading"
+      ? "loading"
+      : !accessToken
+        ? "sample"
+        : !apiBase
+          ? "error"
+          : myLoad?.key !== myKey
+            ? "loading"
+            : myLoad.status === "ready"
+              ? "live"
+              : myLoad.status;
+  const myState =
+    myLoad?.key === myKey && myLoad.status === "ready" ? myLoad.data : null;
+
+  useEffect(() => {
+    if (!apiBase) return;
+    const controller = new AbortController();
+    fetchFoods(apiBase, controller.signal)
+      .then((apiItems) => {
+        setFoods(mergeFoodsWithApi(SEASONAL_FOODS, apiItems));
+        setFoodsLoad({ attempt: foodsAttempt, status: "ready" });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setFoodsLoad({ attempt: foodsAttempt, status: "error" });
+        }
+      });
+    return () => controller.abort();
+  }, [foodsAttempt]);
+
+  // 백엔드 GET /territories 공유 영토 주인 조회
+  useEffect(() => {
+    if (!apiBase) return;
+    const controller = new AbortController();
+    fetchTerritories(apiBase, controller.signal)
+      .then((data) => {
+        setTerritoryState({
+          live: true,
+          windowDays: data.windowDays,
+          ownersByRegion: data.ownersByRegion,
+        });
+      })
+      .catch(() => {
+        // 실패 시 예시 폴백 유지
+      });
+    return () => controller.abort();
+  }, []);
+
+  // 로그인 세션 토큰이 있을 때만 인증 API(GET /me, /me/collection) 조회 (실패·만료 시 비로그인 예시와 구분)
+  useEffect(() => {
+    if (!apiBase || !accessToken || !myKey) return;
+    const controller = new AbortController();
+    fetchMyDictionaryState(apiBase, accessToken, controller.signal)
+      .then((result) => {
+        if (result.status === "unauthorized") {
+          setMyLoad({ key: myKey, status: "unauthorized" });
+        } else {
+          setMyLoad({ key: myKey, status: "ready", data: result.data });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setMyLoad({ key: myKey, status: "error" });
+        }
+      });
+    return () => controller.abort();
+  }, [accessToken, myKey]);
+
   // 음식·지역 선택은 URL이 정본이다. pushState로 바꾸면 Next가 useSearchParams에 반영하고, 뒤로 가기·새로고침도 같은 경로로 복원된다.
-  const knownSlugs = useMemo(() => new Set(SEASONAL_FOODS.map((f) => f.id)), []);
+  const knownSlugs = useMemo(() => new Set(foods.map((f) => f.id)), [foods]);
   const selection = parseFoodSelection(new URLSearchParams(searchParams.toString()), knownSlugs);
-  const selectedFood = SEASONAL_FOODS.find((f) => f.id === selection.food) ?? null;
+  const selectedFood = foods.find((f) => f.id === selection.food) ?? null;
   const gridScroll = useRef<number | null>(null);
   const lastTile = useRef<string | null>(null);
   const hadFood = useRef(false);
@@ -286,8 +402,20 @@ export function DictionaryClient() {
   const tabIdPrefix = useId();
   const panelId = useId();
 
-  // 백엔드(/api/me/collection) 연결 전까지는 예시 수집 상태 사용
-  const collectedSet = useMemo(() => new Set(SAMPLE_COLLECTED_FOOD_IDS), []);
+  // 로그인 실데이터는 /me/collection, 비로그인은 예시 수집 상태, 로딩·만료·오류는 예시로 대체하지 않음
+  const collectedSet = useMemo(() => {
+    if (myRecordStatus === "live" && myState) {
+      return resolveCollectedSlugs(
+        foods,
+        myState.collectedFoodIds,
+        myState.collectedFoodNames,
+      );
+    }
+    if (myRecordStatus === "sample") {
+      return new Set(SAMPLE_COLLECTED_FOOD_IDS);
+    }
+    return new Set<string>();
+  }, [foods, myRecordStatus, myState]);
 
   // 계절별 전체 수 / 수집 수 집계
   const seasonStats = useMemo(() => {
@@ -299,7 +427,7 @@ export function DictionaryClient() {
       winter: { collected: 0, total: 0 },
     };
 
-    for (const food of SEASONAL_FOODS) {
+    for (const food of foods) {
       const isCollected = collectedSet.has(food.id);
       stats.all.total += 1;
       for (const season of food.seasons) stats[season].total += 1;
@@ -310,12 +438,12 @@ export function DictionaryClient() {
     }
 
     return stats;
-  }, [collectedSet]);
+  }, [foods, collectedSet]);
 
   const filteredFoods = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
-    return SEASONAL_FOODS.filter((food) => {
+    return foods.filter((food) => {
       if (selectedSeason !== "all" && !food.seasons.includes(selectedSeason)) {
         return false;
       }
@@ -342,7 +470,7 @@ export function DictionaryClient() {
 
       return haystack.includes(keyword);
     });
-  }, [query, selectedSeason, collectionFilter, collectedSet]);
+  }, [foods, query, selectedSeason, collectionFilter, collectedSet]);
 
   const activeSeasonStat = seasonStats[selectedSeason];
   const activeSeasonLabel =
@@ -391,6 +519,13 @@ export function DictionaryClient() {
           key={selectedFood.id}
           food={selectedFood}
           regionCode={selection.regionCode}
+          territoryLive={territoryState.live}
+          territoryWindowDays={territoryState.windowDays}
+          territoryOwners={territoryState.ownersByRegion}
+          myUserId={myState?.userId ?? null}
+          accessToken={accessToken}
+          foodsStatus={foodsStatus}
+          onRetryFoods={() => setFoodsAttempt((n) => n + 1)}
           onSelectRegion={(code) => writeSelection(selectedFood.id, code)}
           onBack={clearFood}
         />
@@ -434,7 +569,13 @@ export function DictionaryClient() {
 
       {/* 2행: 수집 현황과 랭크를 한 카드로 */}
       <RankSection
-        reviewCount={DUMMY_MY_REVIEW_COUNT}
+        reviewCount={
+          myRecordStatus === "live" && myState
+            ? myState.reviewCount
+            : DUMMY_MY_REVIEW_COUNT
+        }
+        status={myRecordStatus}
+        onRetry={() => setMyAttempt((n) => n + 1)}
         collection={
           <ProgressBar
             label={activeSeasonLabel}
@@ -444,6 +585,24 @@ export function DictionaryClient() {
           />
         }
       />
+
+      {foodsSyncError && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line bg-surface px-4 py-2.5"
+        >
+          <p className="type-caption text-muted">
+            최신 도감 정보를 불러오지 못해 저장된 목록으로 보여드려요.
+          </p>
+          <button
+            type="button"
+            onClick={() => setFoodsAttempt((n) => n + 1)}
+            className="pressable inline-flex min-h-9 items-center rounded-button px-2.5 type-caption font-semibold text-accent-dark focus-ring"
+          >
+            다시 불러오기
+          </button>
+        </div>
+      )}
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
       <section className="flex flex-col gap-4 sm:gap-6">

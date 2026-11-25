@@ -1168,16 +1168,16 @@ export function MapExplorerClient({
                             }}
                             className="pressable inline-flex min-h-8 items-center gap-1 rounded-input text-xs font-semibold text-accent-dark focus-ring"
                           >
-                            <span>잇플 상세 보기</span>
+                            <span>자세히 보기</span>
                             <Icon name="external" size={13} />
                           </a>
                         ) : (
                           <span
                             aria-disabled="true"
-                            title="백엔드 API 연동 후 실제 잇플 상세 페이지로 연결돼요"
+                            title="백엔드 API 연동 후 가게 상세 페이지로 연결돼요"
                             className="inline-flex min-h-8 cursor-not-allowed items-center gap-1 text-xs font-medium text-muted/75"
                           >
-                            <span>잇플 상세 보기(예시)</span>
+                            <span>자세히 보기(예시)</span>
                           </span>
                         )}
                       </div>

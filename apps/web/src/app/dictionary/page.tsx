@@ -31,7 +31,7 @@ const dictionaryJsonLd = {
     "@type": "ListItem",
     position: index + 1,
     name: `${food.name} (${food.seasonLabel})`,
-    description: `${food.regions.join(" · ")} 대표 제철 먹거리`,
+    description: `${food.regions.map((r) => r.name).join(" · ")} 대표 제철 먹거리`,
   })),
 };
 
