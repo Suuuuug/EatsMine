@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icon/Icon";
 import type { IconName } from "@/components/icon/names";
+import { ShareIconButton, ShareRailButton } from "@/components/layout/ShareAction";
 
 interface NavItem {
   href: string;
@@ -36,7 +37,7 @@ export function Sidebar() {
   return (
     <>
       {/* 모바일 전용 인라인 브랜드 마크 (고정 상단바 없이 본문 상단에서 자연스럽게 스크롤됨) */}
-      <div className="flex items-center px-5 pt-3.5 pb-0.5 md:hidden">
+      <div className="flex items-center justify-between pr-2 pl-5 pt-2 md:hidden">
         <Link
           href="/"
           aria-label="EatsMine 홈"
@@ -53,6 +54,7 @@ export function Sidebar() {
             EatsMine
           </span>
         </Link>
+        <ShareIconButton />
       </div>
 
       {/* 데스크톱 왼쪽 고정 사이드바 */}
@@ -99,6 +101,9 @@ export function Sidebar() {
             );
           })}
         </nav>
+        <div className="pb-3">
+          <ShareRailButton />
+        </div>
       </aside>
 
       {/* 모바일 하단 고정 유리 탭바 */}

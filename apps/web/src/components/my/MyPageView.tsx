@@ -4,15 +4,13 @@ import { RecordSection } from "@/components/my/RecordSection";
 import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import regionCodes from "../../../public/images/maps/region-codes.json";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { PrivacySettings } from "@/components/my/PrivacySettings";
-import { ShareButton } from "@/components/my/ShareButton";
 import { ThemeSetting } from "@/components/my/ThemeSetting";
 import { MySection } from "@/components/my/MySection";
 import { SignOutButton } from "@/components/my/SignOutButton";
 import { ReviewList } from "@/components/my/ReviewList";
 import { ScrollActivity } from "@/components/scroll/ScrollActivity";
 import { GlassCard } from "@/components/ui";
-import { formatSince, shareText } from "@/lib/my-page/format";
+import { formatSince } from "@/lib/my-page/format";
 import { collectionSummary, territorySummary } from "@/lib/my-page/summary";
 import { SEASONAL_FOODS, SAMPLE_COLLECTED_FOOD_IDS } from "@/data/seasonal-foods";
 import type { MyPageData } from "@/types/my-page";
@@ -23,13 +21,15 @@ type MyPageViewProps = {
   member: boolean;
   /** 우리 API를 부를 때 쓰는 로그인 토큰. 미리보기·비로그인은 null. */
   token?: string | null;
+  /** 후기를 지운 뒤 영토·도감을 다시 읽는다. 예시 화면은 쓰지 않는다. */
+  onReviewDeleted?: () => void;
 };
 
 /*
  * 두 열 격자. 같은 줄의 구역은 제목 줄 높이가 같고 카드가 늘어나 위·아래 선이 맞는다.
- * 줄: 프로필 | 화면 모드 · 내 영토 | 내 도감 · 후기 | 공개 범위. 모바일은 order로 영토·도감을 먼저 둔다.
+ * 줄: 프로필 | 화면 모드 · 내 영토 | 내 도감 · 후기 | 공유. 모바일은 order로 영토·도감을 먼저 둔다.
  */
-export function MyPageView({ data, member, token = null }: MyPageViewProps) {
+export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPageViewProps) {
   const { profile, regionVisits, foodCollection, reviews } = data;
 
   return (
@@ -76,11 +76,7 @@ export function MyPageView({ data, member, token = null }: MyPageViewProps) {
           >
             <CollectionPreview collectedNames={data.isSample ? undefined : foodCollection.map((item) => item.food_name)} />
           </RecordSection>
-          <ReviewList reviews={reviews} className="order-4 lg:order-5" />
-          <div className="order-6 flex min-w-0 flex-col gap-4">
-            <PrivacySettings enabled={member} token={token} userId={profile.id} className="flex-1" />
-            <ShareButton label="EatsMine 공유하기" text={shareText(data)} />
-          </div>
+          <ReviewList reviews={reviews} token={member ? token : null} onDeleted={onReviewDeleted} className="order-4 lg:order-5 lg:col-span-2" />
         </div>
       </main>
     </div>

@@ -39,6 +39,21 @@ export async function apiFetch<T>(path: string, token: string, init?: RequestIni
 
 const clampRating = (n: number): MyReview["rating"] => Math.min(5, Math.max(1, Math.round(n))) as MyReview["rating"];
 
+/** API 후기 → 화면 후기. 잇플 merUrl은 응답값 그대로 둔다. */
+export function toMyReview(r: ReviewDto): MyReview {
+  return {
+    id: String(r.id),
+    restaurant_id: r.restaurant.id,
+    restaurant_name: r.restaurant.name,
+    mer_url: r.restaurant.merUrl,
+    rating: clampRating(r.rating),
+    content: r.content ?? "",
+    visited_at: r.visitedAt ?? r.createdAt.slice(0, 10),
+    visibility: r.visibility,
+    created_at: r.createdAt,
+  };
+}
+
 export function toMyPageData(
   profile: ProfileDto,
   reviews: ReviewDto[],
@@ -56,17 +71,7 @@ export function toMyPageData(
     food_name: c.foodName,
     collected_at: c.collectedAt,
   }));
-  const myReviews: MyReview[] = reviews.map((r) => ({
-    id: String(r.id),
-    restaurant_id: r.restaurant.id,
-    restaurant_name: r.restaurant.name,
-    mer_url: r.restaurant.merUrl,
-    rating: clampRating(r.rating),
-    content: r.content ?? "",
-    visited_at: r.visitedAt ?? r.createdAt.slice(0, 10),
-    visibility: r.visibility,
-    created_at: r.createdAt,
-  }));
+  const myReviews: MyReview[] = reviews.map(toMyReview);
   return { isSample: false, profile: p, regionVisits, foodCollection, reviews: myReviews };
 }
 
@@ -80,6 +85,33 @@ export async function fetchMyPage(token: string): Promise<MyPageData> {
   return toMyPageData(profile, reviews.items, territories, collection);
 }
 
-export type ShareType = "territory" | "collection";
-export const createShare = (token: string, type: ShareType) => apiFetch<{ id: string }>("/me/shares", token, { method: "POST", body: JSON.stringify({ type }) });
-export const removeShare = (token: string, type: ShareType) => apiFetch<void>(`/me/shares/${type}`, token, { method: "DELETE" });
+export type PublicReviewDto = {
+  id: number;
+  author: { nickname: string; rank: string; rankLabel: string; avatarUrl: string | null };
+  rating: number;
+  content: string | null;
+  visitedAt: string | null;
+  createdAt: string;
+};
+export type RestaurantReviewsDto = { restaurantId: string; summary: { average: number; count: number } | null; items: PublicReviewDto[] };
+
+/** 매장 공개 후기(로그인 불필요). 매장 ID는 merUrl 끝 고유값이다. */
+export async function fetchRestaurantReviews(restaurantId: string): Promise<RestaurantReviewsDto> {
+  if (!apiBase) throw new ApiError(0);
+  const response = await fetch(`${apiBase}/restaurants/${encodeURIComponent(restaurantId)}/reviews`, { cache: "no-store" });
+  if (!response.ok) throw new ApiError(response.status);
+  return (await response.json()) as RestaurantReviewsDto;
+}
+
+export type CreateReviewInput = { merUrl: string; restaurantName: string; rating: number; content?: string; visibility: "private" | "public" };
+/** 후기 저장. merUrl은 잇플 응답값 그대로 보낸다. 사진은 API에 아직 없어 보내지 않는다. */
+export const createReview = (token: string, input: CreateReviewInput) =>
+  apiFetch<{ id: number }>("/reviews", token, { method: "POST", body: JSON.stringify(input) });
+
+export type ReviewPatch = { rating?: number; content?: string; visibility?: "private" | "public" };
+/** 내 후기 수정. 빈 내용은 후기 글 없음으로 저장된다. */
+export const updateReview = (token: string, id: string, patch: ReviewPatch) =>
+  apiFetch<ReviewDto>(`/reviews/${encodeURIComponent(id)}`, token, { method: "PATCH", body: JSON.stringify(patch) });
+/** 내 후기 삭제. 이 후기로 받은 영토·도감 기록도 서버가 함께 되돌린다. */
+export const deleteReview = (token: string, id: string) =>
+  apiFetch<void>(`/reviews/${encodeURIComponent(id)}`, token, { method: "DELETE" });
