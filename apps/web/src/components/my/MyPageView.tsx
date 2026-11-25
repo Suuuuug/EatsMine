@@ -5,7 +5,6 @@ import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import regionCodes from "../../../public/images/maps/region-codes.json";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeSetting } from "@/components/my/ThemeSetting";
-import { InfoLinks } from "@/components/my/InfoLinks";
 import { MySection } from "@/components/my/MySection";
 import { SignOutButton } from "@/components/my/SignOutButton";
 import { ReviewList } from "@/components/my/ReviewList";
@@ -58,7 +57,7 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
               {member && token && <SignOutButton />}
             </GlassCard>
           </MySection>
-          <ThemeSetting className="order-6 lg:order-2" />
+          <ThemeSetting className="order-5 lg:order-2" />
           <RecordSection
             id="my-territory"
             title="내 영토"
@@ -78,7 +77,6 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
             <CollectionPreview collectedNames={data.isSample ? undefined : foodCollection.map((item) => item.food_name)} />
           </RecordSection>
           <ReviewList reviews={reviews} token={member ? token : null} onDeleted={onReviewDeleted} className="order-4 lg:order-5 lg:col-span-2" />
-          <InfoLinks className="order-5 lg:order-6 lg:col-span-2" />
         </div>
       </main>
     </div>
