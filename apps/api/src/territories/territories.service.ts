@@ -12,7 +12,7 @@ export const TERRITORY_WINDOW_DAYS = 30;
 export type TerritoryOwner = {
   regionCode: string;
   ownerNickname: string;
-  /** 최근 30일 그 지역 매장에 남긴 리뷰 수 */
+  /** 최근 30일 그 지역 매장에 남긴 공개 리뷰 수 */
   reviewCount: number;
 };
 
@@ -35,7 +35,7 @@ export type RegionRankingDto = {
   windowDays: number;
   /** 상위 RANKING_LIMIT명 (1위 = 영토 주인) */
   items: RankingEntryDto[];
-  /** 로그인했고 이 지역에 최근 30일 리뷰가 있으면 내 순위 (목록 밖이어도), 아니면 null */
+  /** 로그인했고 이 지역에 최근 30일 공개 리뷰가 있으면 내 순위 (목록 밖이어도), 아니면 null */
   me: RankingEntryDto | null;
 };
 
@@ -72,9 +72,10 @@ export class TerritoriesService {
   constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {}
 
   /**
-   * 공유 영토 (D10): 지역마다 최근 30일 리뷰를 가장 많이 남긴 사용자가 주인.
+   * 공유 영토 (D10): 지역마다 최근 30일 공개 리뷰를 가장 많이 남긴 사용자가 주인.
    * 동점이면 그 리뷰 수에 먼저 도달한 사용자 (= 마지막 리뷰 시각이 더 이른 사람).
    * 공개 범위: 닉네임 + 지역 단위 리뷰 수만.
+   * 나만 보기(private) 리뷰는 세지 않는다 — 셌다면 비공개로 쓴 사람의 방문 지역이 공개 화면에 드러난다.
    */
   async owners(): Promise<TerritoryOwner[]> {
     const result = await this.db.execute<{
@@ -88,6 +89,7 @@ export class TerritoriesService {
         FROM ${reviews}
         JOIN ${restaurants} ON ${restaurants.id} = ${reviews.restaurantId}
         WHERE ${restaurants.regionCode} IS NOT NULL
+          AND ${reviews.visibility} = 'public'
           AND ${reviews.createdAt} >= now() - make_interval(days => ${TERRITORY_WINDOW_DAYS})
         GROUP BY 1, 2
       )
@@ -105,7 +107,8 @@ export class TerritoriesService {
 
   /**
    * 지역 안 사용자 순위 (도감 "이 지역 순위"). 기준은 영토 주인과 같다:
-   * 최근 30일 그 지역 매장 리뷰 수, 동점이면 먼저 도달한 사람.
+   * 최근 30일 그 지역 매장 공개 리뷰 수, 동점이면 먼저 도달한 사람. 나만 보기 리뷰는 세지 않는다.
+   * 그래서 공개 리뷰가 없는 사람은 로그인해도 me가 null이다.
    */
   async ranking(
     regionCode: string,
@@ -130,6 +133,7 @@ export class TerritoriesService {
         FROM ${reviews}
         JOIN ${restaurants} ON ${restaurants.id} = ${reviews.restaurantId}
         WHERE ${restaurants.regionCode} = ${regionCode}
+          AND ${reviews.visibility} = 'public'
           AND ${reviews.createdAt} >= now() - make_interval(days => ${TERRITORY_WINDOW_DAYS})
         GROUP BY 1
       ), ranked AS (
