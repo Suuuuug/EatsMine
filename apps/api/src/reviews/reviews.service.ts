@@ -22,6 +22,7 @@ import {
   rankLabel,
 } from '../profiles/ranks.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
+import { roundAverage } from './review-summary.service.js';
 
 type Db = NodePgDatabase;
 /** drizzle 트랜잭션 객체 (db와 같은 쿼리 API) */
@@ -481,7 +482,7 @@ export function toRestaurantReviewsDto(
     restaurantId,
     summary:
       total > 0 && Number.isFinite(average)
-        ? { average: Math.round(average * 10) / 10, count: total }
+        ? { average: roundAverage(average), count: total }
         : null,
     items: rows.map((r) => ({
       id: r.id,

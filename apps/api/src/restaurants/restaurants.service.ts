@@ -12,6 +12,10 @@ import {
 } from '../eatpl/eatpl.types.js';
 import { FoodsService } from '../foods/foods.service.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
+import {
+  type ReviewSummaryDto,
+  ReviewSummaryService,
+} from '../reviews/review-summary.service.js';
 
 /**
  * 음식 검색에서 매장을 찾은 방법 (잇플에는 메뉴 정보가 없음)
@@ -20,12 +24,17 @@ import { AddressMatcher } from '../regions/address-matcher.js';
  */
 export type MatchedBy = 'keyword' | 'genre';
 
+/** 잇플 매장 + 우리 서비스의 공개 후기 요약 (후기 없으면 null) */
+export type RestaurantListItem = EatplPlace & {
+  reviewSummary: ReviewSummaryDto | null;
+};
+
 export type RestaurantSearchResult = {
   region: { code: string; fullName: string };
   /** foodId로 검색했을 때만 */
   food?: { id: number; name: string };
   matchedBy?: MatchedBy;
-  items: EatplPlace[];
+  items: RestaurantListItem[];
   source: string;
   fetchedAt: string;
 };
@@ -39,6 +48,7 @@ export class RestaurantsService {
     private readonly eatpl: EatplClient,
     private readonly addressMatcher: AddressMatcher,
     private readonly foods: FoodsService,
+    private readonly reviewSummaries: ReviewSummaryService,
   ) {}
 
   /**
@@ -144,16 +154,22 @@ export class RestaurantsService {
     return places.filter((_, i) => matched[i] === region.code);
   }
 
-  private result(
+  private async result(
     region: Region,
-    items: EatplPlace[],
+    places: EatplPlace[],
     food?: { id: number; name: string },
     matchedBy?: MatchedBy,
-  ): RestaurantSearchResult {
+  ): Promise<RestaurantSearchResult> {
+    const summaries = await this.reviewSummaries.forRestaurants(
+      places.map((p) => p.id),
+    );
     return {
       region: { code: region.code, fullName: region.fullName },
       ...(food && { food, matchedBy }),
-      items,
+      items: places.map((p) => ({
+        ...p,
+        reviewSummary: summaries.get(p.id) ?? null,
+      })),
       source: EATPL_ATTRIBUTION,
       fetchedAt: new Date().toISOString(),
     };

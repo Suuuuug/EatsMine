@@ -10,6 +10,7 @@ import { RateLimitGuard } from '../common/rate-limit/rate-limit.guard.js';
 import { EatplClient } from '../eatpl/eatpl.client.js';
 import { FoodsService } from '../foods/foods.service.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
+import { ReviewSummaryService } from '../reviews/review-summary.service.js';
 import { RestaurantsController } from './restaurants.controller.js';
 import { RestaurantsService } from './restaurants.service.js';
 
@@ -41,6 +42,7 @@ describe('GET /restaurants', () => {
   const eatpl = { search: vi.fn() };
   const matcher = { match: vi.fn() };
   const foods = { searchInfo: vi.fn() };
+  const summaries = { forRestaurants: vi.fn() };
 
   /** regions 조회 결과(코드별)를 정해서 앱을 띄운다 (drizzle select 체인 최소 목) */
   async function createApp(regionRows: (typeof SEOUL_JUNG)[]) {
@@ -66,6 +68,7 @@ describe('GET /restaurants', () => {
         { provide: EatplClient, useValue: eatpl },
         { provide: AddressMatcher, useValue: matcher },
         { provide: FoodsService, useValue: foods },
+        { provide: ReviewSummaryService, useValue: summaries },
         { provide: getDrizzleToken(), useValue: db },
       ],
     })
@@ -91,6 +94,7 @@ describe('GET /restaurants', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    summaries.forRestaurants.mockResolvedValue(new Map());
     // 주소 앞부분으로 지역 판별 (테스트용)
     matcher.match.mockImplementation(async (addr: string) =>
       addr.startsWith('대전')
@@ -176,6 +180,34 @@ describe('GET /restaurants', () => {
       location: '서울 중구',
       genre: undefined,
     });
+  });
+
+  it('매장마다 공개 후기 요약을 붙이고 없으면 null', async () => {
+    const server = await createApp([SEOUL_JUNG]);
+    eatpl.search.mockResolvedValue([
+      place('a', '서울 중구 1'),
+      place('b', '서울 중구 2'),
+    ]);
+    const summaryA = {
+      average: 4.5,
+      count: 2,
+      featured: {
+        id: 9,
+        nickname: '미식탐험가1234',
+        rating: 5,
+        content: '최고',
+      },
+    };
+    summaries.forRestaurants.mockResolvedValue(new Map([['a', summaryA]]));
+
+    const res = await request(server)
+      .get('/restaurants')
+      .query({ regionCode: '11140' })
+      .expect(200);
+
+    expect(summaries.forRestaurants).toHaveBeenCalledWith(['a', 'b']);
+    expect(res.body.items[0].reviewSummary).toEqual(summaryA);
+    expect(res.body.items[1].reviewSummary).toBeNull();
   });
 
   it('없는 지역은 404 NOT_FOUND', async () => {
