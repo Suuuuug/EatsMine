@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icon/Icon";
+import { IslandOutlines } from "@/components/map/IslandOutlines";
 
 /*
  * 영토 지도(수집 현황 표시용 SVG). 전국 16개 시도 → 시도를 고르면 그 안의 영토(키트 기준 230곳).
@@ -199,6 +200,7 @@ export function TerritoryMap({ visited, onSelectTerritory, className = "" }: Ter
                 </path>
               );
             })}
+            <IslandOutlines province={province || null} className={ratioOf(province || "47") === 1 ? "fill-map-full" : ratioOf(province || "47") > 0 ? "fill-map-partial" : "fill-map-empty"} />
           </svg>
         )}
       </div>

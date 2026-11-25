@@ -13,6 +13,8 @@
 @theme {
   /* 주 버튼 위 글자색. 팀 기본(진녹 배경)에서는 배경색. */
   --color-on-accent: #1b2316;
+  /* 어두운 선 일러스트가 다크 모드에서도 읽히는 전용 배경. */
+  --color-illustration-surface: oklch(0.97 0.008 95);
 
   /* 선과 약한 면: 행 구분선, 약한 버튼·입력 바탕 */
   --color-line: rgb(255 255 255 / 0.1);
@@ -38,6 +40,7 @@
   color-scheme: light dark;
   --color-background: light-dark(oklch(0.968 0.006 150), oklch(0.17 0.008 150));
   --color-surface: light-dark(oklch(0.995 0.002 150), oklch(0.215 0.01 150));
+  --color-illustration-surface: light-dark(oklch(0.97 0.008 95), oklch(0.93 0.01 95));
   --color-foreground: light-dark(oklch(0.24 0.014 150), oklch(0.95 0.006 150));
   --color-muted: light-dark(oklch(0.5 0.014 150), oklch(0.74 0.012 150));
   --color-accent: light-dark(oklch(0.52 0.12 150), oklch(0.78 0.13 150));
@@ -116,4 +119,50 @@
   --shadow-card: 0 9px 18px rgb(0 0 0 / 0.25);
   background-color: var(--color-background);
   color: var(--color-foreground);
+}
+
+/* 선택한 화면 모드를 적용한다. 자동은 기기 설정을 따른다. */
+html[data-theme="light"] .em-theme:not([data-theme-scope="local"]) { color-scheme: light; }
+html[data-theme="dark"] .em-theme:not([data-theme-scope="local"]) { color-scheme: dark; }
+/* 계절 그림은 테마에 맞춰 밝기를 조정하고 아래에서 단색과 이어진다. */
+.em-theme.season-backdrop {
+  background-image:
+    radial-gradient(85% 55% at 0% 0%, color-mix(in oklab, var(--color-accent) 17%, transparent), transparent 75%),
+    linear-gradient(to bottom, light-dark(oklch(0.968 0.006 150 / 0.72), oklch(0.17 0.008 150 / 0.84)), var(--color-background) 680px),
+    var(--season-background, url('/images/seasons/winter.webp'));
+  background-size: 100% 100%, 100% 680px, max(100%, 1632px) auto;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+
+html[data-season="spring"] .season-backdrop { --season-background: url('/images/seasons/spring.webp'); }
+html[data-season="summer"] .season-backdrop { --season-background: url('/images/seasons/summer.webp'); }
+html[data-season="autumn"] .season-backdrop { --season-background: url('/images/seasons/autumn.webp'); }
+html[data-season="winter"] .season-backdrop { --season-background: url('/images/seasons/winter.webp'); }
+html[data-dictionary-season="spring"] .season-backdrop { --season-background: url('/images/seasons/spring.webp'); }
+html[data-dictionary-season="summer"] .season-backdrop { --season-background: url('/images/seasons/summer.webp'); }
+html[data-dictionary-season="autumn"] .season-backdrop { --season-background: url('/images/seasons/autumn.webp'); }
+html[data-dictionary-season="winter"] .season-backdrop { --season-background: url('/images/seasons/winter.webp'); }
+
+/* 배경은 화면의 역할을 구분하면서 같은 토큰을 공유한다. */
+.em-theme.explore-backdrop {
+  background-image:
+    radial-gradient(85% 65% at 0% 0%, color-mix(in oklab, var(--color-accent) 20%, transparent), transparent 75%),
+    radial-gradient(75% 65% at 100% 35%, color-mix(in oklab, var(--color-star) 11%, transparent), transparent 75%),
+    linear-gradient(155deg, var(--color-background), color-mix(in oklab, var(--color-accent-weak) 40%, var(--color-background)));
+}
+.em-theme.my-backdrop {
+  background-image:
+    radial-gradient(85% 65% at 100% 0%, color-mix(in oklab, var(--color-accent) 19%, transparent), transparent 75%),
+    radial-gradient(70% 55% at 0% 55%, color-mix(in oklab, var(--color-star) 9%, transparent), transparent 75%),
+    linear-gradient(160deg, var(--color-surface), var(--color-background) 75%);
+  background-attachment: fixed;
+}
+.brand-dark { display: none; }
+html[data-theme="dark"] .brand-light { display: none; }
+html[data-theme="dark"] .brand-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .brand-light, html[data-theme="system"] .brand-light { display: none; }
+  html:not([data-theme]) .brand-dark, html[data-theme="system"] .brand-dark { display: block; }
 }

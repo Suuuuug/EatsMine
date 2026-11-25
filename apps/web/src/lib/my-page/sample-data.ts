@@ -12,18 +12,18 @@ export const SAMPLE_MY_PAGE: MyPageData = {
   },
   regionVisits: [
     { region_id: 11680, region_name: "서울 강남구", first_visited_at: "2026-11-03" },
-    { region_id: 41111, region_name: "수원 장안구", first_visited_at: "2026-11-09" },
+    { region_id: 41110, region_name: "수원시", first_visited_at: "2026-11-09" },
     { region_id: 26350, region_name: "부산 해운대구", first_visited_at: "2026-11-15" },
     { region_id: 30140, region_name: "대전 중구", first_visited_at: "2026-11-21" },
   ],
   foodCollection: [
-    { food_id: 1, food_name: "방어", collected_at: "2026-11-15" },
-    { food_id: 2, food_name: "굴", collected_at: "2026-11-15" },
-    { food_id: 3, food_name: "과메기", collected_at: "2026-11-16" },
-    { food_id: 4, food_name: "꼬막", collected_at: "2026-11-18" },
-    { food_id: 5, food_name: "귤", collected_at: "2026-11-19" },
-    { food_id: 6, food_name: "배추", collected_at: "2026-11-20" },
-    { food_id: 7, food_name: "대게", collected_at: "2026-11-22" },
+    { food_id: 1, food_name: "딸기", collected_at: "2026-11-15" },
+    { food_id: 2, food_name: "감", collected_at: "2026-11-15" },
+    { food_id: 3, food_name: "굴", collected_at: "2026-11-16" },
+    { food_id: 4, food_name: "귤", collected_at: "2026-11-18" },
+    { food_id: 5, food_name: "옥수수", collected_at: "2026-11-19" },
+    { food_id: 6, food_name: "고구마", collected_at: "2026-11-20" },
+    { food_id: 7, food_name: "무", collected_at: "2026-11-22" },
   ],
   reviews: [
     {

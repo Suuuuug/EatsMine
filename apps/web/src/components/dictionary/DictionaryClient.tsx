@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { initialCollectionFilter } from "./collection-filter";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ActionButton, EmptyState, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
@@ -171,7 +172,7 @@ function CollectionFilterDropdown({
         onClick={() => (open ? closeMenu(false) : openMenu(selectedIndex))}
         onKeyDown={handleTriggerKeyDown}
         className={
-          "pressable inline-flex h-9 items-center gap-1.5 rounded-input px-2.5 text-xs font-medium transition-colors " +
+          "pressable inline-flex h-11 items-center gap-1.5 rounded-input px-2.5 text-xs font-medium transition-colors " +
           (open ? "bg-fill text-foreground" : "text-muted hover:text-foreground")
         }
       >
@@ -203,7 +204,7 @@ function CollectionFilterDropdown({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => commitSelection(index)}
                 className={
-                  "flex min-h-8 w-full cursor-pointer items-center justify-between rounded-[7px] px-2.5 py-1 text-left text-xs transition-colors " +
+                  "flex min-h-11 w-full cursor-pointer items-center justify-between rounded-[7px] px-2.5 py-1 text-left text-xs transition-colors " +
                   (selected
                     ? "bg-accent-weak font-semibold text-accent-dark"
                     : highlighted
@@ -223,10 +224,22 @@ function CollectionFilterDropdown({
 }
 
 export function DictionaryClient() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [selectedSeason, setSelectedSeason] = useState<SeasonKey>("all");
+  useEffect(() => {
+    if (selectedSeason === "all") delete document.documentElement.dataset.dictionarySeason;
+    else document.documentElement.dataset.dictionarySeason = selectedSeason;
+    return () => { delete document.documentElement.dataset.dictionarySeason; };
+  }, [selectedSeason]);
   const [collectionFilter, setCollectionFilter] =
-    useState<CollectionFilter>("all");
+    useState<CollectionFilter>(() => initialCollectionFilter(searchParams.get("collection")));
+  const collectionParam = searchParams.get("collection");
+  useEffect(() => {
+    if (collectionParam === null) return;
+    const timer = window.setTimeout(() => setCollectionFilter(initialCollectionFilter(collectionParam)), 0);
+    return () => window.clearTimeout(timer);
+  }, [collectionParam]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabIdPrefix = useId();
@@ -340,7 +353,7 @@ export function DictionaryClient() {
         <form
           role="search"
           onSubmit={(event) => event.preventDefault()}
-          className="flex h-9 w-full items-center gap-2 rounded-input bg-surface/40 px-3 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-52"
+          className="flex h-11 w-full items-center gap-2 rounded-input bg-surface/40 px-3 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-52"
         >
           <Icon name="search" size={15} className="shrink-0 text-muted/80" />
           <input
@@ -361,7 +374,7 @@ export function DictionaryClient() {
                 setQuery("");
                 searchInputRef.current?.focus();
               }}
-              className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:text-foreground focus-ring"
+              className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:text-foreground focus-ring"
             >
               <Icon name="close" size={14} />
             </button>
@@ -371,7 +384,7 @@ export function DictionaryClient() {
 
       {/* 2행: 흰 표면 카드(shadow-card 단일 경계)로 감싼 수집 진행도 */}
       <section aria-label="제철음식 수집 현황">
-        <div className="rounded-card bg-surface/85 px-5 py-4 shadow-card">
+        <div className="rounded-card border border-line bg-surface px-5 py-4">
           <ProgressBar
             label={`${activeSeasonLabel}(예시)`}
             value={activeSeasonStat.collected}
@@ -381,6 +394,8 @@ export function DictionaryClient() {
           />
         </div>
       </section>
+
+      <p className="type-caption text-muted">음식별 식당 연결을 준비하고 있어요.</p>
 
       {/* 3행: 필터 줄(좌: 14px 계절 탭 / 우: 12px 수집 드롭다운) + 4열 카드 그리드 */}
       <section className="flex flex-col gap-4 sm:gap-6">
@@ -408,7 +423,7 @@ export function DictionaryClient() {
                   onClick={() => setSelectedSeason(tab.key)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={
-                    "relative inline-flex min-h-10 shrink-0 cursor-pointer items-center justify-center px-0.5 text-sm whitespace-nowrap transition-colors focus-ring " +
+                    "relative inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center px-0.5 text-sm whitespace-nowrap transition-colors focus-ring " +
                     (active
                       ? "font-semibold text-foreground"
                       : "font-medium text-muted hover:text-foreground")
@@ -434,14 +449,14 @@ export function DictionaryClient() {
           </div>
         </div>
 
-        {/* 4행: 4열 컴팩트 도감 카드 그리드 (클릭 시 /?food={id} 로 지도 이동) */}
+        {/* 음식 ID 계약을 확인하기 전에는 식당 연결을 제공하지 않는다. */}
         <div
           id={panelId}
           role="tabpanel"
           aria-labelledby={`${tabIdPrefix}-${selectedSeason}`}
         >
           {filteredFoods.length === 0 ? (
-            <div className="rounded-card bg-surface/85 py-8 shadow-card">
+            <div className="rounded-card border border-line bg-surface py-8">
               <EmptyState
                 illustration="empty-search"
                 message="고른 계절과 검색어에 맞는 제철음식이 없어요."
@@ -467,22 +482,16 @@ export function DictionaryClient() {
 
                 return (
                   <li key={food.id}>
-                    <Link
-                      href={`/?food=${encodeURIComponent(food.id)}`}
-                      className="pressable group flex h-full flex-col rounded-card bg-surface/85 p-4 shadow-card transition-colors focus-ring"
-                    >
+                    <div className="flex h-full flex-col rounded-card border border-line bg-surface p-4">
                       {/* 상단 공식 음식 SVG 일러스트 (수집: 원색 + ✓ / 미수집: 흑백 옅게) */}
-                      <div className="flex items-center justify-center py-4">
+                      <div className="flex items-center justify-center rounded-input bg-illustration-surface py-4">
                         <span className="relative inline-flex size-20 items-center justify-center">
                           <Image
                             src={food.src}
                             alt=""
                             width={76}
                             height={76}
-                            className={
-                              "transition-transform duration-200 group-hover:scale-105 " +
-                              (isCollected ? "" : "opacity-55 grayscale")
-                            }
+                            className={isCollected ? "" : "opacity-55 grayscale"}
                           />
                           {isCollected && (
                             <span
@@ -508,12 +517,12 @@ export function DictionaryClient() {
                               {isCollected ? ", 수집함" : ", 아직 수집 안 함"}
                             </span>
                           </span>
-                          <Icon
-                            name="chevron-right"
-                            size={15}
-                            className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent-dark"
-                          />
+
                         </div>
+
+                        <p className="text-xs font-medium text-muted">
+                          {isCollected ? "수집함 · 예시" : "미수집 · 예시"}
+                        </p>
 
                         {regionSummary && (
                           <p className="truncate text-xs text-muted">
@@ -525,7 +534,7 @@ export function DictionaryClient() {
                           {food.seasonLabel}
                         </p>
                       </div>
-                    </Link>
+                    </div>
                   </li>
                 );
               })}
