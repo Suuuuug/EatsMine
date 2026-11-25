@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { initialCollectionFilter } from "./collection-filter";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { RankSection } from "./RankSection";
+import { RankSection, type RankSectionStatus } from "./RankSection";
 import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
 import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
@@ -272,19 +272,46 @@ export function DictionaryClient() {
 
   // 백엔드 GET /foods 목록 동기화 (초기 렌더는 스냅샷으로 즉시 표시하고 응답 시 숫자 apiId·최신 DB 데이터 반영)
   const [foods, setFoods] = useState<SeasonalFoodItem[]>(SEASONAL_FOODS);
-  const [foodsSyncError, setFoodsSyncError] = useState(false);
   const [foodsAttempt, setFoodsAttempt] = useState(0);
+  const [foodsLoad, setFoodsLoad] = useState<{
+    attempt: number;
+    status: "ready" | "error";
+  } | null>(null);
+  const foodsStatus: "loading" | "ready" | "error" = !apiBase
+    ? "ready"
+    : foodsLoad?.attempt === foodsAttempt
+      ? foodsLoad.status
+      : "loading";
+  const foodsSyncError = foodsStatus === "error";
+
   const [territoryState, setTerritoryState] = useState<{
     live: boolean;
     windowDays: number;
     ownersByRegion: Record<string, ApiTerritoryOwner>;
   }>({ live: false, windowDays: 30, ownersByRegion: {} });
-  const [myStateLoad, setMyStateLoad] = useState<{
-    token: string;
-    data: MyDictionaryState;
-  } | null>(null);
+
+  const [myAttempt, setMyAttempt] = useState(0);
+  const myKey = accessToken ? `${accessToken}#${myAttempt}` : "";
+  const [myLoad, setMyLoad] = useState<
+    | { key: string; status: "ready"; data: MyDictionaryState }
+    | { key: string; status: "unauthorized" | "error" }
+    | null
+  >(null);
+
+  const myRecordStatus: RankSectionStatus =
+    sessionState.status === "loading"
+      ? "loading"
+      : !accessToken
+        ? "sample"
+        : !apiBase
+          ? "error"
+          : myLoad?.key !== myKey
+            ? "loading"
+            : myLoad.status === "ready"
+              ? "live"
+              : myLoad.status;
   const myState =
-    accessToken && myStateLoad?.token === accessToken ? myStateLoad.data : null;
+    myLoad?.key === myKey && myLoad.status === "ready" ? myLoad.data : null;
 
   useEffect(() => {
     if (!apiBase) return;
@@ -292,10 +319,12 @@ export function DictionaryClient() {
     fetchFoods(apiBase, controller.signal)
       .then((apiItems) => {
         setFoods(mergeFoodsWithApi(SEASONAL_FOODS, apiItems));
-        setFoodsSyncError(false);
+        setFoodsLoad({ attempt: foodsAttempt, status: "ready" });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setFoodsSyncError(true);
+        if (!controller.signal.aborted) {
+          setFoodsLoad({ attempt: foodsAttempt, status: "error" });
+        }
       });
     return () => controller.abort();
   }, [foodsAttempt]);
@@ -318,19 +347,25 @@ export function DictionaryClient() {
     return () => controller.abort();
   }, []);
 
-  // 로그인 세션 토큰이 있을 때만 인증 API(GET /me, /me/collection) 조회
+  // 로그인 세션 토큰이 있을 때만 인증 API(GET /me, /me/collection) 조회 (실패·만료 시 비로그인 예시와 구분)
   useEffect(() => {
-    if (!apiBase || !accessToken) return;
+    if (!apiBase || !accessToken || !myKey) return;
     const controller = new AbortController();
     fetchMyDictionaryState(apiBase, accessToken, controller.signal)
-      .then((state) => {
-        if (state) setMyStateLoad({ token: accessToken, data: state });
+      .then((result) => {
+        if (result.status === "unauthorized") {
+          setMyLoad({ key: myKey, status: "unauthorized" });
+        } else {
+          setMyLoad({ key: myKey, status: "ready", data: result.data });
+        }
       })
       .catch(() => {
-        // 인증 조회 실패 시 예시 폴백 유지
+        if (!controller.signal.aborted) {
+          setMyLoad({ key: myKey, status: "error" });
+        }
       });
     return () => controller.abort();
-  }, [accessToken]);
+  }, [accessToken, myKey]);
 
   // 음식·지역 선택은 URL이 정본이다. pushState로 바꾸면 Next가 useSearchParams에 반영하고, 뒤로 가기·새로고침도 같은 경로로 복원된다.
   const knownSlugs = useMemo(() => new Set(foods.map((f) => f.id)), [foods]);
@@ -367,17 +402,20 @@ export function DictionaryClient() {
   const tabIdPrefix = useId();
   const panelId = useId();
 
-  // 로그인 시 백엔드(GET /me/collection) 실제 수집 기록 사용, 비로그인 시 예시 수집 상태 사용
+  // 로그인 실데이터는 /me/collection, 비로그인은 예시 수집 상태, 로딩·만료·오류는 예시로 대체하지 않음
   const collectedSet = useMemo(() => {
-    if (myState) {
+    if (myRecordStatus === "live" && myState) {
       return resolveCollectedSlugs(
         foods,
         myState.collectedFoodIds,
         myState.collectedFoodNames,
       );
     }
-    return new Set(SAMPLE_COLLECTED_FOOD_IDS);
-  }, [foods, myState]);
+    if (myRecordStatus === "sample") {
+      return new Set(SAMPLE_COLLECTED_FOOD_IDS);
+    }
+    return new Set<string>();
+  }, [foods, myRecordStatus, myState]);
 
   // 계절별 전체 수 / 수집 수 집계
   const seasonStats = useMemo(() => {
@@ -486,6 +524,8 @@ export function DictionaryClient() {
           territoryOwners={territoryState.ownersByRegion}
           myUserId={myState?.userId ?? null}
           accessToken={accessToken}
+          foodsStatus={foodsStatus}
+          onRetryFoods={() => setFoodsAttempt((n) => n + 1)}
           onSelectRegion={(code) => writeSelection(selectedFood.id, code)}
           onBack={clearFood}
         />
@@ -529,8 +569,13 @@ export function DictionaryClient() {
 
       {/* 2행: 수집 현황과 랭크를 한 카드로 */}
       <RankSection
-        reviewCount={myState ? myState.reviewCount : DUMMY_MY_REVIEW_COUNT}
-        isSample={myState === null}
+        reviewCount={
+          myRecordStatus === "live" && myState
+            ? myState.reviewCount
+            : DUMMY_MY_REVIEW_COUNT
+        }
+        status={myRecordStatus}
+        onRetry={() => setMyAttempt((n) => n + 1)}
         collection={
           <ProgressBar
             label={activeSeasonLabel}

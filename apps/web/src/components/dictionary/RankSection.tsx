@@ -1,22 +1,37 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "@/components/icon/Icon";
 import { RankLadder } from "@/components/rank/RankLadder";
 import { RankProgress } from "@/components/rank/RankProgress";
 import { rankOf } from "@/lib/rank/ranks";
 
+export type RankSectionStatus =
+  | "sample"
+  | "live"
+  | "loading"
+  | "unauthorized"
+  | "error";
+
 type Props = {
   reviewCount: number;
-  /** 백엔드 로그인 데이터 연동 전 예시 상태 여부 */
-  isSample?: boolean;
+  /** 내 도감·랭크 데이터 상태 (비로그인 예시 / 실데이터 / 로딩 / 인증 만료 / 조회 실패) */
+  status?: RankSectionStatus;
+  /** 조회 실패·인증 만료 시 재시도 콜백 */
+  onRetry?: () => void;
   /** 같은 카드 안에 함께 보여 줄 수집 진행도 */
   collection?: ReactNode;
 };
 
 /** 내 랭크 한 줄. 누르면 같은 화면 아래에 5단계 사다리가 펴진다(Esc·뒤로 가기로 닫는다). */
-export function RankSection({ reviewCount, isSample = true, collection }: Props) {
+export function RankSection({
+  reviewCount,
+  status = "sample",
+  onRetry,
+  collection,
+}: Props) {
   const [open, setOpen] = useState(false);
   const pushed = useRef(false);
   const panelId = useId();
@@ -53,9 +68,77 @@ export function RankSection({ reviewCount, isSample = true, collection }: Props)
     }
   }
 
+  if (status === "loading") {
+    return (
+      <section
+        aria-label="내 도감과 랭크"
+        aria-busy="true"
+        className="rounded-card border border-line bg-surface px-4 py-4"
+      >
+        <p role="status" className="type-body text-muted">
+          내 수집 현황과 랭크를 불러오는 중이에요.
+        </p>
+      </section>
+    );
+  }
+
+  if (status === "unauthorized") {
+    return (
+      <section
+        aria-label="내 도감과 랭크"
+        className="flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-4"
+      >
+        <p role="alert" className="type-body text-foreground">
+          로그인이 만료됐어요. 다시 로그인해 주세요.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/login?next=/dictionary"
+            className="pressable inline-flex min-h-11 items-center rounded-button bg-accent px-4 type-caption font-semibold text-on-accent focus-ring"
+          >
+            다시 로그인
+          </Link>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="pressable inline-flex min-h-11 items-center rounded-button bg-fill px-4 type-caption font-semibold text-foreground focus-ring"
+            >
+              다시 확인
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <section
+        aria-label="내 도감과 랭크"
+        className="flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-4"
+      >
+        <p role="alert" className="type-body text-foreground">
+          내 수집 현황과 랭크를 불러오지 못했어요. 다시 시도해 주세요.
+        </p>
+        {onRetry && (
+          <div>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="pressable inline-flex min-h-11 items-center rounded-button bg-fill px-4 type-caption font-semibold text-foreground focus-ring"
+            >
+              다시 불러오기
+            </button>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section aria-label="내 도감과 랭크" onKeyDown={onKeyDown} className="rounded-card border border-line bg-surface px-4 py-3">
-      {isSample && (
+      {status === "sample" && (
         <p className="type-caption text-muted">로그인 전이라 수집 현황과 랭크는 예시예요.</p>
       )}
       <button

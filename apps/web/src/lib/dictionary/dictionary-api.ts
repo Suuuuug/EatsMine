@@ -75,6 +75,15 @@ export type MyDictionaryState = {
   nickname: string | null;
 };
 
+export type FetchMyDictionaryResult =
+  | { status: "ok"; data: MyDictionaryState }
+  | { status: "unauthorized" };
+
+/** 백엔드 /foods 에서 확인된 유효한 양의 정수 음식 ID인지 검사한다. */
+export function isValidFoodId(foodId: number | null | undefined): foodId is number {
+  return typeof foodId === "number" && Number.isInteger(foodId) && foodId > 0;
+}
+
 export type ApiMyCollectionItem = {
   foodId: number;
   foodName: string;
@@ -470,13 +479,13 @@ export async function fetchRegionRanking(
 /**
  * 로그인된 사용자의 내 도감 수집 현황·총 리뷰 수·프로필을 병렬 조회한다.
  * GET /me 응답의 reviewCount를 사용해 /me/reviews 추가 호출 없이 한 번에 동기화한다.
- * 토큰 만료(401) 시 null을 반환해 비로그인 상태로 안전하게 폴백한다.
+ * 토큰 만료(401)는 { status: "unauthorized" }로, 기타 실패는 예외로 구분해 호출부가 비로그인과 구분할 수 있게 한다.
  */
 export async function fetchMyDictionaryState(
   apiBase: string,
   accessToken: string,
   signal?: AbortSignal,
-): Promise<MyDictionaryState | null> {
+): Promise<FetchMyDictionaryResult> {
   const headers = { Authorization: `Bearer ${accessToken}` };
   const [profileRes, collectionRes] = await Promise.all([
     fetch(`${apiBase}/me`, { headers, signal, cache: "no-store" }),
@@ -484,7 +493,7 @@ export async function fetchMyDictionaryState(
   ]);
 
   if (profileRes.status === 401 || collectionRes.status === 401) {
-    return null;
+    return { status: "unauthorized" };
   }
   if (!profileRes.ok || !collectionRes.ok) {
     throw new Error("내 도감 정보를 불러오지 못했어요.");
@@ -496,18 +505,21 @@ export async function fetchMyDictionaryState(
   ])) as [ApiMyProfileResponse, ApiMyCollectionResponse];
 
   return {
-    userId: profile.id ?? null,
-    collectedFoodIds: Array.isArray(collection.items)
-      ? collection.items.map((item) => item.foodId)
-      : [],
-    collectedFoodNames: Array.isArray(collection.items)
-      ? collection.items.map((item) => item.foodName)
-      : [],
-    reviewCount:
-      typeof profile.reviewCount === "number" && Number.isFinite(profile.reviewCount)
-        ? Math.max(0, profile.reviewCount)
-        : 0,
-    nickname: profile.nickname ?? null,
+    status: "ok",
+    data: {
+      userId: profile.id ?? null,
+      collectedFoodIds: Array.isArray(collection.items)
+        ? collection.items.map((item) => item.foodId)
+        : [],
+      collectedFoodNames: Array.isArray(collection.items)
+        ? collection.items.map((item) => item.foodName)
+        : [],
+      reviewCount:
+        typeof profile.reviewCount === "number" && Number.isFinite(profile.reviewCount)
+          ? Math.max(0, profile.reviewCount)
+          : 0,
+      nickname: profile.nickname ?? null,
+    },
   };
 }
 

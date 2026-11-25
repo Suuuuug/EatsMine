@@ -7,6 +7,7 @@ import { Icon } from "@/components/icon/Icon";
 import { RestaurantRow } from "@/components/map/RestaurantRow";
 import {
   fetchFoodDetail,
+  isValidFoodId,
   mergeFoodDetailWithApi,
   normalizeApiBase,
   paginateItems,
@@ -42,6 +43,10 @@ type Props = {
   myUserId?: string | null;
   /** 로그인 사용자의 Bearer 토큰(지역 순위 내 위치 확인용) */
   accessToken?: string | null;
+  /** GET /foods 목록 동기화 상태 (음식 ID 확인 전 지역 전체 식당 오조회 방지) */
+  foodsStatus?: "loading" | "ready" | "error";
+  /** GET /foods 실패 시 재시도 콜백 */
+  onRetryFoods?: () => void;
   onSelectRegion: (code: string | null) => void;
   onBack: () => void;
 };
@@ -55,6 +60,8 @@ export function FoodDetail({
   territoryOwners = {},
   myUserId = null,
   accessToken = null,
+  foodsStatus = "ready",
+  onRetryFoods,
   onSelectRegion,
   onBack,
 }: Props) {
@@ -285,6 +292,8 @@ export function FoodDetail({
                       regionCode={selected}
                       foodId={activeFood.apiId ?? null}
                       foodName={activeFood.name}
+                      foodsStatus={foodsStatus}
+                      onRetryFoods={onRetryFoods}
                     />
                   </>
                 )}
@@ -303,10 +312,14 @@ function RegionRestaurants({
   regionCode,
   foodId,
   foodName,
+  foodsStatus,
+  onRetryFoods,
 }: {
   regionCode: string;
   foodId: number | null;
   foodName: string;
+  foodsStatus: "loading" | "ready" | "error";
+  onRetryFoods?: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [pageState, setPageState] = useState<{ key: string; page: number }>({
@@ -314,10 +327,49 @@ function RegionRestaurants({
     page: 1,
   });
   const listTopRef = useRef<HTMLDivElement>(null);
-  const { result, loading, error } = useRestaurants(regionCode, foodId, attempt);
+  const hasFoodId = isValidFoodId(foodId);
+  // 음식 ID(apiId)가 확인되기 전에는 지역 전체 식당으로 오조회하지 않도록 검색을 보류한다.
+  const { result, loading, error } = useRestaurants(
+    hasFoodId ? regionCode : null,
+    hasFoodId ? foodId : null,
+    attempt,
+  );
 
   if (!apiBase) {
     return <p className="py-3 type-body">식당 정보 연결을 준비하고 있어요.</p>;
+  }
+  if (!hasFoodId) {
+    if (foodsStatus === "loading") {
+      return (
+        <div aria-busy="true">
+          <p role="status" className="pt-3 type-body">
+            {foodName} 정보를 불러오는 중이에요.
+          </p>
+          <div aria-hidden="true">
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div role="alert" className="flex flex-col items-start gap-2 py-3">
+        <p className="type-body">
+          {foodsStatus === "error"
+            ? "음식 정보를 불러오지 못해 추천 식당을 찾을 수 없어요."
+            : `${foodName}의 추천 식당 정보를 아직 찾지 못했어요.`}
+        </p>
+        {onRetryFoods && (
+          <button
+            type="button"
+            onClick={onRetryFoods}
+            className="pressable min-h-11 rounded-button bg-fill px-4 type-body font-semibold focus-ring"
+          >
+            다시 불러오기
+          </button>
+        )}
+      </div>
+    );
   }
   if (loading) {
     return (

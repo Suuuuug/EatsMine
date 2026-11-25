@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
+  fetchMyDictionaryState,
+  isValidFoodId,
   mergeFoodDetailWithApi,
   mergeFoodsWithApi,
   normalizeApiBase,
@@ -225,4 +227,64 @@ test("GET /territories/:regionCode/ranking 응답에서 Top 3와 내 순위·1�
   });
   assert.equal(guest.items.length, 0);
   assert.equal(guest.standing, null);
+});
+
+test("isValidFoodId는 양의 정수 음식 ID만 허용해 미확보 시 지역 전체 오조회를 막는다", () => {
+  assert.equal(isValidFoodId(1), true);
+  assert.equal(isValidFoodId(43), true);
+  assert.equal(isValidFoodId(null), false);
+  assert.equal(isValidFoodId(undefined), false);
+  assert.equal(isValidFoodId(0), false);
+  assert.equal(isValidFoodId(-3), false);
+  assert.equal(isValidFoodId(1.5), false);
+});
+
+test("fetchMyDictionaryState는 정상(ok)·인증 만료(401)·서버 오류(예외)를 명확히 구분한다", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    // 200 정상 응답 (GET /me의 reviewCount 사용)
+    globalThis.fetch = async (url) => {
+      if (String(url).endsWith("/me")) {
+        return new Response(
+          JSON.stringify({
+            id: "u1",
+            nickname: "통영미식가",
+            rank: "local",
+            rankLabel: "동네 미식가",
+            avatarUrl: null,
+            reviewCount: 7,
+            createdAt: "2026-11-25T00:00:00.000Z",
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          count: 1,
+          total: 43,
+          items: [{ foodId: 2, foodName: "굴", imageUrl: null, collectedAt: "2026-11-25T00:00:00.000Z" }],
+        }),
+        { status: 200 },
+      );
+    };
+    const okRes = await fetchMyDictionaryState("https://api.example.com", "token-1");
+    assert.equal(okRes.status, "ok");
+    if (okRes.status === "ok") {
+      assert.equal(okRes.data.reviewCount, 7);
+      assert.deepEqual(okRes.data.collectedFoodIds, [2]);
+    }
+
+    // 401 인증 만료
+    globalThis.fetch = async () => new Response("{}", { status: 401 });
+    const expiredRes = await fetchMyDictionaryState("https://api.example.com", "expired");
+    assert.deepEqual(expiredRes, { status: "unauthorized" });
+
+    // 500 조회 실패는 예외로 전달해 비로그인과 구분
+    globalThis.fetch = async () => new Response("{}", { status: 500 });
+    await assert.rejects(() =>
+      fetchMyDictionaryState("https://api.example.com", "token-1"),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
