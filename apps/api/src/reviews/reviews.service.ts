@@ -16,7 +16,11 @@ import {
 import { EatplClient } from '../eatpl/eatpl.client.js';
 import { merchantIdFromUrl } from '../eatpl/eatpl.normalizer.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
-import { rankForReviewCount } from '../profiles/ranks.js';
+import {
+  type RankKey,
+  rankForReviewCount,
+  rankLabel,
+} from '../profiles/ranks.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
 
 type Db = NodePgDatabase;
@@ -59,6 +63,32 @@ export type ReviewDto = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** 매장 공개 후기 (GET /restaurants/:id/reviews). 작성자는 닉네임·등급·프로필 사진만 노출 */
+export type PublicReviewDto = {
+  id: number;
+  author: {
+    nickname: string;
+    rank: RankKey;
+    rankLabel: string;
+    avatarUrl: string | null;
+  };
+  food: { id: number; name: string } | null;
+  rating: number;
+  content: string | null;
+  visitedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RestaurantReviewsDto = {
+  restaurantId: string;
+  /** 공개 후기가 없으면 null (0점으로 표시하지 않도록) */
+  summary: { average: number; count: number } | null;
+  items: PublicReviewDto[];
+};
+
+export const PUBLIC_REVIEW_LIMIT = 50;
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -208,6 +238,46 @@ export class ReviewsService {
       .orderBy(desc(reviews.createdAt))
       .limit(200);
     return rows.map(toDto);
+  }
+
+  /**
+   * 매장의 공개(public) 후기 — 누구나 조회 (지도 카드·후기 시트).
+   * 집계는 공개 후기 전체, 목록은 최신순 PUBLIC_REVIEW_LIMIT개. 매장이 아직 저장되지 않았으면 빈 결과.
+   */
+  async listPublicForRestaurant(
+    restaurantId: string,
+  ): Promise<RestaurantReviewsDto> {
+    const isPublic = and(
+      eq(reviews.restaurantId, restaurantId),
+      eq(reviews.visibility, 'public'),
+    );
+    const [rows, [agg]] = await Promise.all([
+      this.db
+        .select({
+          id: reviews.id,
+          rating: reviews.rating,
+          content: reviews.content,
+          visitedAt: reviews.visitedAt,
+          createdAt: reviews.createdAt,
+          updatedAt: reviews.updatedAt,
+          nickname: profiles.nickname,
+          rank: profiles.rank,
+          avatarUrl: profiles.avatarUrl,
+          foodId: foods.id,
+          foodName: foods.name,
+        })
+        .from(reviews)
+        .innerJoin(profiles, eq(profiles.id, reviews.userId))
+        .leftJoin(foods, eq(foods.id, reviews.foodId))
+        .where(isPublic)
+        .orderBy(desc(reviews.createdAt), desc(reviews.id))
+        .limit(PUBLIC_REVIEW_LIMIT),
+      this.db
+        .select({ n: count(), avg: sql<string | null>`avg(${reviews.rating})` })
+        .from(reviews)
+        .where(isPublic),
+    ]);
+    return toRestaurantReviewsDto(restaurantId, agg, rows);
   }
 
   // ---- 내부 ----
@@ -382,5 +452,54 @@ export function toDto(r: DtoRow): ReviewDto {
     visibility: r.visibility,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+type PublicReviewRow = {
+  id: number;
+  rating: number;
+  content: string | null;
+  visitedAt: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  nickname: string;
+  rank: RankKey;
+  avatarUrl: string | null;
+  foodId: number | null;
+  foodName: string | null;
+};
+
+/** 평균은 소수 첫째 자리까지. 공개 후기가 없으면 summary는 null */
+export function toRestaurantReviewsDto(
+  restaurantId: string,
+  agg: { n: number; avg: string | null } | undefined,
+  rows: PublicReviewRow[],
+): RestaurantReviewsDto {
+  const total = Number(agg?.n ?? 0);
+  const average = agg?.avg == null ? NaN : Number(agg.avg);
+  return {
+    restaurantId,
+    summary:
+      total > 0 && Number.isFinite(average)
+        ? { average: Math.round(average * 10) / 10, count: total }
+        : null,
+    items: rows.map((r) => ({
+      id: r.id,
+      author: {
+        nickname: r.nickname,
+        rank: r.rank,
+        rankLabel: rankLabel(r.rank),
+        avatarUrl: r.avatarUrl,
+      },
+      food:
+        r.foodId != null && r.foodName
+          ? { id: r.foodId, name: r.foodName }
+          : null,
+      rating: r.rating,
+      content: r.content,
+      visitedAt: r.visitedAt,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })),
   };
 }
