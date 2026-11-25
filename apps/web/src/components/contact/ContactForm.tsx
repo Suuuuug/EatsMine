@@ -31,15 +31,25 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
   const [content, setContent] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [touched, setTouched] = useState({ email: false, content: false });
+  // 보내기를 한 번 눌렀으면 모든 칸의 오류를 보여 준다.
+  const [submitted, setSubmitted] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [failure, setFailure] = useState<keyof typeof FAILURE_TEXT | null>(null);
 
   const errors = inquiryErrors({ email, content });
   const ready = canSubmit({ email, content, agreed });
+  const showContentError = (touched.content || submitted) && !!errors.content;
+  const showAgreeError = submitted && !agreed;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!ready || status === "sending") return;
+    if (status === "sending") return;
+    if (!ready) {
+      // 막힌 이유를 보여 주고, 처음 고칠 칸으로 옮겨 준다.
+      setSubmitted(true);
+      document.getElementById(errors.email ? "contact-email" : errors.content ? "contact-content" : "contact-agree")?.focus();
+      return;
+    }
     setStatus("sending");
     setFailure(null);
     const result = await send({ type, email: email.trim(), content: content.trim() });
@@ -84,7 +94,8 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-        error={touched.email ? errors.email : undefined}
+        error={touched.email || submitted ? errors.email : undefined}
+        id="contact-email"
       />
 
       <div className="flex flex-col gap-1.5">
@@ -96,13 +107,13 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
           onBlur={() => setTouched((t) => ({ ...t, content: true }))}
           rows={7}
           maxLength={CONTENT_MAX}
-          aria-invalid={touched.content && errors.content ? true : undefined}
+          aria-invalid={showContentError ? true : undefined}
           aria-describedby="contact-content-message"
           className="field resize-none px-3.5 py-3 type-body"
         />
         <div id="contact-content-message" className="flex items-start justify-between gap-3 type-caption font-normal">
-          <span className={touched.content && errors.content ? "text-danger" : "text-muted"}>
-            {touched.content && errors.content ? errors.content : ""}
+          <span className={showContentError ? "text-danger" : "text-muted"}>
+            {showContentError ? errors.content : ""}
           </span>
           <span className="shrink-0 text-muted" aria-label={`${content.length}자, 최대 ${CONTENT_MAX}자`}>
             {content.length}/{CONTENT_MAX}
@@ -111,12 +122,15 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <Checkbox checked={agreed} onChange={(event) => setAgreed(event.target.checked)}>
+        <Checkbox id="contact-agree" checked={agreed} onChange={(event) => setAgreed(event.target.checked)}>
           답변을 위한 개인정보(이메일, 문의 내용) 수집·이용에 동의해요
         </Checkbox>
         <Link href="/privacy" className="-mt-1 ml-9 inline-flex min-h-11 items-center self-start type-caption text-accent-dark underline underline-offset-2 focus-ring">
           개인정보처리방침 보기
         </Link>
+        {showAgreeError && (
+          <p className="ml-9 type-caption font-normal text-danger">동의해 주셔야 문의를 보낼 수 있어요</p>
+        )}
       </div>
 
       {failure && (
@@ -125,7 +139,7 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
         </p>
       )}
 
-      <ActionButton type="submit" size="lg" block disabled={!ready || status === "sending"}>
+      <ActionButton type="submit" size="lg" block disabled={status === "sending"}>
         {status === "sending" ? "보내는 중이에요" : "문의 보내기"}
       </ActionButton>
     </form>
