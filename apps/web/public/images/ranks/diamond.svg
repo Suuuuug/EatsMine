@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" stroke="#354333" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>다이아 — 하늘빛·청록 결정과 포크·숟가락 문장</title>
+  <path d="M48 8 66 24h11l10 20-39 44L9 44l10-20h11Z" stroke="#FAF8F0" stroke-width="7"/>
+  <path d="M48 8 66 24h11l10 20-39 44L9 44l10-20h11Z" fill="#8CD7DC"/>
+  <path d="m48 8 8 20H40Z" fill="#E0F6F4" stroke-width="2.4"/>
+  <path d="m19 24 21 4L29 44 9 44Zm58 0L56 28l11 16h20Z" fill="#B5E6F1" stroke-width="2.4"/>
+  <path d="m9 44 20 0 19 44Zm78 0H67L48 88Z" fill="#62BFB9" stroke-width="2.4"/>
+  <path d="M40 28h16l11 16-19 44-19-44Z" fill="#B9ECE6" stroke-width="2.4"/>
+  <path d="M29 44h38" stroke-width="2.4"/>
+  <circle cx="48" cy="49" r="21" fill="#DFF4EF"/>
+  <circle cx="48" cy="49" r="16" fill="#FAF8F0" stroke="#8AC8C2" stroke-width="2.4"/>
+  <g stroke-width="2.8">
+    <path d="M37 39v8q0 4 4 4t4-4v-8m-4 0v23"/>
+    <ellipse cx="56" cy="45" rx="4.5" ry="7" fill="#B5E6F1"/>
+    <path d="M56 52v10"/>
+  </g>
+  <g fill="#E0F6F4" stroke-width="2.4">
+    <path d="m15 9 2.5 5.5L23 17l-5.5 2.5L15 25l-2.5-5.5L7 17l5.5-2.5Z"/>
+    <path d="m81 9 2.5 5.5L89 17l-5.5 2.5L81 25l-2.5-5.5L73 17l5.5-2.5Z"/>
+  </g>
+</svg>
