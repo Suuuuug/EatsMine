@@ -27,7 +27,11 @@ const profile = {
 
 describe('GET/PATCH /me', () => {
   let app: INestApplication;
-  const service = { getOrCreate: vi.fn(), updateNickname: vi.fn() };
+  const service = {
+    getOrCreate: vi.fn(),
+    updateNickname: vi.fn(),
+    countReviews: vi.fn(),
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -60,14 +64,17 @@ describe('GET/PATCH /me', () => {
 
   it('GET /me: 프로필을 만들거나 가져와 등급 이름과 함께 돌려준다', async () => {
     service.getOrCreate.mockResolvedValue(profile);
+    service.countReviews.mockResolvedValue(201);
     const res = await request(app.getHttpServer()).get('/me').expect(200);
     expect(service.getOrCreate).toHaveBeenCalledWith(user);
+    expect(service.countReviews).toHaveBeenCalledWith(user.id);
     expect(res.body).toEqual({
       id: user.id,
       nickname: '미식탐험가4821',
       rank: 'rookie',
       rankLabel: '새내기 탐험가',
       avatarUrl: null,
+      reviewCount: 201,
       createdAt: '2026-11-24T00:00:00.000Z',
     });
   });
@@ -77,12 +84,14 @@ describe('GET/PATCH /me', () => {
       ...profile,
       nickname: '해운대 정복자',
     });
+    service.countReviews.mockResolvedValue(3);
     const res = await request(app.getHttpServer())
       .patch('/me')
       .send({ nickname: '  해운대   정복자 ' })
       .expect(200);
     expect(service.updateNickname).toHaveBeenCalledWith(user, '해운대 정복자');
     expect(res.body.nickname).toBe('해운대 정복자');
+    expect(res.body.reviewCount).toBe(3);
   });
 
   it.each([

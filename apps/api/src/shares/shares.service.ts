@@ -27,6 +27,9 @@ export function generateShareId(): string {
 
 export type ShareLinkDto = { id: string; type: ShareType; createdAt: string };
 
+/** GET /me/shares — 종류별 현재 공유 링크 (꺼져 있으면 null) */
+export type MySharesDto = Record<ShareType, ShareLinkDto | null>;
+
 /**
  * 공유 화면 데이터 (D9: 열 때마다 실시간).
  * 노출: 닉네임·등급·색칠된 지역 코드/모은 음식·칸 수 / 비노출: 리뷰 내용·방문 날짜·매장명·프로필 사진
@@ -79,6 +82,15 @@ export class SharesService {
   }
 
   /** 공유 취소 (링크 무효). 없어도 성공으로 본다 */
+  /** 내 공유 상태. 읽기 전용이라 프로필을 만들지 않는다 */
+  async listMine(userId: string): Promise<MySharesDto> {
+    const rows = await this.db
+      .select()
+      .from(shareLinks)
+      .where(eq(shareLinks.userId, userId));
+    return toMySharesDto(rows);
+  }
+
   async remove(userId: string, type: ShareType): Promise<void> {
     await this.db
       .delete(shareLinks)
@@ -160,4 +172,12 @@ function toLinkDto(row: {
     type: row.shareType,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+export function toMySharesDto(
+  rows: { id: string; shareType: ShareType; createdAt: Date }[],
+): MySharesDto {
+  const result: MySharesDto = { territory: null, collection: null };
+  for (const row of rows) result[row.shareType] = toLinkDto(row);
+  return result;
 }
