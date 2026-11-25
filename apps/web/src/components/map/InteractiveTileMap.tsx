@@ -1480,7 +1480,7 @@ export function InteractiveTileMap({
       {mode === "restaurants" && kakaoEnabled && !kakaoReady && (
         <div
           role="status"
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-surface/60 px-6 text-center backdrop-blur-[2px]"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-surface/80 px-6 text-center"
         >
           <Icon name="map" size={26} className="text-accent-dark/70" />
           <p className="text-sm font-medium text-foreground">

@@ -396,14 +396,14 @@ export function DictionaryClient() {
         />
       )}
       <div hidden={selectedFood !== null} className={selectedFood ? "hidden" : "flex flex-col gap-6"}>
-      {/* 1행: 페이지 제목과 검색창 */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="type-title text-foreground">제철음식 도감</h1>
+      {/* 1행: 검색창. 보이는 제목은 두지 않는다(하단 탭·사이드바가 위치를 알려 준다) */}
+      <header className="flex flex-col gap-4">
+        <h1 className="sr-only">제철음식 도감</h1>
 
         <form
           role="search"
           onSubmit={(event) => event.preventDefault()}
-          className="flex h-12 w-full items-center gap-2 rounded-input bg-surface/70 px-4 sm:max-w-sm shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+          className="flex h-12 w-full items-center gap-2 rounded-input bg-surface/70 px-4 shadow-[inset_0_0_0_1px_var(--color-line)] transition-colors focus-within:bg-surface/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
         >
           <Icon name="search" size={20} className="shrink-0 text-muted" />
           <input
