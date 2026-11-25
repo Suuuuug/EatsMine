@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
-import { parseTheme, seasonForMonth, type Theme } from "@/lib/theme/theme";
+import { parseTheme, currentSeason, type Theme } from "@/lib/theme/theme";
 
 const KEY = "eatsmine-theme";
 const EVENT = "eatsmine-theme-change";
@@ -23,8 +23,7 @@ const Context = createContext<{ theme: Theme; setTheme: (value: Theme) => void }
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const theme = useSyncExternalStore<Theme>(subscribe, readTheme, () => "system");
   useEffect(() => {
-    const month = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", month: "numeric" }).format(new Date()));
-    document.documentElement.dataset.season = seasonForMonth(month);
+    document.documentElement.dataset.season = currentSeason();
     return () => { delete document.documentElement.dataset.season; };
   }, []);
   useEffect(() => {

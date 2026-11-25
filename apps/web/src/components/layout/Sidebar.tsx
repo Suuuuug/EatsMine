@@ -64,18 +64,15 @@ export function Sidebar() {
         <Link
           href="/"
           aria-label="EatsMine 홈"
-          className="pressable flex h-[76px] w-full shrink-0 flex-col items-center justify-center gap-1 border-b border-line focus-ring"
+          className="pressable flex h-[76px] w-full shrink-0 items-center justify-center border-b border-line focus-ring"
         >
           <Image
             src="/icon.svg"
             alt=""
-            width={28}
-            height={28}
+            width={34}
+            height={34}
             className="shrink-0 object-contain"
           />
-          <span className="text-[11px] leading-none font-semibold tracking-tight text-foreground">
-            EatsMine
-          </span>
         </Link>
 
         {/* 지도 · 도감 · 마이페이지 */}
@@ -95,7 +92,7 @@ export function Sidebar() {
                 }
               >
                 <Icon name={item.icon} size={22} />
-                <span className="whitespace-nowrap text-[11px] leading-none font-medium tracking-tight">
+                <span className="whitespace-nowrap text-xs leading-none font-medium tracking-tight">
                   {item.label}
                 </span>
               </Link>
@@ -124,7 +121,7 @@ export function Sidebar() {
               }
             >
               <Icon name={item.icon} size={20} />
-              <span className="text-[11px] leading-none font-medium">
+              <span className="text-xs leading-none font-medium">
                 {item.label}
               </span>
             </Link>

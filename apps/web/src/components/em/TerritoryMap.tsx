@@ -370,7 +370,7 @@ export function TerritoryMap({
         </h3>
       </div>}
 
-      <div className={`relative flex w-full items-center justify-center overflow-hidden rounded-card border border-line bg-surface/45 p-4 ${compact ? "h-44" : "aspect-[4/5] max-h-[320px] sm:max-h-[min(65vh,560px)]"}`}>
+      <div className={`relative flex w-full items-center justify-center overflow-hidden ${compact ? "h-64 sm:h-80" : "rounded-card border border-line bg-surface/45 p-4"} ${compact ? "" : "aspect-[4/5] max-h-[320px] sm:max-h-[min(65vh,560px)]"}`}>
         {loadError ? (
           <div
             role="alert"
@@ -414,7 +414,12 @@ export function TerritoryMap({
                 if (code && name) choose(code, name);
               }}
             >
-              {shape.paths.map((path) => {
+              {(compact
+                ? [...shape.paths].sort(
+                    (a, b) => Number(owned.has(a.code)) - Number(owned.has(b.code)),
+                  )
+                : shape.paths
+              ).map((path) => {
                 const ratio = ratioOf(path.code);
                 const isSelected = selected === path.code;
                 const isHovered = hoveredCode === path.code;
@@ -426,7 +431,7 @@ export function TerritoryMap({
                     data-name={path.name}
                     fillRule="evenodd"
                     vectorEffect="non-scaling-stroke"
-                    strokeWidth={isSelected ? 2.2 : isHovered ? 1.5 : 1}
+                    strokeWidth={isSelected ? 2.2 : isHovered ? 1.5 : compact ? (ratio === 1 ? 1.4 : 0.5) : 1}
                     strokeOpacity={isSelected || isHovered ? 1 : 0.85}
                     strokeLinejoin="round"
                     onMouseEnter={() => setHoveredCode(path.code)}
@@ -442,7 +447,7 @@ export function TerritoryMap({
                         : ratio > 0 || isHovered
                           ? "fill-map-partial"
                           : "fill-map-empty") +
-                      (isSelected ? " stroke-accent-dark" : " stroke-map-line")
+                      (isSelected || (compact && ratio === 1) ? " stroke-accent-dark" : " stroke-map-line")
                     }
                   />
                 );

@@ -4,11 +4,13 @@ import { RecordSection } from "@/components/my/RecordSection";
 import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import regionCodes from "../../../public/images/maps/region-codes.json";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { PrivacySettings } from "@/components/my/PrivacySettings";
+import { ShareButton } from "@/components/my/ShareButton";
 import { ThemeSettings } from "@/components/theme/ThemeSettings";
 import { ReviewList } from "@/components/my/ReviewList";
 import { ScrollActivity } from "@/components/scroll/ScrollActivity";
 import { GlassCard } from "@/components/ui";
-import { formatSince } from "@/lib/my-page/format";
+import { formatSince, shareText } from "@/lib/my-page/format";
 import { collectionSummary, territorySummary } from "@/lib/my-page/summary";
 import { SEASONAL_FOODS, SAMPLE_COLLECTED_FOOD_IDS } from "@/data/seasonal-foods";
 import type { MyPageData } from "@/types/my-page";
@@ -72,10 +74,10 @@ export function MyPageView({ data, member }: MyPageViewProps) {
             <div className="order-5 mx-4 lg:mx-0 lg:[&_section]:gap-1 lg:[&_h2]:flex lg:[&_h2]:min-h-11 lg:[&_h2]:items-center">
               <ThemeSettings />
             </div>
-            <section aria-labelledby="privacy-title" className="order-6 mx-4 flex flex-col gap-1 lg:mx-0 lg:[&_h2]:flex lg:[&_h2]:min-h-11 lg:[&_h2]:items-center">
-              <h2 id="privacy-title" className="scroll-mt-6 type-section">공개 범위</h2>
-              <p className="type-body text-muted">공개 설정과 기록 공유를 준비하고 있어요</p>
-            </section>
+            <div className="order-6 mx-4 flex flex-col gap-4 lg:mx-0 lg:[&_section]:gap-1 lg:[&_h2]:flex lg:[&_h2]:min-h-11 lg:[&_h2]:items-center">
+              <PrivacySettings enabled={member} />
+              <ShareButton label="EatsMine 공유하기" text={shareText(data)} />
+            </div>
           </div>
         </div>
       </main>

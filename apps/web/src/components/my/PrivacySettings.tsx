@@ -93,7 +93,7 @@ export function PrivacySettings({ enabled }: { enabled: boolean }) {
     <ListSection
       id="privacy-title"
       title="공개 범위"
-      description={enabled ? "켜면 공유 링크로 들어온 사람이 볼 수 있어요" : "로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요"}
+      description={enabled ? "지금은 이 기기에만 저장돼요. 공유 페이지가 열리면 이 설정대로 보여요" : "로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요"}
     >
       <GlassCard className="overflow-hidden px-4">
         <ul className="list-divided">
