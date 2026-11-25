@@ -117,20 +117,25 @@ export function PrivacySettings({ enabled, token, userId, className }: { enabled
   return (
     <MySection id="privacy-title" title="공개 범위" className={className}>
       <GlassCard className="flex-1 px-4">
-        <ul className="list-divided">
-          {rows.map((row) => (
-            <ListSwitchRow
-              key={row.key}
-              label={row.label}
-              checked={settings[row.key]}
-              disabled={!enabled || !SERVER_READY || busy !== null}
-              onChange={() => void toggle(row.key)}
-            />
-          ))}
-        </ul>
-        <p className="pb-4 type-caption text-muted">
-          {!enabled ? "로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요" : !SERVER_READY ? "공개 설정을 준비하고 있어요. 지금은 모두 나만 봐요" : ""}
-        </p>
+        {enabled && !SERVER_READY ? (
+          // 서버의 공유 상태를 읽을 수 없으니 꺼짐·나만 봐요처럼 상태를 단정하지 않는다.
+          <p className="py-4 type-body">공개 설정을 준비하고 있어요.</p>
+        ) : (
+          <>
+            <ul className="list-divided">
+              {rows.map((row) => (
+                <ListSwitchRow
+                  key={row.key}
+                  label={row.label}
+                  checked={settings[row.key]}
+                  disabled={!enabled || busy !== null}
+                  onChange={() => void toggle(row.key)}
+                />
+              ))}
+            </ul>
+            {!enabled && <p className="pb-4 type-caption text-muted">로그인하면 정할 수 있어요. 처음에는 모두 나만 봐요</p>}
+          </>
+        )}
       </GlassCard>
       {toast}
     </MySection>
