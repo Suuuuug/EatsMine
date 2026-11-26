@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionButton,
   EmptyState,
   SkeletonRow,
-  actionButtonClass,
 } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import { GlassCard } from "@/components/ui";
@@ -26,7 +25,18 @@ import {
 } from "@/lib/map/use-map-data";
 import type { RegionItem } from "@/types/map";
 
-const PREVIEW_PLACE_LIMIT = 10;
+const PLACES_PER_PAGE = 10;
+const MAX_PAGE_BUTTONS = 5;
+
+function getPageNumbers(currentPage: number, totalPages: number): number[] {
+  const half = Math.floor(MAX_PAGE_BUTTONS / 2);
+  let start = Math.max(1, currentPage - half);
+  const end = Math.min(totalPages, start + MAX_PAGE_BUTTONS - 1);
+  start = Math.max(1, end - MAX_PAGE_BUTTONS + 1);
+  const pages: number[] = [];
+  for (let p = start; p <= end; p += 1) pages.push(p);
+  return pages;
+}
 
 type RegionDetailLiveSectionProps = {
   region: RegionItem;
@@ -67,10 +77,30 @@ export function RegionDetailLiveSection({
   const loading = !isPreview && apiSearch.loading;
   const error = isPreview ? "" : apiSearch.error;
   const allPlaces = result?.items ?? [];
-  const visiblePlaces = allPlaces.slice(0, PREVIEW_PLACE_LIMIT);
-  const mapHref = isPreview && searchParams.get("preview") === "1"
-    ? `/?region=${encodeURIComponent(region.code)}&preview=1`
-    : `/?region=${encodeURIComponent(region.code)}`;
+
+  const pageKey = `${region.code}|${attempt}|${isPreview}`;
+  const [pageState, setPageState] = useState({ key: pageKey, page: 1 });
+  const rawPage = pageState.key === pageKey ? pageState.page : 1;
+  const totalPages = Math.max(1, Math.ceil(allPlaces.length / PLACES_PER_PAGE));
+  const currentPage = Math.min(Math.max(1, rawPage), totalPages);
+  const visiblePlaces = allPlaces.slice(
+    (currentPage - 1) * PLACES_PER_PAGE,
+    currentPage * PLACES_PER_PAGE,
+  );
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const placesTopRef = useRef<HTMLElement>(null);
+
+  const goToPage = (nextPage: number) => {
+    const clamped = Math.min(Math.max(1, nextPage), totalPages);
+    setPageState({ key: pageKey, page: clamped });
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    placesTopRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,6 +144,7 @@ export function RegionDetailLiveSection({
 
       {/* 이 지역 추천 맛집 목록 */}
       <section
+        ref={placesTopRef}
         aria-labelledby="region-places-heading"
         className="flex flex-col gap-3"
       >
@@ -157,14 +188,6 @@ export function RegionDetailLiveSection({
             <EmptyState
               illustration="empty-search"
               message="이 지역의 식당 정보를 찾지 못했어요."
-              action={
-                <Link
-                  href={mapHref}
-                  className={actionButtonClass({ variant: "tinted", size: "sm" })}
-                >
-                  지도에서 둘러보기
-                </Link>
-              }
             />
           </GlassCard>
         ) : (
@@ -324,22 +347,59 @@ export function RegionDetailLiveSection({
               })}
             </ul>
 
-            <div className="flex flex-col items-center gap-2 pt-2">
-              {allPlaces.length > visiblePlaces.length && (
-                <Link
-                  href={mapHref}
-                  className={actionButtonClass({ variant: "tinted", size: "sm" })}
+            {totalPages > 1 && (
+              <nav
+                aria-label="식당 목록 페이지 이동"
+                className="flex items-center justify-center gap-1 pt-2"
+              >
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  aria-label="이전 페이지"
+                  onClick={() => goToPage(currentPage - 1)}
+                  className="pressable inline-flex size-9 items-center justify-center rounded-button text-foreground hover:bg-fill focus-ring disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  <span>
-                    나머지 {allPlaces.length - visiblePlaces.length}곳 더 보기
-                  </span>
-                  <Icon name="chevron-right" size={14} />
-                </Link>
-              )}
-              {result?.source && (
-                <p className="text-[11px] text-muted">{result.source}</p>
-              )}
-            </div>
+                  <Icon name="back" size={16} />
+                </button>
+
+                {pageNumbers.map((num) => {
+                  const active = num === currentPage;
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      aria-current={active ? "page" : undefined}
+                      aria-label={`${num}페이지`}
+                      onClick={() => goToPage(num)}
+                      className={
+                        "pressable inline-flex size-9 items-center justify-center rounded-button text-xs font-semibold tabular-nums transition-colors focus-ring " +
+                        (active
+                          ? "bg-accent text-on-accent"
+                          : "text-muted hover:bg-fill hover:text-foreground")
+                      }
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  aria-label="다음 페이지"
+                  onClick={() => goToPage(currentPage + 1)}
+                  className="pressable inline-flex size-9 items-center justify-center rounded-button text-foreground hover:bg-fill focus-ring disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <Icon name="chevron-right" size={16} />
+                </button>
+              </nav>
+            )}
+
+            {result?.source && (
+              <p className="text-center text-[11px] text-muted">
+                {result.source}
+              </p>
+            )}
           </>
         )}
       </section>
