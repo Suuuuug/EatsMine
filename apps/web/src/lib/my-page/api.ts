@@ -152,11 +152,13 @@ export function createReviewErrorMessage(status: number): string {
 /** 리뷰 사진으로 올릴 수 있는 형식·크기(api·버킷 설정과 같다) */
 export const REVIEW_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_REVIEW_PHOTO_BYTES = 5 * 1024 * 1024;
+/** 고를 수 있는 원본 크기. 올리기 전에 줄여서 다시 저장하므로 5MB보다 큰 원본도 받는다 */
+export const MAX_REVIEW_PHOTO_INPUT_BYTES = 20 * 1024 * 1024;
 
-/** 올릴 수 없는 사진이면 안내 문구, 괜찮으면 null */
+/** 고른 사진을 받을 수 없으면 안내 문구, 괜찮으면 null(올리기 전에 위치 정보를 지우고 줄여서 다시 저장한다) */
 export function reviewPhotoProblem(file: { type: string; size: number }): string | null {
   if (!(REVIEW_PHOTO_TYPES as readonly string[]).includes(file.type)) return "JPG, PNG, WEBP 사진만 올릴 수 있어요.";
-  if (file.size > MAX_REVIEW_PHOTO_BYTES) return "사진은 한 장에 5MB까지 올릴 수 있어요.";
+  if (file.size > MAX_REVIEW_PHOTO_INPUT_BYTES) return "사진은 한 장에 20MB까지 고를 수 있어요.";
   return null;
 }
 

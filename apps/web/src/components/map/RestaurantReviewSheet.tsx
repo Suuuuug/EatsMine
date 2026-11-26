@@ -16,10 +16,12 @@ import { signInWithGoogle } from "@/lib/auth/google";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
 import { trackOutbound } from "@/lib/map/outbound";
+import { stripPhotoMetadata } from "@/lib/my-page/review-photo-process";
 import {
   ApiError,
   createReview,
   createReviewErrorMessage,
+  MAX_REVIEW_PHOTO_BYTES,
   reviewPhotoProblem,
   uploadReviewPhoto,
   fetchFoodCandidates,
@@ -101,6 +103,8 @@ export function RestaurantReviewSheet({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftPhotosRef = useRef<DraftPhoto[]>([]);
+  // 같은 초안에서 이미 올린 사진의 경로(사진 id → path). 저장이 실패해 다시 눌러도 다시 올리지 않는다.
+  const uploadedPathsRef = useRef(new Map<string, string>());
 
   useEffect(() => {
     draftPhotosRef.current = draftPhotos;
@@ -209,6 +213,7 @@ export function RestaurantReviewSheet({
         URL.revokeObjectURL(photo.url);
       }
     }
+    uploadedPathsRef.current.clear();
     setDraftPhotos([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -252,6 +257,7 @@ export function RestaurantReviewSheet({
   };
 
   const handleRemoveDraftPhoto = (id: string) => {
+    uploadedPathsRef.current.delete(id);
     setDraftPhotos((prev) => {
       const target = prev.find((p) => p.id === id);
       if (target) URL.revokeObjectURL(target.url);
@@ -317,7 +323,17 @@ export function RestaurantReviewSheet({
         for (const [i, photo] of draftPhotos.entries()) {
           if (draftId !== draftIdRef.current) return;
           setUploadProgress(`${i + 1}/${draftPhotos.length}`);
-          photoPaths.push(await uploadReviewPhoto(token, photo.file));
+          const uploaded = uploadedPathsRef.current.get(photo.id);
+          if (uploaded) {
+            photoPaths.push(uploaded);
+            continue;
+          }
+          // 위치 정보 등 메타데이터를 지우고 줄여서 다시 저장한 파일만 올린다.
+          const cleaned = await stripPhotoMetadata(photo.file);
+          if (cleaned.size > MAX_REVIEW_PHOTO_BYTES) throw new ApiError(413);
+          const path = await uploadReviewPhoto(token, cleaned);
+          uploadedPathsRef.current.set(photo.id, path);
+          photoPaths.push(path);
         }
       } catch (e) {
         if (draftId === draftIdRef.current) {
@@ -325,7 +341,9 @@ export function RestaurantReviewSheet({
           setSubmitError(
             status === 401
               ? createReviewErrorMessage(401)
-              : "사진을 올리지 못했어요. 다시 시도해 주세요.",
+              : status === 413
+                ? "사진이 너무 커요. 다른 사진을 골라 주세요."
+                : "사진을 올리지 못했어요. 다시 시도해 주세요.",
           );
           setSubmitting(false);
           setUploadProgress(null);

@@ -26,10 +26,10 @@ test("리뷰 저장 실패 문구: 이미 쓴 매장(409)과 만료(401)를 구�
   assert.match(createReviewErrorMessage(500), /다시 시도/);
 });
 
-test("리뷰 사진: JPG, PNG, WEBP와 5MB 이하만 올릴 수 있다", () => {
+test("리뷰 사진: JPG, PNG, WEBP와 원본 20MB 이하만 고를 수 있다", () => {
   assert.equal(reviewPhotoProblem({ type: "image/jpeg", size: 1024 }), null);
-  assert.equal(reviewPhotoProblem({ type: "image/webp", size: 5 * 1024 * 1024 }), null);
+  assert.equal(reviewPhotoProblem({ type: "image/webp", size: 12 * 1024 * 1024 }), null);
   assert.match(reviewPhotoProblem({ type: "image/gif", size: 10 }), /JPG, PNG, WEBP 사진만/);
   assert.match(reviewPhotoProblem({ type: "image/heic", size: 10 }), /JPG, PNG, WEBP 사진만/);
-  assert.match(reviewPhotoProblem({ type: "image/png", size: 5 * 1024 * 1024 + 1 }), /5MB/);
+  assert.match(reviewPhotoProblem({ type: "image/png", size: 20 * 1024 * 1024 + 1 }), /20MB/);
 });
