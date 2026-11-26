@@ -96,7 +96,7 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
             <CollectionPreview tiles={progress.collected === 0 ? progress.preview.slice(0, 5) : progress.preview} next={progress.next} />
           </RecordSection>
           <ReviewList reviews={reviews} token={member ? token : null} onDeleted={onReviewDeleted} className="order-4 lg:order-5 lg:col-span-2" />
-          <InfoLinks className="order-5 lg:order-6 lg:col-span-2" />
+          <InfoLinks token={member ? token : null} className="order-5 lg:order-6 lg:col-span-2" />
         </div>
       </main>
     </div>
