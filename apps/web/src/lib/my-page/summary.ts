@@ -50,3 +50,8 @@ export function seasonProgress<T extends SeasonFood>(
     preview: pickPreviewFoods(inSeason, collectedIds, limit),
   };
 }
+
+/** 도감 음식 상세(그 음식의 식당 찾기가 있는 곳). 마이의 음식 칸과 다음 음식 버튼이 같은 곳으로 간다. */
+export function foodDetailHref(foodId: string): string {
+  return `/dictionary?food=${encodeURIComponent(foodId)}`;
+}
