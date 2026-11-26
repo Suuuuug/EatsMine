@@ -131,7 +131,12 @@ export function ReviewEditSheet({
                 size="md"
                 className="flex-1"
                 disabled={busy}
-                onClick={() => setConfirming(false)}
+                data-delete-cancel
+                onClick={() => {
+                  setConfirming(false);
+                  // 확인 단계의 버튼이 사라지므로 "후기 지우기"로 포커스를 돌린다.
+                  requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-delete-start]")?.focus());
+                }}
               >
                 닫기
               </ActionButton>
@@ -163,7 +168,12 @@ export function ReviewEditSheet({
               block
               className="text-danger"
               disabled={busy}
-              onClick={() => setConfirming(true)}
+              data-delete-start
+              onClick={() => {
+                setConfirming(true);
+                // 누른 버튼이 사라지므로 안전한 쪽(닫기)으로 포커스를 옮긴다.
+                requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-delete-cancel]")?.focus());
+              }}
             >
               리뷰 지우기
             </ActionButton>
