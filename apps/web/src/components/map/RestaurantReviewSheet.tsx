@@ -367,14 +367,14 @@ export function RestaurantReviewSheet({
                   block: writing,
                 })}
               >
-                <span>잇플 가게 정보</span>
+                <span>자세히 보기</span>
                 <Icon name="external" size={15} />
               </a>
             ) : (
               <button
                 type="button"
                 disabled
-                title="백엔드 API 연동 후 실제 잇플 상세 페이지로 연결돼요"
+                title="백엔드 API 연동 후 가게 상세 페이지로 연결돼요"
                 className={actionButtonClass({
                   variant: "gray",
                   size: "md",
@@ -382,7 +382,7 @@ export function RestaurantReviewSheet({
                   className: "cursor-not-allowed opacity-60",
                 })}
               >
-                <span>잇플 가게 정보(예시)</span>
+                <span>자세히 보기(예시)</span>
               </button>
             )}
           </div>

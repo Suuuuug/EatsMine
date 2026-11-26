@@ -1242,7 +1242,7 @@ export function MapExplorerClient({
                                   {place.name}
                                   <span className="sr-only">
                                     {" "}
-                                    (잇플 상세, 새 창)
+                                    (가게 상세, 새 창)
                                   </span>
                                 </a>
                               ) : (
