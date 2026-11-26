@@ -27,6 +27,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 사진 파일을 저장소(Supabase Storage)에 올리는 단계의 실패. status는 저장소 응답 코드(413 용량 초과 등).
+ * 우리 API의 401(로그인 만료)과 섞이지 않게 따로 구분한다.
+ */
+export class PhotoUploadError extends ApiError {
+  constructor(status: number) {
+    super(status);
+    this.name = "PhotoUploadError";
+  }
+}
+
+/** 사진 올리기 실패 안내. 우리 API의 401은 로그인 만료, 저장소 413은 용량 초과, 나머지는 다시 시도 */
+export function photoUploadErrorMessage(e: unknown): string {
+  if (e instanceof PhotoUploadError && e.status === 413) return "사진이 너무 커요. 다른 사진을 골라 주세요.";
+  if (!(e instanceof PhotoUploadError) && e instanceof ApiError && e.status === 401) return "로그인이 만료됐어요. 다시 로그인해 주세요.";
+  return "사진을 올리지 못했어요. 다시 시도해 주세요.";
+}
+
 export async function apiFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   if (!apiBase) throw new ApiError(0);
   const response = await fetch(`${apiBase}${path}`, {
@@ -172,7 +190,7 @@ export async function uploadReviewPhoto(token: string, file: File): Promise<stri
     body: JSON.stringify({ contentType: file.type, size: file.size }),
   });
   const put = await fetch(uploadUrl, { method: "PUT", headers: { "content-type": file.type }, body: file });
-  if (!put.ok) throw new ApiError(0);
+  if (!put.ok) throw new PhotoUploadError(put.status);
   return path;
 }
 

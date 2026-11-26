@@ -22,6 +22,8 @@ import {
   createReview,
   createReviewErrorMessage,
   MAX_REVIEW_PHOTO_BYTES,
+  PhotoUploadError,
+  photoUploadErrorMessage,
   reviewPhotoProblem,
   uploadReviewPhoto,
   fetchFoodCandidates,
@@ -330,21 +332,14 @@ export function RestaurantReviewSheet({
           }
           // 위치 정보 등 메타데이터를 지우고 줄여서 다시 저장한 파일만 올린다.
           const cleaned = await stripPhotoMetadata(photo.file);
-          if (cleaned.size > MAX_REVIEW_PHOTO_BYTES) throw new ApiError(413);
+          if (cleaned.size > MAX_REVIEW_PHOTO_BYTES) throw new PhotoUploadError(413);
           const path = await uploadReviewPhoto(token, cleaned);
           uploadedPathsRef.current.set(photo.id, path);
           photoPaths.push(path);
         }
       } catch (e) {
         if (draftId === draftIdRef.current) {
-          const status = e instanceof ApiError ? e.status : 0;
-          setSubmitError(
-            status === 401
-              ? createReviewErrorMessage(401)
-              : status === 413
-                ? "사진이 너무 커요. 다른 사진을 골라 주세요."
-                : "사진을 올리지 못했어요. 다시 시도해 주세요.",
-          );
+          setSubmitError(photoUploadErrorMessage(e));
           setSubmitting(false);
           setUploadProgress(null);
         }
