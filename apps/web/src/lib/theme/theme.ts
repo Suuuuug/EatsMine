@@ -21,3 +21,7 @@ export function currentSeason(now: Date = new Date()): Season {
   const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return seasonForDate(part('month'), part('day'));
 }
+/** 지금 한국 날짜(Asia/Seoul)의 달(1~12). 계절 탭은 절기로 나누고, 지금 제철인지는 이 달로 본다. */
+export function currentMonth(now: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: 'numeric' }).format(now));
+}

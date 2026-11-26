@@ -2,16 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/icon/Icon";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { TerritoryExplorer } from "@/components/my/TerritoryExplorer";
-import { SAMPLE_MY_PAGE } from "@/lib/my-page/sample-data";
+import { MyTerritoryContainer } from "@/components/my/MyTerritoryContainer";
 
 export const metadata: Metadata = { title: "내 영토 | EatsMine", description: "나만의 영토 지도를 살펴보세요.", alternates: { canonical: "/my/territory" } };
-
-// 화면 확인용 임시 데이터. 실제 방문 기록·리뷰 집계는 인증과 API가 연결된 뒤 같은 모양으로 바꿔 넘긴다.
-const VISITED = SAMPLE_MY_PAGE.regionVisits.map((v) => ({ code: String(v.region_id), label: v.region_name }));
-const STATS = Object.fromEntries(
-  VISITED.map((v, i) => [v.code, { mine: (i % 3) + 1, others: 9 + ((i * 17) % 41) }]),
-);
 
 export default function MyTerritoryPage() {
   return (
@@ -24,8 +17,7 @@ export default function MyTerritoryPage() {
           </Link>
           <h1 className="type-section">내 영토</h1>
         </header>
-        <p className="type-body text-muted">예시로 채운 화면이에요.</p>
-        <TerritoryExplorer visited={VISITED} stats={STATS} />
+        <MyTerritoryContainer />
       </main>
     </div>
   );

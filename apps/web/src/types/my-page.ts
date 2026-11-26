@@ -10,6 +10,10 @@ export type Profile = {
   nickname: string;
   avatar_url: string | null;
   created_at: string; // ISO 8601
+  /** 등급 이름(예: 새내기 탐험가). 서버가 후기 수로 정한다. 예시 화면은 없을 수 있다. */
+  rank_label?: string;
+  /** 남긴 후기 수(서버 집계). 후기 목록은 최대 200개까지라 목록 길이 대신 이것을 쓴다. */
+  review_count?: number;
 };
 
 /** user_region_visits + regions(name) */
@@ -38,6 +42,10 @@ export type MyReview = {
   visited_at: string; // YYYY-MM-DD
   visibility: Visibility;
   created_at: string;
+  /** 식당 지역(시·군·구 코드). 공유 미리보기에서 공개 후기로 칠한 지역을 셀 때 쓴다. */
+  region_code?: string | null;
+  /** 후기에 고른 제철음식 이름 */
+  food_name?: string | null;
 };
 
 export type MyPageData = {
