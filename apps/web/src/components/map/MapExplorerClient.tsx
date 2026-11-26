@@ -53,7 +53,9 @@ import {
   getSamplePlaceReviews,
   type PlaceReviewItem,
 } from "@/data/map-mock";
+import { placeNote, type PlaceResult } from "@/lib/map/place-search";
 import type { EatplPlace, RegionItem, TerritoryOwner } from "@/types/map";
+import { MapSearchBox } from "./MapSearchBox";
 
 type RawRegionMeta = {
   provinces: { code: string; name: string }[];
@@ -210,9 +212,8 @@ export function MapExplorerClient({
 
   // 지역 검색 자동완성 상태
   const [regionQuery, setRegionQuery] = useState("");
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
+  // 장소(역·랜드마크)로 찾아 들어왔을 때 결과 위에 보이는 한 문장
+  const [placeNoteState, setPlaceNoteState] = useState<{ regionCode: string; text: string } | null>(null);
 
   // 현재 활성 탐색 조건 (백엔드 API 연동 전 프론트 단독 상태)
   const [selectedRegion, setSelectedRegion] = useState<RegionItem | null>(() => {
@@ -407,20 +408,8 @@ export function MapExplorerClient({
       .slice(0, 10);
   }, [regionQuery, allRegions, parentCodeByRegion]);
 
-  // 검색창 바깥 클릭 시 자동완성 닫기
-  useEffect(() => {
-    if (!suggestionsOpen) return;
-    const handleOutside = (event: MouseEvent) => {
-      if (
-        searchBoxRef.current &&
-        !searchBoxRef.current.contains(event.target as Node)
-      ) {
-        setSuggestionsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [suggestionsOpen]);
+  // 장소 검색에서 시·군·구로 바꿀 수 있는 지역 코드 목록
+  const knownRegionCodes = useMemo(() => new Set(allRegions.map((r) => r.code)), [allRegions]);
 
   // 공유 영토 땅따먹기 주인 맵 (실제: GET /territories, 예시 모드: 예시 데이터)
   const apiOwners = useTerritoryOwners(apiBase);
@@ -550,7 +539,6 @@ export function MapExplorerClient({
       );
       // 세종처럼 하위 시·군·구가 1곳뿐이면 바로 해당 지역 식당으로 진입
       if (children.length === 1) {
-        setSuggestionsOpen(false);
         setRegionQuery("");
         setActiveFood(null);
         setBrowsingProvinceCode(null);
@@ -614,8 +602,8 @@ export function MapExplorerClient({
   );
 
   const handleSelectRegion = useCallback((region: RegionItem) => {
-    setSuggestionsOpen(false);
     setRegionQuery("");
+    setPlaceNoteState(null);
     setActiveFood(null);
     setBrowsingProvinceCode(null);
     setSelectedRegion(region);
@@ -627,6 +615,16 @@ export function MapExplorerClient({
       `${region.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
     );
   }, []);
+
+  const handleSelectPlace = useCallback(
+    (place: PlaceResult) => {
+      const region = allRegions.find((r) => r.code === place.regionCode);
+      if (!region) return;
+      handleSelectRegion(region);
+      setPlaceNoteState({ regionCode: region.code, text: placeNote(place.name, region.fullName) });
+    },
+    [allRegions, handleSelectRegion],
+  );
 
   const handleBackStep = useCallback(() => {
     if (selectedRegion) {
@@ -838,116 +836,14 @@ export function MapExplorerClient({
         {/* 지역 검색 + 숨김형 업종 필터 */}
         <div className="order-2 flex flex-col gap-2.5 lg:order-none">
           <div className="flex items-center gap-2">
-            <div ref={searchBoxRef} className="relative min-w-0 flex-1">
-              <form
-                role="search"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const picked = regionSuggestions[suggestionIndex];
-                  if (picked) handleSelectRegion(picked);
-                }}
-                className="flex h-11 w-full items-center gap-2 rounded-input border border-line bg-surface/75 px-3 transition-colors focus-within:bg-surface focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
-              >
-                <Icon
-                  name="search"
-                  size={16}
-                  className="shrink-0 text-muted"
-                />
-                <input
-                  type="search"
-                  value={regionQuery}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setRegionQuery(next);
-                    setSuggestionIndex(0);
-                    setSuggestionsOpen(Boolean(next.trim()));
-                  }}
-                  onFocus={() => {
-                    if (regionQuery.trim()) setSuggestionsOpen(true);
-                  }}
-                  onKeyDown={(event) => {
-                    if (!suggestionsOpen || regionSuggestions.length === 0)
-                      return;
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setSuggestionIndex(
-                        (prev) => (prev + 1) % regionSuggestions.length,
-                      );
-                    } else if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      setSuggestionIndex(
-                        (prev) =>
-                          (prev - 1 + regionSuggestions.length) %
-                          regionSuggestions.length,
-                      );
-                    } else if (event.key === "Escape") {
-                      setSuggestionsOpen(false);
-                    }
-                  }}
-                  aria-label="여행 지역 검색"
-                  placeholder="여행 지역 검색"
-                  enterKeyHint="search"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted/80 [&::-webkit-search-cancel-button]:hidden"
-                />
-                {regionQuery && (
-                  <button
-                    type="button"
-                    aria-label="검색어 지우기"
-                    onClick={() => {
-                      setRegionQuery("");
-                      setSuggestionsOpen(false);
-                    }}
-                    className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:text-foreground focus-ring"
-                  >
-                    <Icon name="close" size={14} />
-                  </button>
-                )}
-              </form>
-
-              {/* 자동완성 결과 드롭다운 */}
-              {suggestionsOpen && regionQuery.trim() && (
-                <div
-                  role="listbox"
-                  aria-label="지역 검색 결과"
-                  className="material-thick absolute inset-x-0 top-full z-40 mt-1.5 max-h-64 overflow-y-auto rounded-input p-1"
-                >
-                  {regionSuggestions.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-muted">
-                      일치하는 시·군·구가 없어요.
-                    </p>
-                  ) : (
-                    regionSuggestions.map((region, idx) => (
-                      <button
-                        key={region.code}
-                        type="button"
-                        role="option"
-                        aria-selected={idx === suggestionIndex}
-                        onMouseEnter={() => setSuggestionIndex(idx)}
-                        onClick={() => handleSelectRegion(region)}
-                        className={
-                          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-[7px] px-3 py-2 text-left text-sm transition-colors " +
-                          (idx === suggestionIndex
-                            ? "bg-accent-weak font-medium text-foreground"
-                            : "text-foreground hover:bg-fill")
-                        }
-                      >
-                        <span className="inline-flex items-center gap-2 truncate">
-                          <Icon
-                            name="pin"
-                            size={14}
-                            className="shrink-0 text-accent-dark"
-                          />
-                          <span className="truncate">{region.fullName}</span>
-                        </span>
-                        <span className="shrink-0 text-xs text-muted">
-                          선택
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+            <MapSearchBox
+              query={regionQuery}
+              onQueryChange={setRegionQuery}
+              regions={regionSuggestions}
+              knownRegionCodes={knownRegionCodes}
+              onSelectRegion={handleSelectRegion}
+              onSelectPlace={handleSelectPlace}
+            />
 
             {/* 업종 필터 열기/닫기 버튼 (다중 선택 개수 표시) */}
             <button
@@ -972,6 +868,12 @@ export function MapExplorerClient({
               </span>
             </button>
           </div>
+
+          {placeNoteState && selectedRegion?.code === placeNoteState.regionCode && (
+            <p role="status" className="type-body text-foreground">
+              {placeNoteState.text}
+            </p>
+          )}
 
           {/* 숨겨진 업종 필터 패널 ('필터' 버튼 클릭 시에만 표시 · 중복 선택 지원) */}
           {filterOpen && (
