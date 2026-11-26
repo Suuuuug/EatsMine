@@ -23,6 +23,6 @@ import { ReviewsService } from './reviews.service.js';
     ReviewSummaryService,
     PhotoStorage,
   ],
-  exports: [MeRecordsService, ReviewSummaryService],
+  exports: [MeRecordsService, ReviewSummaryService, PhotoStorage],
 })
 export class ReviewsModule {}
