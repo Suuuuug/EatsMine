@@ -8,6 +8,7 @@ export type ReviewDto = {
   id: number;
   restaurant: { id: string; name: string; merUrl: string; regionCode?: string | null };
   food?: { id: number; name: string } | null;
+  photos?: { path: string; url: string }[];
   rating: number;
   content: string | null;
   visitedAt: string | null;
@@ -54,6 +55,7 @@ export function toMyReview(r: ReviewDto): MyReview {
     created_at: r.createdAt,
     region_code: r.restaurant.regionCode ?? null,
     food_name: r.food?.name ?? null,
+    photos: r.photos ?? [],
   };
 }
 
@@ -111,7 +113,7 @@ export type CreateReviewInput = { merUrl: string; restaurantName: string; rating
 export const createReview = (token: string, input: CreateReviewInput) =>
   apiFetch<{ id: number }>("/reviews", token, { method: "POST", body: JSON.stringify(input) });
 
-export type ReviewPatch = { rating?: number; content?: string; visitedAt?: string; visibility?: "private" | "public" };
+export type ReviewPatch = { rating?: number; content?: string; visitedAt?: string; visibility?: "private" | "public"; photoPaths?: string[] };
 /** 내 리뷰 수정. 빈 내용은 리뷰 글 없음으로 저장된다. */
 export const updateReview = (token: string, id: string, patch: ReviewPatch) =>
   apiFetch<ReviewDto>(`/reviews/${encodeURIComponent(id)}`, token, { method: "PATCH", body: JSON.stringify(patch) });

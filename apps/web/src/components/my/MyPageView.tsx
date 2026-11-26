@@ -4,6 +4,7 @@ import { RecordSection } from "@/components/my/RecordSection";
 import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import regionCodes from "../../../public/images/maps/region-codes.json";
 import { MySidebar } from "@/components/my/MySidebar";
+import { ProfileHeader } from "@/components/my/ProfileHeader";
 import { ThemeSetting } from "@/components/my/ThemeSetting";
 import { InfoLinks } from "@/components/my/InfoLinks";
 import { MySection } from "@/components/my/MySection";
@@ -50,20 +51,18 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
           <MySection id="my-profile" title="내 프로필" className="order-1">
             <GlassCard className="flex flex-1 flex-col justify-center gap-4 p-4">
               {member && (
-                <div className="flex items-center gap-4">
-                  <div aria-hidden="true" className="flex size-14 shrink-0 items-center justify-center rounded-full bg-surface text-xl font-semibold">
-                    {profile.nickname.charAt(0)}
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="truncate type-row font-semibold">{profile.nickname}</p>
-                    <p className="type-caption text-foreground">
-                      {profile.rank_label
-                        ? `리뷰 ${profile.review_count ?? reviews.length}개를 남긴 ${profile.rank_label}`
-                        : `리뷰 ${profile.review_count ?? reviews.length}개를 남겼어요`}
-                    </p>
-                  </div>
+                <ProfileHeader
+                  nickname={profile.nickname}
+                  avatarUrl={profile.avatar_url}
+                  token={token}
+                  summary={
+                    profile.rank_label
+                      ? `리뷰 ${profile.review_count ?? reviews.length}개를 남긴 ${profile.rank_label}`
+                      : `리뷰 ${profile.review_count ?? reviews.length}개를 남겼어요`
+                  }
+                >
                   {token && <SignOutButton />}
-                </div>
+                </ProfileHeader>
               )}
               {data.isSample && member && <p className="type-body">예시로 채운 화면이에요.</p>}
               {!member && (

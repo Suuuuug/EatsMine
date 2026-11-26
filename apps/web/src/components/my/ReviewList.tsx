@@ -103,6 +103,17 @@ export function ReviewList({
                       </span>
                     )}
                   </div>
+                  {review.photos && review.photos.length > 0 && (
+                    <ul aria-label={`${review.restaurant_name} 리뷰 사진`} className="mt-1 flex gap-2">
+                      {review.photos.map((photo, index) => (
+                        <li key={photo.path} className="size-14 shrink-0">
+                          {/* 잠깐 유효한 서명 주소라 next/image 최적화를 쓰지 않는다 */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt={`리뷰 사진 ${index + 1}`} loading="lazy" className="size-full rounded-input object-cover shadow-[inset_0_0_0_1px_var(--color-line)]" />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {review.content && (
                     <p
                       className={`mt-1 type-body text-foreground/90 ${expanded ? "" : "line-clamp-2"}`}
