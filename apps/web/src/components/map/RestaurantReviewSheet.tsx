@@ -5,6 +5,7 @@ import {
   ActionButton,
   BottomSheet,
   GlassSelect,
+  Skeleton,
   RatingStars,
   actionButtonClass,
 } from "@/components/em";
@@ -80,11 +81,12 @@ export function RestaurantReviewSheet({
     session.status === "ready" ? (session.session?.accessToken ?? null) : null;
   const userId =
     session.status === "ready" ? (session.session?.user.id ?? null) : null;
-  // 서버에서 읽은 공개 리뷰. null이면 아직 없거나 읽을 수 없는 매장이라 예시 리뷰를 쓴다.
-  const [remote, setRemote] = useState<{
-    id: string;
-    data: RestaurantReviewsDto;
-  } | null>(null);
+  // 서버에서 읽은 공개 리뷰(매장별). 이 매장 값이 없으면 불러오는 중이다.
+  const [remote, setRemote] = useState<
+    | { id: string; status: "ok"; data: RestaurantReviewsDto }
+    | { id: string; status: "error" }
+    | null
+  >(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   // 저장 요청이 끝났을 때 폼이 그대로인지 확인한다(취소·닫기·새로 쓰기가 있었으면 이 값이 바뀐다).
@@ -112,12 +114,21 @@ export function RestaurantReviewSheet({
   const placeMerchantId = merchantId(safeEatplUrl);
   const canSave = Boolean(token && safeEatplUrl && placeMerchantId);
 
+  // 이미 읽은 목록을 다시 읽을 때(리뷰 저장 뒤)는 이전 목록을 그대로 두고 바꿔 끼운다.
   const loadRemote = useCallback((id: string) => {
     fetchRestaurantReviews(id).then(
-      (data) => setRemote({ id, data }),
-      () => setRemote(null),
+      (data) => setRemote({ id, status: "ok", data }),
+      () =>
+        setRemote((prev) =>
+          prev?.id === id && prev.status === "ok" ? prev : { id, status: "error" },
+        ),
     );
   }, []);
+  const retryRemote = () => {
+    if (!placeMerchantId) return;
+    setRemote(null);
+    loadRemote(placeMerchantId);
+  };
   useEffect(() => {
     if (!placeMerchantId) return;
     loadRemote(placeMerchantId);
@@ -145,14 +156,26 @@ export function RestaurantReviewSheet({
       ? foodCandidates.items
       : [];
 
+  // 예시 리뷰는 API 없이 보는 예시 매장(잇플 링크가 없는 매장)에서만 쓴다.
+  const usesSample = !placeMerchantId || !process.env.NEXT_PUBLIC_API_URL;
+  const remoteForPlace =
+    remote && remote.id === placeMerchantId ? remote : null;
+  const reviewState: "ready" | "loading" | "error" = usesSample
+    ? "ready"
+    : !remoteForPlace
+      ? "loading"
+      : remoteForPlace.status === "ok"
+        ? "ready"
+        : "error";
   const serverData =
-    remote && remote.id === placeMerchantId ? remote.data : null;
+    remoteForPlace?.status === "ok" ? remoteForPlace.data : null;
   // 저장한 리뷰는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
   const ownReviews = userReviews.filter(
     (r) => !r.saved || r.ownerId === userId,
   );
-  const sample = place ? getSamplePlaceReviews(place, ownReviews) : null;
-  // 서버 리뷰가 있으면 그것을, 없으면 예시를 보여 준다. 내가 방금 쓴 나만 보기 리뷰는 목록 맨 위에 둔다.
+  const sample =
+    place && usesSample ? getSamplePlaceReviews(place, ownReviews) : null;
+  // 실제 매장은 서버 리뷰, 예시 매장은 예시 리뷰. 내가 방금 쓴 나만 보기 리뷰는 목록 맨 위에 둔다.
   const summary = serverData
     ? {
         averageRating: serverData.summary?.average ?? null,
@@ -366,7 +389,7 @@ export function RestaurantReviewSheet({
         )
       }
     >
-      {place && summary && (
+      {place && (
         <div className="flex flex-col gap-4">
           {/* 식당 주소 + 평균 평점 요약 */}
           <div className="flex flex-col gap-2">
@@ -375,7 +398,20 @@ export function RestaurantReviewSheet({
               <span className="min-w-0 flex-1 truncate">{place.address}</span>
               {place.genre && <span className="shrink-0">{place.genre}</span>}
             </p>
-            {summary.averageRating != null ? (
+            {reviewState === "loading" ? (
+              <p role="status" className="type-caption text-muted">
+                리뷰를 불러오고 있어요…
+              </p>
+            ) : reviewState === "error" || !summary ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="type-caption text-muted">
+                  리뷰를 불러오지 못했어요.
+                </p>
+                <ActionButton variant="gray" size="sm" onClick={retryRemote}>
+                  다시 시도
+                </ActionButton>
+              </div>
+            ) : summary.averageRating != null ? (
               <div className="flex items-center gap-2">
                 <span className="type-row tabular-nums">
                   {summary.averageRating.toFixed(1)}
@@ -535,8 +571,14 @@ export function RestaurantReviewSheet({
             </form>
           )}
 
-          {/* 리뷰 목록 */}
-          {summary.reviews.length === 0 ? (
+          {/* 리뷰 목록 (불러오는 중·실패는 위 요약 줄에서 안내) */}
+          {reviewState === "loading" ? (
+            // 리뷰가 없을 때의 "첫 리뷰를 남겨 보세요." 문단과 같은 크기라, 불러온 뒤 시트 높이가 바뀌지 않는다.
+            <p aria-hidden="true" className="relative py-2 type-body">
+              <span className="invisible">첫 리뷰를 남겨 보세요.</span>
+              <Skeleton className="absolute inset-y-2.5 left-0 w-44" />
+            </p>
+          ) : !summary ? null : summary.reviews.length === 0 ? (
             <p className="py-2 type-body text-muted">첫 리뷰를 남겨 보세요.</p>
           ) : (
             <ul aria-label="식당 리뷰 목록" className="list-divided">
