@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createReviewErrorMessage, toMyPageData } from "./api.ts";
+import { createReviewErrorMessage, reviewPhotoProblem, toMyPageData } from "./api.ts";
 
 test("API 응답을 마이페이지 화면 모양으로 바꾼다", () => {
   const data = toMyPageData(
@@ -24,4 +24,12 @@ test("리뷰 저장 실패 문구: 이미 쓴 매장(409)과 만료(401)를 구�
   assert.match(createReviewErrorMessage(409), /이미 리뷰를 남긴 매장/);
   assert.match(createReviewErrorMessage(401), /로그인이 만료/);
   assert.match(createReviewErrorMessage(500), /다시 시도/);
+});
+
+test("리뷰 사진: JPG·PNG·WEBP와 5MB 이하만 올릴 수 있다", () => {
+  assert.equal(reviewPhotoProblem({ type: "image/jpeg", size: 1024 }), null);
+  assert.equal(reviewPhotoProblem({ type: "image/webp", size: 5 * 1024 * 1024 }), null);
+  assert.match(reviewPhotoProblem({ type: "image/gif", size: 10 }), /JPG·PNG·WEBP/);
+  assert.match(reviewPhotoProblem({ type: "image/heic", size: 10 }), /JPG·PNG·WEBP/);
+  assert.match(reviewPhotoProblem({ type: "image/png", size: 5 * 1024 * 1024 + 1 }), /5MB/);
 });

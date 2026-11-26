@@ -47,3 +47,11 @@ export function pagePlaces<T>(items: readonly T[], shown: number): { visible: T[
   const count = Math.min(items.length, Math.max(PLACE_PAGE_SIZE, shown));
   return { visible: items.slice(0, count), remaining: items.length - count };
 }
+
+/** 카드 사진: 매장 사진(있으면) → 공개 리뷰 대표 사진 → 없으면 null(업종 그림을 쓴다). https 주소만 */
+export function cardPhotoUrl(place: { imageUrl?: string | null; reviewSummary?: PlaceReviewSummaryDto | null }): string | null {
+  for (const url of [place.imageUrl, place.reviewSummary?.photoUrl]) {
+    if (typeof url === 'string' && url.startsWith('https://')) return url;
+  }
+  return null;
+}

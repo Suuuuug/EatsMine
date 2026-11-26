@@ -25,6 +25,7 @@ import { sortRegions, validEatplUrl } from "@/lib/map/home-contract";
 import {
   MAX_GENRES,
   PLACE_PAGE_SIZE,
+  cardPhotoUrl,
   isPreviewMode,
   pagePlaces,
   toCardReview,
@@ -1179,12 +1180,23 @@ export function MapExplorerClient({
                         {(() => {
                           const thumbClass =
                             "flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-fill";
-                          const thumb = place.imageUrl ? (
+                          // 매장 사진 → 공개 리뷰 대표 사진(예시 모드 제외) → 업종 도감 그림
+                          const photo = isPreview ? null : cardPhotoUrl(place);
+                          const thumb = photo ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={place.imageUrl}
+                              src={photo}
                               alt=""
+                              loading="lazy"
                               className="size-full object-cover"
+                              // 서명 URL이 만료됐거나 못 불러오면 업종 그림으로 바꾼다.
+                              onError={(event) => {
+                                const img = event.currentTarget;
+                                if (img.dataset.fallback) return;
+                                img.dataset.fallback = "1";
+                                img.src = genreIllustration(place.genre);
+                                img.className = "size-16 object-contain";
+                              }}
                             />
                           ) : (
                             // 잇플에는 가게 사진이 없어 업종에 맞는 도감 그림으로 대신한다(그 메뉴가 있다는 뜻은 아님).
