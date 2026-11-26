@@ -34,11 +34,31 @@ export function canSubmit(input: { email: string; content: string; agreed: boole
   return input.agreed && !errors.email && !errors.content;
 }
 
+type SendOptions = {
+  apiBase?: string;
+  fetcher?: typeof fetch;
+  /** 로그인했으면 보낸다(서버가 회원 ID를 메일에 참고로 적는다). 없어도 보낼 수 있다. */
+  token?: string | null;
+};
+
 /**
- * 문의를 보낸다. 백엔드가 아직 없어서 늘 "열리지 않았어요"를 돌려준다.
- * 연결할 때 이 함수만 실제 요청으로 바꾸면 화면은 그대로 쓴다.
+ * 문의를 보낸다(POST /inquiries). 서버가 개발자 메일로 전달하고 DB에는 남기지 않는다.
+ * API 주소가 없거나 서버가 거절하면(미설정 503, 메일 실패 502, 요청 제한 429 등) 같은 안내로 묶고,
+ * 연결 자체가 끊기면 network로 알린다. 쓴 내용은 화면이 그대로 두므로 다시 보낼 수 있다.
  */
-export async function sendInquiry(input: InquiryInput): Promise<InquiryResult> {
-  void input;
-  return { ok: false, reason: "unavailable" };
+export async function sendInquiry(input: InquiryInput, options: SendOptions = {}): Promise<InquiryResult> {
+  const apiBase = options.apiBase ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  if (!apiBase) return { ok: false, reason: "unavailable" };
+  const fetcher = options.fetcher ?? fetch;
+  try {
+    const response = await fetcher(`${apiBase}/inquiries`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json", ...(options.token ? { authorization: `Bearer ${options.token}` } : {}) },
+      body: JSON.stringify({ type: input.type, email: input.email.trim(), content: input.content.trim() }),
+    });
+    return response.ok ? { ok: true } : { ok: false, reason: "unavailable" };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
 }
