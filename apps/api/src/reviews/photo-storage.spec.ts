@@ -128,4 +128,27 @@ describe('PhotoStorage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(500, {})));
     await expect(storage().remove(['a.jpg'])).resolves.toBeUndefined();
   });
+
+  it('사용자 폴더 목록: 1000개씩 끝까지 넘기고, 폴더 항목(id 없음)은 뺀다', async () => {
+    const page = (n: number, start = 0) =>
+      Array.from({ length: n }, (_, i) => ({
+        name: `f${start + i}.jpg`,
+        id: `id${start + i}`,
+      }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(200, page(1000)))
+      .mockResolvedValueOnce(
+        json(200, [...page(2, 1000), { name: 'sub', id: null }]),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const paths = await storage().listUserFolder(USER.toUpperCase());
+    expect(paths).toHaveLength(1002);
+    expect(paths[0]).toBe(`${USER}/f0.jpg`);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      prefix: USER,
+      limit: 1000,
+      offset: 1000,
+    });
+  });
 });
