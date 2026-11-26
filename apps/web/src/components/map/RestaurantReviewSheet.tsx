@@ -333,6 +333,8 @@ export function RestaurantReviewSheet({
         return;
       }
       setUploadProgress(null);
+      // 마지막 사진을 올린 직후 시트를 닫았거나 취소했으면 저장하지 않는다(업로드 단계의 취소).
+      if (draftId !== draftIdRef.current) return;
       // 2) 올린 사진 경로를 붙여 리뷰를 저장한다.
       try {
         await createReview(token, {
@@ -535,12 +537,12 @@ export function RestaurantReviewSheet({
                           </div>
                         ))}
                       </div>
-                      <p className="type-caption text-muted">
-                        JPG·PNG·WEBP, 한 장에 5MB까지
-                        {isPublic && draftPhotos.length > 0
-                          ? " · 공개 리뷰의 사진은 가게 대표 사진으로 보일 수 있어요"
-                          : ""}
-                      </p>
+                      {/* 형식·용량은 고를 때 걸러질 때만 알린다. 대표 사진 고지는 공개이고 사진이 있을 때만 */}
+                      {isPublic && draftPhotos.length > 0 && (
+                        <p className="type-caption text-foreground">
+                          공개 리뷰의 사진은 가게 대표 사진으로 보일 수 있어요.
+                        </p>
+                      )}
                     </div>
                   }
                   {canSave && foods.length > 0 && (

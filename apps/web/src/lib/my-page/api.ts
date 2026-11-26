@@ -155,7 +155,7 @@ export const MAX_REVIEW_PHOTO_BYTES = 5 * 1024 * 1024;
 
 /** 올릴 수 없는 사진이면 안내 문구, 괜찮으면 null */
 export function reviewPhotoProblem(file: { type: string; size: number }): string | null {
-  if (!(REVIEW_PHOTO_TYPES as readonly string[]).includes(file.type)) return "사진은 JPG·PNG·WEBP만 올릴 수 있어요.";
+  if (!(REVIEW_PHOTO_TYPES as readonly string[]).includes(file.type)) return "JPG, PNG, WEBP 사진만 올릴 수 있어요.";
   if (file.size > MAX_REVIEW_PHOTO_BYTES) return "사진은 한 장에 5MB까지 올릴 수 있어요.";
   return null;
 }
