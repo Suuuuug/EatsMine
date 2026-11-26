@@ -5,7 +5,8 @@ import { resolve } from 'node:path';
 
 for (const [file, code, minPolygons] of [['korea.svg', '47', 6], ['korea-territories.svg', '47940', 5], ['provinces/47-gyeongbuk.svg', '47940', 5]]) {
   test(`${file}: 울릉도와 독도 경계를 포함한다`, () => {
-    const xml = readFileSync(resolve('apps/web/public/images/maps', file), 'utf8');
+    // 실행 위치(저장소 루트·apps/web)와 상관없이 이 테스트 파일 기준으로 찾는다.
+    const xml = readFileSync(resolve(import.meta.dirname, '../../../public/images/maps', file), 'utf8');
     const viewBox = xml.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
     const path = xml.match(new RegExp(`<path\\b(?=[^>]*data-region-code="${code}")[^>]*\\sd="([^"]+)"`));
     assert.ok(path, `${code} 경계 없음`);
