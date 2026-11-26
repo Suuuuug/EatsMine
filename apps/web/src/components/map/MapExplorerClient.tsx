@@ -1203,7 +1203,7 @@ export function MapExplorerClient({
                             <a
                               href={safeEatplUrl}
                               target="_blank"
-                              rel="noopener noreferrer"
+                              rel="noopener"
                               tabIndex={-1}
                               aria-hidden="true"
                               onClick={(event) => {
@@ -1233,7 +1233,7 @@ export function MapExplorerClient({
                                 <a
                                   href={safeEatplUrl}
                                   target="_blank"
-                                  rel="noopener noreferrer"
+                                  rel="noopener"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     setSelectedPlaceId(place.id);

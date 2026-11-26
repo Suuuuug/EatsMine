@@ -359,7 +359,7 @@ export function RestaurantReviewSheet({
               <a
                 href={safeEatplUrl}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
                 onClick={() => trackOutbound(safeEatplUrl, "list")}
                 className={actionButtonClass({
                   variant: writing ? "gray" : "tinted",
