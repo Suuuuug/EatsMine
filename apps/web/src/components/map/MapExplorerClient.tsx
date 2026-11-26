@@ -499,6 +499,21 @@ export function MapExplorerClient({
     ? (provinceByCode.get(selectedParentCode) ?? null)
     : null;
 
+  // 뒤로가기 대상 이름: 같은 시·도에 시·군·구가 여럿이면 그 시·도, 아니면 전국
+  const backLabel =
+    selectedRegion &&
+    selectedParentProvince &&
+    allRegions.filter(
+      (r) =>
+        (parentCodeByRegion.get(r.code) ?? r.code.slice(0, 2)) ===
+        selectedParentCode,
+    ).length > 1
+      ? getTravelProvinceName(
+          selectedParentProvince.code,
+          selectedParentProvince.name,
+        )
+      : "전국";
+
   // --- 사용자 인터랙션 핸들러 ---
 
   const clearRegionSelection = useCallback(
@@ -732,41 +747,41 @@ export function MapExplorerClient({
   }, [showAllGenres]);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-5 pt-5 pb-8 md:px-8 lg:grid lg:h-dvh lg:grid-cols-[minmax(320px,388px)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-7 lg:overflow-hidden lg:py-6">
+    // 모바일: 제목·검색 → 지도(높이 고정) → 목록(이 영역만 스크롤) 세로 줄. 넓은 화면: 왼쪽 목록 + 오른쪽 지도 2열
+    <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-2 px-5 pt-2 pb-3 md:px-8 lg:flex-none lg:grid lg:h-dvh lg:grid-cols-[minmax(320px,388px)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-7 lg:overflow-hidden lg:py-6">
       {/* 왼쪽: EatsMine 에디토리얼 탐색·식당 목록 컬럼 */}
       <aside
         id="map-list-panel"
         aria-label="지역 및 맛집 탐색"
-        className="order-2 flex min-h-0 min-w-0 flex-col gap-4 lg:order-1"
+        // 모바일에서는 틀(display: contents)을 없애 제목·검색·목록이 지도와 같은 줄에서 순서를 갖게 한다.
+        className="contents lg:order-1 lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col lg:gap-4"
       >
         {/* 뒤로가기 브레드크럼 + 큰 제목 + 땅 주인 */}
-        <header className="flex flex-col gap-1">
+        <header className="order-1 flex flex-col gap-0.5 lg:order-none lg:gap-1">
           {(selectedRegion || browsingProvince) && (
+            // 넓은 화면: 제목 위 '← 상위 지역' 줄. 모바일은 제목 왼쪽 아이콘 버튼으로 대신한다.
             <button
               type="button"
               onClick={handleBackStep}
-              className="pressable -ml-2 inline-flex min-h-9 w-fit items-center gap-0.5 rounded-input px-2 text-sm font-semibold text-accent-dark focus-ring"
+              className="pressable -ml-2 hidden min-h-9 w-fit items-center gap-0.5 rounded-input px-2 text-sm font-semibold text-accent-dark focus-ring lg:inline-flex"
             >
               <Icon name="back" size={16} />
-              <span>
-                {selectedRegion &&
-                selectedParentProvince &&
-                allRegions.filter(
-                  (r) =>
-                    (parentCodeByRegion.get(r.code) ?? r.code.slice(0, 2)) ===
-                    selectedParentCode,
-                ).length > 1
-                  ? getTravelProvinceName(
-                      selectedParentProvince.code,
-                      selectedParentProvince.name,
-                    )
-                  : "전국"}
-              </span>
+              <span>{backLabel}</span>
             </button>
           )}
 
           <div className="flex items-start justify-between gap-2">
-            <h1 className="type-title min-w-0 break-keep text-foreground">
+            {(selectedRegion || browsingProvince) && (
+              <button
+                type="button"
+                onClick={handleBackStep}
+                aria-label={`${backLabel} 목록으로 돌아가기`}
+                className="pressable -ml-2 inline-flex size-8 shrink-0 items-center justify-center rounded-input text-accent-dark focus-ring lg:hidden"
+              >
+                <Icon name="back" size={18} />
+              </button>
+            )}
+            <h1 className="min-w-0 flex-1 break-keep pt-0.5 text-lg leading-7 font-bold tracking-tight text-foreground lg:flex-none lg:pt-0 lg:type-title">
               {selectedRegion
                 ? selectedRegion.fullName
                 : browsingProvince
@@ -780,18 +795,18 @@ export function MapExplorerClient({
                     : "어디로 떠나볼까요?"}
             </h1>
             {selectedRegion ? (
-              <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums">
+              <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums max-lg:pt-1">
                 {allPlaces.length}곳
               </span>
             ) : browsingProvince ? (
-              <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums">
+              <span className="type-caption shrink-0 pt-1.5 font-medium text-muted tabular-nums max-lg:pt-1">
                 {districtsOfBrowsingProvince.length}곳
               </span>
             ) : null}
           </div>
 
           {selectedRegion && (currentOwner || selectedGenres.length > 0) && (
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 lg:mt-0.5">
               {currentOwner && (
                 <p className="type-caption mr-1 text-muted">
                   땅 주인{" "}
@@ -819,7 +834,7 @@ export function MapExplorerClient({
         </header>
 
         {/* 지역 검색 + 숨김형 업종 필터 */}
-        <div className="flex flex-col gap-2.5">
+        <div className="order-2 flex flex-col gap-2.5 lg:order-none">
           <div className="flex items-center gap-2">
             <div ref={searchBoxRef} className="relative min-w-0 flex-1">
               <form
@@ -1040,7 +1055,7 @@ export function MapExplorerClient({
 
         {/* 지역 드릴다운 목록(미선택 시) 또는 식당 목록 스크롤 영역 */}
         {/* relative: 카드 안 sr-only(absolute) 글자가 문서 기준으로 빠져나가 페이지 높이를 늘리지 않게 이 영역 안에 가둔다 */}
-        <div className="relative min-h-0 flex-1 overflow-y-auto pr-0.5">
+        <div className="relative order-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 lg:order-none">
           {!selectedRegion ? (
             <div className="overflow-hidden rounded-card border border-line bg-surface/75">
               {browsingProvince ? (
@@ -1349,7 +1364,7 @@ export function MapExplorerClient({
       {/* 오른쪽: 둥근 EatsMine 지도 카드 프레임 (실제 좌표 식당 지도 ↔ 연속 영토 땅따먹기) */}
       <section
         aria-label="지도 영역"
-        className="relative order-1 h-[48vh] min-h-[340px] w-full overflow-hidden rounded-card border border-line bg-surface/45 shadow-card lg:order-2 lg:h-full"
+        className="relative order-3 h-[38dvh] min-h-[240px] w-full shrink-0 overflow-hidden rounded-card border border-line bg-surface/45 shadow-card lg:order-2 lg:h-full lg:min-h-0"
       >
         {/* 우상단 컨트롤: 내 위치 버튼 + 슬라이드 모드 전환 (모바일에서 좌상단 '← 전국'과 겹치지 않도록 컴팩트 반응형) */}
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-30 flex items-center justify-end gap-1.5 sm:top-4 sm:right-4 sm:gap-2">
