@@ -193,10 +193,15 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
             </div>
 
             <ul className="grid gap-3 sm:grid-cols-2">
-              {foods.map((food) => (
+              {foods.map((food) => {
+                const foodHref = food.slug
+                  ? `/dictionary?food=${encodeURIComponent(food.slug)}&regionCode=${encodeURIComponent(region.code)}`
+                  : "/dictionary";
+
+                return (
                 <li key={food.name}>
                   <Link
-                    href="/dictionary"
+                    href={foodHref}
                     className="pressable block h-full rounded-card focus-ring"
                   >
                     <GlassCard className="flex h-full items-start gap-3.5 p-4 transition-colors hover:border-accent/40">
@@ -231,7 +236,8 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
                     </GlassCard>
                   </Link>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
         )}

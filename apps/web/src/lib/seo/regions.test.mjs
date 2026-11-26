@@ -98,6 +98,12 @@ test("getRegionSeoMeta와 buildRegionJsonLd가 고유 메타와 구조화 데이
   assert.ok(meta.title.includes("제주도 서귀포시"));
   assert.ok(meta.description.includes("방어회"));
 
+  const suwon = getRegionByCode("41110");
+  assert.ok(suwon);
+  assert.equal(suwon.fullName, "경기도 수원시");
+  assert.ok(suwon.provinceSummary.includes("경기도"));
+  assert.ok(suwon.summary.includes("경기도 수원시"));
+
   const jsonLd = buildRegionJsonLd(seogwipo, foods);
   assert.equal(jsonLd["@graph"].length, 2);
   assert.equal(jsonLd["@graph"][0]["@type"], "BreadcrumbList");

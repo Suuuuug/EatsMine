@@ -867,10 +867,10 @@ export function MapExplorerClient({
               ))}
               <Link
                 href={regionHref(selectedRegion.code, preservePreviewQuery)}
-                className="pressable ml-auto inline-flex min-h-7 shrink-0 items-center gap-0.5 rounded-full bg-accent-weak px-2.5 py-0.5 text-xs font-semibold text-accent-dark transition-opacity hover:opacity-85 focus-ring"
+                className="pressable ml-auto inline-flex min-h-8 shrink-0 items-center gap-0.5 rounded-full border border-accent/25 bg-accent-weak px-3 py-1 text-xs font-semibold text-accent-dark transition-opacity hover:opacity-85 focus-ring"
               >
                 <span>지역 상세</span>
-                <Icon name="chevron-right" size={13} />
+                <Icon name="chevron-right" size={14} />
               </Link>
             </div>
           )}

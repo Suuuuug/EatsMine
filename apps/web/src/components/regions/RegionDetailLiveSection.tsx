@@ -17,7 +17,7 @@ import {
   getSamplePlaceReviews,
 } from "@/data/map-mock";
 import { genreIllustration } from "@/lib/map/genre-illustration";
-import { validEatplUrl } from "@/lib/map/home-contract";
+import { reviewUrl, validEatplUrl } from "@/lib/map/home-contract";
 import { isPreviewMode, toCardReview } from "@/lib/map/map-data";
 import { rememberSourceChannel, trackOutbound } from "@/lib/map/outbound";
 import {
@@ -204,6 +204,12 @@ export function RegionDetailLiveSection({
                     }
                   : toCardReview(place.reviewSummary);
                 const safeEatplUrl = validEatplUrl(place.merUrl);
+                const reviewsHref = reviewUrl(
+                  place.id,
+                  region.code,
+                  null,
+                  place.name,
+                );
 
                 return (
                   <li key={place.id}>
@@ -304,6 +310,32 @@ export function RegionDetailLiveSection({
                         <p className="line-clamp-2 text-xs leading-relaxed text-muted">
                           {cardReview.excerpt}
                         </p>
+                      )}
+
+                      {reviewsHref && (
+                        <div className="flex items-center justify-between gap-2 border-t border-line/60 pt-2">
+                          <Link
+                            href={reviewsHref}
+                            className="pressable inline-flex min-h-8 items-center gap-0.5 rounded-input text-xs font-semibold text-accent-dark underline underline-offset-4 focus-ring"
+                          >
+                            <span>리뷰 보기</span>
+                            <span aria-hidden="true">›</span>
+                          </Link>
+                          {safeEatplUrl && (
+                            <a
+                              href={safeEatplUrl}
+                              target="_blank"
+                              rel="noopener"
+                              onClick={() =>
+                                trackOutbound(safeEatplUrl, "list", region.code)
+                              }
+                              className="pressable inline-flex min-h-8 items-center gap-1 rounded-input text-xs font-medium text-muted hover:text-foreground focus-ring"
+                            >
+                              <span>잇플 상세</span>
+                              <Icon name="external" size={12} />
+                            </a>
+                          )}
+                        </div>
                       )}
                     </GlassCard>
                   </li>

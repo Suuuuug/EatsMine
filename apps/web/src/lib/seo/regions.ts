@@ -50,6 +50,8 @@ export type RegionSeoEntry = {
   isPopular: boolean;
   /** 대표 여행지 약칭 (예: 강릉, 부산 해운대) */
   popularName: string | null;
+  /** 상위 시·도 여행 권역 요약 (예: 수원·파주·양평·가평·용인 등 수도권 근교...) */
+  provinceSummary: string;
   /** 검색엔진 설명 및 안내용 요약 문구 */
   summary: string;
 };
@@ -90,9 +92,12 @@ export const ALL_REGIONS: readonly RegionSeoEntry[] = regionData.territories.map
     const fullName = formatTravelFullName(parentCode, territory.name);
     const [lng, lat] = territory.labelPoint ?? [null, null];
 
+    const provinceSummary = province?.summary ?? "";
     const summary = popular
       ? popular.summary
-      : `${fullName} 여행 맛집 지도와 현지 인기 식당, 공유 영토 순위를 한눈에 탐색할 수 있는 국내 여행지`;
+      : provinceSummary
+        ? `${fullName} 여행 맛집과 현지 인기 식당 — ${provinceSummary}`
+        : `${fullName} 여행 맛집 지도와 현지 인기 식당, 공유 영토 순위를 한눈에 탐색할 수 있는 국내 여행지`;
 
     return {
       code: territory.code,
@@ -105,6 +110,7 @@ export const ALL_REGIONS: readonly RegionSeoEntry[] = regionData.territories.map
       centerLng: typeof lng === "number" ? lng : null,
       isPopular: Boolean(popular),
       popularName: popular?.name ?? null,
+      provinceSummary,
       summary,
     };
   },
