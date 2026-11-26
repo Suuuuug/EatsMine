@@ -3,7 +3,6 @@ import { Geist_Mono } from "next/font/google";
 // Pretendard: 기본 글꼴. dynamic subset이라 화면에 쓰인 글자 묶음만 내려받는다(OFL-1.1).
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
-import { DevLoginButton } from "@/components/auth/DevLoginButton";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import {
   DEFAULT_DESCRIPTION,
@@ -99,7 +98,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><ThemeProvider>{children}<DevLoginButton /></ThemeProvider></body>
+      <body className="min-h-full flex flex-col"><ThemeProvider>{children}</ThemeProvider></body>
     </html>
   );
 }
