@@ -144,7 +144,7 @@ export function TerritoryExplorer({
                 />
               </GlassCard>
               {/* 주 행동 하나. 순위를 보고 바로 누르도록 순위 카드 바로 아래 둔다. */}
-              <Link href={`/?region=${encodeURIComponent(selected.code)}`} className={actionButtonClass({ size: "lg", block: true })}>
+              <Link href={`/regions/${encodeURIComponent(selected.code)}`} className={actionButtonClass({ size: "lg", block: true })}>
                 이 지역 식당 보기
               </Link>
             </div>

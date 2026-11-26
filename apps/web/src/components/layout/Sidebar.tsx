@@ -22,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") {
-    return pathname === "/";
+    return pathname === "/" || pathname.startsWith("/regions/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MapExplorerClient } from "@/components/map/MapExplorerClient";
 import { ScrollActivity } from "@/components/scroll/ScrollActivity";
+import { getProvinceEntryRegion, regionPath } from "@/lib/seo/regions";
 import {
   DEFAULT_DESCRIPTION,
   POPULAR_TRAVEL_DESTINATIONS,
@@ -67,7 +68,7 @@ const homeJsonLd = {
         position: index + 1,
         name: `${dest.name} 여행 맛집 (${dest.regionLabel})`,
         description: dest.summary,
-        url: `${SITE_URL}/?region=${dest.code}`,
+        url: `${SITE_URL}${regionPath(dest.code)}`,
       })),
     },
   ],
@@ -101,16 +102,25 @@ export default function HomePage() {
         <h2>전국 국내 여행지 맛집 지도</h2>
         <p>{DEFAULT_DESCRIPTION}</p>
         <ul>
-          {TRAVEL_PROVINCES.map((province) => (
-            <li key={province.code}>
-              {province.displayName} 여행 맛집 지도 — {province.summary}
-            </li>
-          ))}
+          {TRAVEL_PROVINCES.map((province) => {
+            const entry = getProvinceEntryRegion(province.code);
+            return (
+              <li key={province.code}>
+                {entry ? (
+                  <Link href={regionPath(entry.code)}>
+                    {province.displayName} 여행 맛집 지도 — {province.summary}
+                  </Link>
+                ) : (
+                  `${province.displayName} 여행 맛집 지도 — ${province.summary}`
+                )}
+              </li>
+            );
+          })}
         </ul>
         <ul>
           {POPULAR_TRAVEL_DESTINATIONS.map((dest) => (
             <li key={dest.code}>
-              <Link href={`/?region=${dest.code}`}>
+              <Link href={regionPath(dest.code)}>
                 {dest.name} 여행 맛집 · {dest.regionLabel} — {dest.summary}
               </Link>
             </li>
