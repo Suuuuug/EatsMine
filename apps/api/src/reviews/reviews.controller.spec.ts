@@ -28,6 +28,7 @@ describe('리뷰·내 기록 API', () => {
     remove: vi.fn(),
     listMine: vi.fn(),
     listPublicForRestaurant: vi.fn(),
+    createPhotoUpload: vi.fn(),
   };
   const records = { territories: vi.fn(), collection: vi.fn() };
   let loggedIn = true;
@@ -181,6 +182,64 @@ describe('리뷰·내 기록 API', () => {
     });
   });
 
+  describe('리뷰 사진', () => {
+    const PHOTO = `${user.id}/0b7f6c2a-2222-4333-8444-955566667777.jpg`;
+
+    it('POST /reviews/photos/uploads: 형식을 받아 업로드 URL을 돌려준다', async () => {
+      reviews.createPhotoUpload.mockResolvedValue({
+        path: PHOTO,
+        uploadUrl: 'u',
+      });
+      const res = await request(server())
+        .post('/reviews/photos/uploads')
+        .send({ contentType: 'image/jpeg', size: 1024 })
+        .expect(201);
+      expect(reviews.createPhotoUpload).toHaveBeenCalledWith(
+        user,
+        'image/jpeg',
+      );
+      expect(res.body.path).toBe(PHOTO);
+    });
+
+    it.each([
+      [{ contentType: 'image/gif', size: 1024 }, 'GIF'],
+      [{ contentType: 'image/jpeg', size: 5 * 1024 * 1024 + 1 }, '5MB 초과'],
+      [{ contentType: 'image/jpeg' }, '크기 없음'],
+    ])('업로드 URL 입력 오류는 400: %o (%s)', async (body, _reason) => {
+      await request(server())
+        .post('/reviews/photos/uploads')
+        .send(body)
+        .expect(400);
+      expect(reviews.createPhotoUpload).not.toHaveBeenCalled();
+    });
+
+    it('POST /reviews: photoPaths를 서비스에 넘기고, 5장 이상은 400', async () => {
+      reviews.create.mockResolvedValue({ id: 1 });
+      const base = { merUrl: MER_URL, restaurantName: '가게', rating: 5 };
+      await request(server())
+        .post('/reviews')
+        .send({ ...base, photoPaths: [PHOTO] })
+        .expect(201);
+      expect(reviews.create).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({ photoPaths: [PHOTO] }),
+      );
+      await request(server())
+        .post('/reviews')
+        .send({ ...base, photoPaths: [1, 2, 3, 4, 5].map(() => PHOTO) })
+        .expect(400);
+    });
+
+    it('PATCH /reviews/:id: 사진만 바꿔도(빈 배열 = 모두 삭제) 수정으로 받는다', async () => {
+      reviews.update.mockResolvedValue({ id: 7 });
+      await request(server())
+        .patch('/reviews/7')
+        .send({ photoPaths: [] })
+        .expect(200);
+      expect(reviews.update).toHaveBeenCalledWith(user, 7, { photoPaths: [] });
+    });
+  });
+
   describe('PATCH·DELETE /reviews/:id', () => {
     it('PATCH: 음식 지우기(null)와 빈 후기(null)를 넘긴다', async () => {
       reviews.update.mockResolvedValue({ id: 7 });
@@ -290,6 +349,7 @@ describe('toRestaurantReviewsDto', () => {
       rating: 4,
       content: '맛있어요',
       visitedAt: '2026-11-20',
+      photos: [],
       createdAt: '2026-11-21T00:00:00.000Z',
       updatedAt: '2026-11-22T00:00:00.000Z',
     });

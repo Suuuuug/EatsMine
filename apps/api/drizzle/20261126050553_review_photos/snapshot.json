@@ -1,0 +1,286 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "fe2cc847-5b4d-435d-ba50-025bb5fe54fc",
+  "prevIds": [
+    "fee18694-761b-47fd-a543-7fefec892f09"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "review_photos"
+      ],
+      "writes": [
+        "s|tbl|public.review_photos",
+        "n|tbl|public.review_photos",
+        "e|tbl|public.review_photos",
+        "n|rel|public.review_photos",
+        "n|type|public.review_photos",
+        "n|rel|public.review_photos_pkey",
+        "n|rel|public.review_photos_storage_path_unique",
+        "n|rel|public.review_photos_review_position_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "review_photos"
+      ],
+      "writes": [
+        "s|fk|public.review_photos.review_photos_review_id_reviews_id_fkey",
+        "n|fk|public.review_photos.review_photos_review_id_reviews_id_fkey",
+        "e|fk|public.review_photos.review_photos_review_id_reviews_id_fkey",
+        "n|con|public.review_photos.review_photos_review_id_reviews_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.review_photos",
+        "n|sch|public",
+        "n|tbl|public.reviews",
+        "n|sch|public",
+        "n|col|public.review_photos.review_id",
+        "n|col|public.reviews.id",
+        "e|uniqueness|public.reviews.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "review_photos"
+      ],
+      "writes": [
+        "s|fk|public.review_photos.review_photos_user_id_profiles_id_fkey",
+        "n|fk|public.review_photos.review_photos_user_id_profiles_id_fkey",
+        "e|fk|public.review_photos.review_photos_user_id_profiles_id_fkey",
+        "n|con|public.review_photos.review_photos_user_id_profiles_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.review_photos",
+        "n|sch|public",
+        "n|tbl|public.profiles",
+        "n|sch|public",
+        "n|col|public.review_photos.user_id",
+        "n|col|public.profiles.id",
+        "e|uniqueness|public.profiles.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "review_photos",
+        "isRlsEnabled": true,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "review_photos_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "9223372036854775807",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "storage_path",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "position",
+        "type": "smallint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_review_id_reviews_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "review_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "reviews",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_user_id_profiles_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "profiles",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_storage_path_unique",
+        "nameExplicit": true,
+        "columns": [
+          "storage_path"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_review_position_unique",
+        "nameExplicit": true,
+        "columns": [
+          "review_id",
+          "position"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "review_photos",
+        "name": "review_photos_position_check",
+        "value": "\"position\" BETWEEN 0 AND 3",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

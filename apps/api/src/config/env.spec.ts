@@ -14,6 +14,7 @@ describe('validateEnv', () => {
       PORT: 3000,
       EATPL_BASE_URL: 'https://k-skill-proxy.nomadamas.org',
       EATPL_TIMEOUT_MS: 8000,
+      REVIEW_PHOTO_BUCKET: 'review-photos',
     });
   });
 
