@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createReviewErrorMessage, toMyPageData } from "./api.ts";
+import { ApiError, createReviewErrorMessage, PhotoUploadError, photoUploadErrorMessage, reviewPhotoProblem, toMyPageData } from "./api.ts";
 
 test("API 응답을 마이페이지 화면 모양으로 바꾼다", () => {
   const data = toMyPageData(
@@ -25,3 +25,20 @@ test("리뷰 저장 실패 문구: 이미 쓴 매장(409)과 만료(401)를 구�
   assert.match(createReviewErrorMessage(401), /로그인이 만료/);
   assert.match(createReviewErrorMessage(500), /다시 시도/);
 });
+
+test("리뷰 사진: JPG, PNG, WEBP와 원본 20MB 이하만 고를 수 있다", () => {
+  assert.equal(reviewPhotoProblem({ type: "image/jpeg", size: 1024 }), null);
+  assert.equal(reviewPhotoProblem({ type: "image/webp", size: 12 * 1024 * 1024 }), null);
+  assert.match(reviewPhotoProblem({ type: "image/gif", size: 10 }), /JPG, PNG, WEBP 사진만/);
+  assert.match(reviewPhotoProblem({ type: "image/heic", size: 10 }), /JPG, PNG, WEBP 사진만/);
+  assert.match(reviewPhotoProblem({ type: "image/png", size: 20 * 1024 * 1024 + 1 }), /20MB/);
+});
+
+test("사진 올리기 실패 문구: 저장소 413은 용량, 우리 API 401은 로그인, 저장소 401·5xx는 다시 시도", () => {
+  assert.match(photoUploadErrorMessage(new PhotoUploadError(413)), /너무 커요/);
+  assert.match(photoUploadErrorMessage(new ApiError(401)), /로그인이 만료/);
+  assert.match(photoUploadErrorMessage(new PhotoUploadError(401)), /다시 시도/);
+  assert.match(photoUploadErrorMessage(new PhotoUploadError(503)), /다시 시도/);
+  assert.match(photoUploadErrorMessage(new TypeError("Failed to fetch")), /다시 시도/);
+});
+

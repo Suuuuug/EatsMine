@@ -16,10 +16,16 @@ import { signInWithGoogle } from "@/lib/auth/google";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
 import { trackOutbound } from "@/lib/map/outbound";
+import { stripPhotoMetadata } from "@/lib/my-page/review-photo-process";
 import {
   ApiError,
   createReview,
   createReviewErrorMessage,
+  MAX_REVIEW_PHOTO_BYTES,
+  PhotoUploadError,
+  photoUploadErrorMessage,
+  reviewPhotoProblem,
+  uploadReviewPhoto,
   fetchFoodCandidates,
   fetchRestaurantReviews,
   type FoodCandidate,
@@ -47,6 +53,8 @@ type DraftPhoto = {
   id: string;
   url: string;
   name: string;
+  /** 저장할 때 올릴 원본 파일 */
+  file: File;
 };
 
 type RestaurantReviewSheetProps = {
@@ -88,6 +96,8 @@ export function RestaurantReviewSheet({
     | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
+  // 저장 중 사진 올리기 진행(예: 1/3). null이면 사진 단계가 아니다.
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState("");
   // 저장 요청이 끝났을 때 폼이 그대로인지 확인한다(취소·닫기·새로 쓰기가 있었으면 이 값이 바뀐다).
   const draftIdRef = useRef(0);
@@ -95,6 +105,8 @@ export function RestaurantReviewSheet({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftPhotosRef = useRef<DraftPhoto[]>([]);
+  // 같은 초안에서 이미 올린 사진의 경로(사진 id → path). 저장이 실패해 다시 눌러도 다시 올리지 않는다.
+  const uploadedPathsRef = useRef(new Map<string, string>());
 
   useEffect(() => {
     draftPhotosRef.current = draftPhotos;
@@ -189,6 +201,9 @@ export function RestaurantReviewSheet({
             rating: item.rating,
             content: item.content ?? "",
             visitedAt: item.visitedAt ?? item.createdAt.slice(0, 10),
+            photos: item.photos?.length
+              ? item.photos.map((photo) => photo.url)
+              : undefined,
           })),
         ],
       }
@@ -200,6 +215,7 @@ export function RestaurantReviewSheet({
         URL.revokeObjectURL(photo.url);
       }
     }
+    uploadedPathsRef.current.clear();
     setDraftPhotos([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -207,6 +223,7 @@ export function RestaurantReviewSheet({
   const handleClose = () => {
     draftIdRef.current += 1;
     setSubmitting(false);
+    setUploadProgress(null);
     clearDraftPhotos(true);
     setLightboxUrl(null);
     setWriting(false);
@@ -218,10 +235,12 @@ export function RestaurantReviewSheet({
   };
 
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []).filter((file) =>
-      file.type.startsWith("image/"),
-    );
+    const picked = Array.from(event.target.files ?? []);
     event.target.value = "";
+    // 올릴 수 없는 형식·크기는 고를 때 바로 알려 주고 뺀다(서버·저장소도 같은 기준).
+    const problem = picked.map(reviewPhotoProblem).find(Boolean);
+    setSubmitError(problem ?? "");
+    const files = picked.filter((file) => !reviewPhotoProblem(file));
     if (files.length === 0) return;
 
     setDraftPhotos((prev) => {
@@ -233,12 +252,14 @@ export function RestaurantReviewSheet({
           id: `photo-${Date.now()}-${idx}`,
           url: URL.createObjectURL(file),
           name: file.name,
+          file,
         }));
       return [...prev, ...added];
     });
   };
 
   const handleRemoveDraftPhoto = (id: string) => {
+    uploadedPathsRef.current.delete(id);
     setDraftPhotos((prev) => {
       const target = prev.find((p) => p.id === id);
       if (target) URL.revokeObjectURL(target.url);
@@ -248,6 +269,7 @@ export function RestaurantReviewSheet({
 
   const resetDraft = (revokeUrls = true) => {
     draftIdRef.current += 1;
+    setUploadProgress(null);
     clearDraftPhotos(revokeUrls);
     setContent("");
     setRating(5);
@@ -285,9 +307,7 @@ export function RestaurantReviewSheet({
       content: trimmed,
       visitedAt: new Date().toISOString().slice(0, 10),
       photos:
-        !saved && draftPhotos.length > 0
-          ? draftPhotos.map((p) => p.url)
-          : undefined,
+        draftPhotos.length > 0 ? draftPhotos.map((p) => p.url) : undefined,
       isSample: false,
       saved,
       ownerId: saved ? (userId ?? undefined) : undefined,
@@ -299,6 +319,36 @@ export function RestaurantReviewSheet({
       const draftId = draftIdRef.current;
       setSubmitting(true);
       setSubmitError("");
+      // 1) 사진을 한 장씩 올려 경로를 모은다(파일은 저장소로 바로 올라가고 api를 거치지 않는다).
+      const photoPaths: string[] = [];
+      try {
+        for (const [i, photo] of draftPhotos.entries()) {
+          if (draftId !== draftIdRef.current) return;
+          setUploadProgress(`${i + 1}/${draftPhotos.length}`);
+          const uploaded = uploadedPathsRef.current.get(photo.id);
+          if (uploaded) {
+            photoPaths.push(uploaded);
+            continue;
+          }
+          // 위치 정보 등 메타데이터를 지우고 줄여서 다시 저장한 파일만 올린다.
+          const cleaned = await stripPhotoMetadata(photo.file);
+          if (cleaned.size > MAX_REVIEW_PHOTO_BYTES) throw new PhotoUploadError(413);
+          const path = await uploadReviewPhoto(token, cleaned);
+          uploadedPathsRef.current.set(photo.id, path);
+          photoPaths.push(path);
+        }
+      } catch (e) {
+        if (draftId === draftIdRef.current) {
+          setSubmitError(photoUploadErrorMessage(e));
+          setSubmitting(false);
+          setUploadProgress(null);
+        }
+        return;
+      }
+      setUploadProgress(null);
+      // 마지막 사진을 올린 직후 시트를 닫았거나 취소했으면 저장하지 않는다(업로드 단계의 취소).
+      if (draftId !== draftIdRef.current) return;
+      // 2) 올린 사진 경로를 붙여 리뷰를 저장한다.
       try {
         await createReview(token, {
           merUrl: safeEatplUrl,
@@ -309,6 +359,7 @@ export function RestaurantReviewSheet({
           ...(foodId != null && foods.some((f) => f.id === foodId)
             ? { foodId }
             : {}),
+          ...(photoPaths.length ? { photoPaths } : {}),
         });
       } catch (e) {
         if (draftId === draftIdRef.current) {
@@ -325,10 +376,15 @@ export function RestaurantReviewSheet({
         return;
       }
       setSubmitting(false);
-      // 공개 리뷰는 서버 목록에서 다시 읽고, 나만 보기 리뷰는 이 화면에 보여 준다.
-      if (visibility === "public") loadRemote(placeMerchantId);
-      else onAddReview(place.id, local(true));
-      resetDraft();
+      // 공개 리뷰는 서버 목록(사진 포함)에서 다시 읽고, 나만 보기 리뷰는 이 화면에 보여 준다.
+      if (visibility === "public") {
+        loadRemote(placeMerchantId);
+        resetDraft();
+      } else {
+        onAddReview(place.id, local(true));
+        // 이 화면의 나만 보기 리뷰가 사진 미리보기를 계속 쓰므로 URL은 지우지 않는다.
+        resetDraft(false);
+      }
       return;
     }
     onAddReview(place.id, local(false));
@@ -452,7 +508,7 @@ export function RestaurantReviewSheet({
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         multiple
                         onChange={handleFilesSelected}
                         aria-label="리뷰 사진 선택"
@@ -494,9 +550,10 @@ export function RestaurantReviewSheet({
                           </div>
                         ))}
                       </div>
-                      {canSave && draftPhotos.length > 0 && (
-                        <p className="type-caption text-muted">
-                          사진은 아직 저장되지 않아요. 글과 별점만 저장돼요.
+                      {/* 형식·용량은 고를 때 걸러질 때만 알린다. 대표 사진 고지는 공개이고 사진이 있을 때만 */}
+                      {isPublic && draftPhotos.length > 0 && (
+                        <p className="type-caption text-foreground">
+                          공개 리뷰의 사진은 가게 대표 사진으로 보일 수 있어요.
                         </p>
                       )}
                     </div>
@@ -564,7 +621,11 @@ export function RestaurantReviewSheet({
                     size="sm"
                     disabled={!content.trim() || submitting}
                   >
-                    {submitting ? "저장하고 있어요" : "등록하기"}
+                    {uploadProgress
+                      ? `사진 올리는 중 ${uploadProgress}`
+                      : submitting
+                        ? "저장하고 있어요"
+                        : "등록하기"}
                   </ActionButton>
                 </div>
               </fieldset>

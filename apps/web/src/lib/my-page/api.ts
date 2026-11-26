@@ -27,6 +27,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 사진 파일을 저장소(Supabase Storage)에 올리는 단계의 실패. status는 저장소 응답 코드(413 용량 초과 등).
+ * 우리 API의 401(로그인 만료)과 섞이지 않게 따로 구분한다.
+ */
+export class PhotoUploadError extends ApiError {
+  constructor(status: number) {
+    super(status);
+    this.name = "PhotoUploadError";
+  }
+}
+
+/** 사진 올리기 실패 안내. 우리 API의 401은 로그인 만료, 저장소 413은 용량 초과, 나머지는 다시 시도 */
+export function photoUploadErrorMessage(e: unknown): string {
+  if (e instanceof PhotoUploadError && e.status === 413) return "사진이 너무 커요. 다른 사진을 골라 주세요.";
+  if (!(e instanceof PhotoUploadError) && e instanceof ApiError && e.status === 401) return "로그인이 만료됐어요. 다시 로그인해 주세요.";
+  return "사진을 올리지 못했어요. 다시 시도해 주세요.";
+}
+
 export async function apiFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   if (!apiBase) throw new ApiError(0);
   const response = await fetch(`${apiBase}${path}`, {
@@ -94,6 +112,8 @@ export type PublicReviewDto = {
   rating: number;
   content: string | null;
   visitedAt: string | null;
+  /** 1시간 유효한 서명 URL. 저장하지 말고 볼 때마다 응답 값을 쓴다 */
+  photos?: { url: string }[];
   createdAt: string;
 };
 export type RestaurantReviewsDto = { restaurantId: string; summary: { average: number; count: number } | null; items: PublicReviewDto[] };
@@ -106,8 +126,17 @@ export async function fetchRestaurantReviews(restaurantId: string): Promise<Rest
   return (await response.json()) as RestaurantReviewsDto;
 }
 
-export type CreateReviewInput = { merUrl: string; restaurantName: string; rating: number; content?: string; visibility: "private" | "public"; foodId?: number };
-/** 리뷰 저장. merUrl은 잇플 응답값 그대로 보낸다. 사진은 API에 아직 없어 보내지 않는다. */
+export type CreateReviewInput = {
+  merUrl: string;
+  restaurantName: string;
+  rating: number;
+  content?: string;
+  visibility: "private" | "public";
+  foodId?: number;
+  /** uploadReviewPhoto로 받은 경로(최대 4장, 순서대로) */
+  photoPaths?: string[];
+};
+/** 리뷰 저장. merUrl은 잇플 응답값 그대로 보낸다. */
 export const createReview = (token: string, input: CreateReviewInput) =>
   apiFetch<{ id: number }>("/reviews", token, { method: "POST", body: JSON.stringify(input) });
 
@@ -136,5 +165,32 @@ export function createReviewErrorMessage(status: number): string {
   if (status === 429) return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
   if (status === 400) return "입력한 내용을 확인해 주세요.";
   return "리뷰를 저장하지 못했어요. 다시 시도해 주세요.";
+}
+
+/** 리뷰 사진으로 올릴 수 있는 형식·크기(api·버킷 설정과 같다) */
+export const REVIEW_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const MAX_REVIEW_PHOTO_BYTES = 5 * 1024 * 1024;
+/** 고를 수 있는 원본 크기. 올리기 전에 줄여서 다시 저장하므로 5MB보다 큰 원본도 받는다 */
+export const MAX_REVIEW_PHOTO_INPUT_BYTES = 20 * 1024 * 1024;
+
+/** 고른 사진을 받을 수 없으면 안내 문구, 괜찮으면 null(올리기 전에 위치 정보를 지우고 줄여서 다시 저장한다) */
+export function reviewPhotoProblem(file: { type: string; size: number }): string | null {
+  if (!(REVIEW_PHOTO_TYPES as readonly string[]).includes(file.type)) return "JPG, PNG, WEBP 사진만 올릴 수 있어요.";
+  if (file.size > MAX_REVIEW_PHOTO_INPUT_BYTES) return "사진은 한 장에 20MB까지 고를 수 있어요.";
+  return null;
+}
+
+/**
+ * 리뷰 사진 1장 올리기: api에서 서명 업로드 URL을 받고, 그 URL로 파일을 바로 PUT한다(파일은 api를 거치지 않음).
+ * 돌려준 경로를 리뷰 작성의 photoPaths에 넣는다. 실패하면 ApiError(상태 코드, 업로드 단계 실패는 0).
+ */
+export async function uploadReviewPhoto(token: string, file: File): Promise<string> {
+  const { path, uploadUrl } = await apiFetch<{ path: string; uploadUrl: string }>("/reviews/photos/uploads", token, {
+    method: "POST",
+    body: JSON.stringify({ contentType: file.type, size: file.size }),
+  });
+  const put = await fetch(uploadUrl, { method: "PUT", headers: { "content-type": file.type }, body: file });
+  if (!put.ok) throw new PhotoUploadError(put.status);
+  return path;
 }
 
