@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ActionButton, BottomSheet, FoodTile, SegmentedControl, useToast } from "@/components/em";
+import { ActionButton, BottomSheet, FoodTile, SegmentedControl, actionButtonClass, useToast } from "@/components/em";
 import { shareOrCopy } from "@/components/layout/ShareAction";
 import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import { SEASONAL_FOODS } from "@/data/seasonal-foods";
@@ -90,6 +91,11 @@ export function RecordShareSheet({ open, onClose, token }: Props) {
     <>
       <BottomSheet open={open} onClose={onClose} title="내 기록 공유하기" actions={
         links && !id ? <ActionButton variant="fill" size="lg" block disabled={busy} onClick={() => void create()}>공유 링크 만들기</ActionButton> :
+        id && selectedView && selectedView.count === 0 ?
+          // 보낼 기록이 없으면 빈 카드를 공유하지 않고, 기록을 채우러 가는 행동 하나를 둔다.
+          <Link href={type === "territory" ? "/" : "/dictionary"} onClick={onClose} className={actionButtonClass({ variant: "tinted", size: "lg", block: true })}>
+            {type === "territory" ? "후기 남길 식당 찾기" : "제철음식 모으러 가기"}
+          </Link> :
         id && selectedView ? <ActionButton variant="fill" size="lg" block disabled={busy} onClick={() => void share()}>공유하기</ActionButton> : undefined
       }>
         <div className="flex flex-col gap-4 break-keep">
@@ -102,7 +108,7 @@ export function RecordShareSheet({ open, onClose, token }: Props) {
               {selectedView?.type === "territory" ? <TerritoryPreview visited={selectedView.regionCodes} stacked mapHeightClass="h-44 sm:h-52" /> :
                 <ul className="grid grid-cols-5 gap-x-1 gap-y-3">{foods.slice(0, 10).map((food) => <li key={food.id} className="min-w-0 text-center"><FoodTile name={food.name} src={food.src} collected imageSize={44} /></li>)}</ul>}
             </section>
-          ) : links && !id ? <p className="type-body">링크를 만들면 공유할 기록을 미리 볼 수 있어요.</p> : !error ? <p role="status">불러오는 중이에요</p> : null}
+          ) : links && !id ? <p className="type-body">링크를 만들면 공유할 기록을 미리 볼 수 있어요.</p> : !error ? <p role="status" className="type-body">불러오는 중이에요</p> : null}
           {id && <ActionButton variant="plain" size="md" disabled={busy} onClick={() => void remove()}>공유 중지하기</ActionButton>}
           {error && <p role="alert" className="type-caption text-danger">{error}</p>}
         </div>
