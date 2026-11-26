@@ -12,7 +12,7 @@ const restaurantIdSchema = z
 export class RestaurantReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
-  /** GET /restaurants/:id/reviews — 매장 공개 후기 목록·평균 (로그인 불필요). IP당 1분 60회 */
+  /** GET /restaurants/:id/reviews — 매장 공개 리뷰 목록·평균 (로그인 불필요). IP당 1분 60회 */
   @Get()
   @RateLimit(60, 60_000)
   list(@Param('id', { schema: restaurantIdSchema }) id: string) {

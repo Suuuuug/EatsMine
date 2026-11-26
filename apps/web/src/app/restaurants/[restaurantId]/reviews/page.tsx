@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { RestaurantReviewsView } from "@/components/reviews/RestaurantReviewsView";
 
-export const metadata: Metadata = { title: "식당 후기 | EatsMine" };
+export const metadata: Metadata = { title: "식당 리뷰 | EatsMine" };
 
 export default function RestaurantReviewsPage() {
   return (

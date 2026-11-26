@@ -228,6 +228,52 @@ function computeViewportForBounds(
   return { lat: centerLat, lng: centerLng, zoom: minZoom };
 }
 
+/** 울릉도(울릉군 중심 부근). 경북을 9단계로 맞추면 화면 오른쪽 위 밖에 놓여서 따로 넣는다. */
+const ULLEUNGDO = { lat: 37.5, lng: 130.905 };
+const ISLAND_MARGIN_PX = 40;
+/** 위·아래 여백은 더 넉넉히 둬서 지도가 조금 더 위로 올라가게 한다 */
+const ISLAND_MARGIN_Y_PX = 100;
+
+/** point가 화면 안(가장자리 여백 제외)에 들어오도록 중심만 최소한으로 옮긴다. 줌은 그대로. */
+function includePointInViewport(
+  vp: MapViewport,
+  point: { lat: number; lng: number },
+  width: number,
+  height: number,
+): MapViewport {
+  const c = latLngToWorld(vp.lat, vp.lng, vp.zoom);
+  const p = latLngToWorld(point.lat, point.lng, vp.zoom);
+  const halfW = Math.max(0, width / 2 - ISLAND_MARGIN_PX);
+  const halfH = Math.max(0, height / 2 - ISLAND_MARGIN_Y_PX);
+  let x = c.x;
+  let y = c.y;
+  if (p.x > x + halfW) x = p.x - halfW;
+  else if (p.x < x - halfW) x = p.x + halfW;
+  if (p.y < y - halfH) y = p.y + halfH;
+  else if (p.y > y + halfH) y = p.y - halfH;
+  if (x === c.x && y === c.y) return vp;
+  const { lat, lng } = worldToLatLng(x, y, vp.zoom);
+  return { ...vp, lat, lng };
+}
+
+/** 시·도 확대 화면(9단계 이상). 경북은 울릉도가 보이게 중심을 살짝 위(북동)로 옮긴다. */
+function provinceViewport(
+  province: { code: string; bounds: GeoBounds },
+  width: number,
+  height: number,
+): MapViewport {
+  const vp = computeViewportForBounds(
+    province.bounds,
+    width,
+    height,
+    PROVINCE_MAX_ZOOM + 1,
+    12,
+  );
+  return province.code === "47"
+    ? includePointInViewport(vp, ULLEUNGDO, width, height)
+    : vp;
+}
+
 function computeFitViewport(
   places: EatplPlace[],
   width: number,
@@ -871,13 +917,7 @@ export function InteractiveTileMap({
           }
 
           if (!targetInView) {
-            const next = computeViewportForBounds(
-              province.bounds,
-              size.width,
-              size.height,
-              PROVINCE_MAX_ZOOM + 1,
-              12,
-            );
+            const next = provinceViewport(province, size.width, size.height);
             const id = requestAnimationFrame(() => {
               viewportRef.current = next;
               setHoveredCode(null);
@@ -1088,13 +1128,7 @@ export function InteractiveTileMap({
         if (pCode) {
           const province = provinceByCode.get(pCode);
           if (province) {
-            const next = computeViewportForBounds(
-              province.bounds,
-              size.width,
-              size.height,
-              PROVINCE_MAX_ZOOM + 1,
-              12,
-            );
+            const next = provinceViewport(province, size.width, size.height);
             viewportRef.current = next;
             setHoveredCode(null);
             setViewport(next);
@@ -1147,13 +1181,7 @@ export function InteractiveTileMap({
     (provinceCode: string) => {
       const province = provinceByCode.get(provinceCode);
       if (!province) return;
-      const next = computeViewportForBounds(
-        province.bounds,
-        size.width,
-        size.height,
-        PROVINCE_MAX_ZOOM + 1,
-        12,
-      );
+      const next = provinceViewport(province, size.width, size.height);
       viewportRef.current = next;
       setHoveredCode(null);
       setViewport(next);
@@ -1763,7 +1791,7 @@ export function InteractiveTileMap({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate type-row">{entry.nickname}</span>
                       <span className="block type-caption font-normal text-muted tabular-nums">
-                        후기 {entry.totalReviews}개
+                        리뷰 {entry.totalReviews}개
                       </span>
                     </span>
                     <span className="type-row font-semibold tabular-nums">{entry.regionCount}곳</span>

@@ -19,3 +19,4 @@ export { AchievementBadge } from "./AchievementBadge";
 export { SeasonBanner } from "./SeasonBanner";
 export { MapMarker, markerSrc } from "./MapMarker";
 export { TerritoryMap } from "./TerritoryMap";
+export { GlassSelect, type GlassSelectOption } from "./GlassSelect";
