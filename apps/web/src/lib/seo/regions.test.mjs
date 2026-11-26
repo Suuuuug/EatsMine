@@ -101,8 +101,9 @@ test("getRegionSeoMeta와 buildRegionJsonLd가 고유 메타와 구조화 데이
   const suwon = getRegionByCode("41110");
   assert.ok(suwon);
   assert.equal(suwon.fullName, "경기도 수원시");
-  assert.ok(suwon.provinceSummary.includes("경기도"));
-  assert.ok(suwon.summary.includes("경기도 수원시"));
+  const suwonMeta = getRegionSeoMeta(suwon);
+  assert.equal(suwonMeta.title, "경기도 수원시 맛집 지도 | EatsMine");
+  assert.ok(suwonMeta.description.includes("경기도 수원시"));
 
   const jsonLd = buildRegionJsonLd(seogwipo, foods);
   assert.equal(jsonLd["@graph"].length, 2);

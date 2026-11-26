@@ -50,10 +50,6 @@ export type RegionSeoEntry = {
   isPopular: boolean;
   /** 대표 여행지 약칭 (예: 강릉, 부산 해운대) */
   popularName: string | null;
-  /** 상위 시·도 여행 권역 요약 (예: 수원·파주·양평·가평·용인 등 수도권 근교...) */
-  provinceSummary: string;
-  /** 검색엔진 설명 및 안내용 요약 문구 */
-  summary: string;
 };
 
 export type RegionSeasonalFood = {
@@ -92,13 +88,6 @@ export const ALL_REGIONS: readonly RegionSeoEntry[] = regionData.territories.map
     const fullName = formatTravelFullName(parentCode, territory.name);
     const [lng, lat] = territory.labelPoint ?? [null, null];
 
-    const provinceSummary = province?.summary ?? "";
-    const summary = popular
-      ? popular.summary
-      : provinceSummary
-        ? `${fullName} 여행 맛집과 현지 인기 식당 — ${provinceSummary}`
-        : `${fullName} 여행 맛집 지도와 현지 인기 식당, 공유 영토 순위를 한눈에 탐색할 수 있는 국내 여행지`;
-
     return {
       code: territory.code,
       name: territory.name,
@@ -110,8 +99,6 @@ export const ALL_REGIONS: readonly RegionSeoEntry[] = regionData.territories.map
       centerLng: typeof lng === "number" ? lng : null,
       isPopular: Boolean(popular),
       popularName: popular?.name ?? null,
-      provinceSummary,
-      summary,
     };
   },
 );
@@ -220,24 +207,21 @@ export function getRegionSeoMeta(region: RegionSeoEntry): RegionSeoMeta {
   const foods = getFoodsForRegion(region.code);
   const canonicalPath = regionPath(region.code);
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
-  const title = `${region.fullName} 여행 맛집 지도 · 제철음식 | ${SITE_NAME}`;
-
-  const foodHighlight =
+  const title =
     foods.length > 0
-      ? ` ${foods.map((f) => f.name).join("·")} 등 제철음식과`
-      : "";
-  const description = `${region.fullName} 맛집 지도 — ${region.summary}.${foodHighlight} 현지 인기 식당·업종 필터·리뷰·공유 영토를 ${SITE_NAME}에서 확인해 보세요.`;
+      ? `${region.fullName} 맛집 · 제철음식 | ${SITE_NAME}`
+      : `${region.fullName} 맛집 지도 | ${SITE_NAME}`;
+
+  const description =
+    foods.length > 0
+      ? `${region.fullName}의 추천 식당, ${foods.map((f) => f.name).join("·")} 제철음식, 공유 영토 순위를 ${SITE_NAME}에서 확인해 보세요.`
+      : `${region.fullName}의 추천 식당과 공유 영토 순위를 ${SITE_NAME}에서 확인해 보세요.`;
 
   const keywords = [
     `${region.fullName} 맛집`,
-    `${region.fullName} 여행`,
     `${region.name} 맛집`,
-    `${region.name} 여행`,
-    `${region.provinceName} 여행`,
     `${region.provinceName} 맛집`,
     ...foods.map((f) => `${region.name} ${f.name}`),
-    ...(region.popularName ? [`${region.popularName} 맛집`, `${region.popularName} 여행`] : []),
-    "국내 여행 맛집 지도",
     SITE_NAME,
   ];
 

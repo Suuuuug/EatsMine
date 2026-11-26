@@ -96,7 +96,7 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
         <Sidebar />
       </Suspense>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-5 md:px-8 md:py-9">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-5 md:px-8 md:py-9">
         {/* 브레드크럼 */}
         <nav
           aria-label="현재 위치"
@@ -106,7 +106,7 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
             href="/"
             className="rounded-input hover:text-foreground hover:underline underline-offset-4 focus-ring"
           >
-            전국 맛집 지도
+            지도
           </Link>
           <Icon name="chevron-right" size={13} className="shrink-0 opacity-60" />
           <Link
@@ -129,48 +129,26 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
           )}
         </nav>
 
-        {/* 지역 히어로 섹션 */}
-        <header className="flex flex-col gap-5">
-          <GlassCard className="flex flex-col gap-5 p-6 md:p-8">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent-weak px-2.5 py-0.5 text-xs font-semibold text-accent-dark">
-                  <Icon name="pin" size={12} />
-                  <span>{region.provinceOfficialName}</span>
-                </span>
-                {region.isPopular && (
-                  <span className="inline-flex items-center rounded-full border border-line bg-surface/80 px-2.5 py-0.5 text-xs font-medium text-muted">
-                    인기 국내 여행지
-                  </span>
-                )}
-              </div>
+        {/* 간결한 지역 헤더 */}
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="type-title text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {region.fullName}
+            </h1>
+            <p className="type-caption text-muted">
+              {region.parentCode === "36"
+                ? region.provinceOfficialName
+                : `${region.provinceOfficialName} ${region.name}`}
+            </p>
+          </div>
 
-              <h1 className="type-title text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                {region.fullName} 여행 맛집 가이드
-              </h1>
-              <p className="type-body max-w-2xl text-muted">
-                {region.summary}. {region.fullName}의 추천 식당, 업종별 맛집,
-                공유 영토 순위를 한눈에 살펴보고 지도에서 바로 탐색해 보세요.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Link
-                href={mapHref}
-                className={actionButtonClass({ variant: "fill", size: "md" })}
-              >
-                <Icon name="map" size={16} />
-                <span>지도에서 바로 보기</span>
-              </Link>
-              <Link
-                href="/dictionary"
-                className={actionButtonClass({ variant: "tinted", size: "md" })}
-              >
-                <Icon name="dex" size={16} />
-                <span>제철음식 도감</span>
-              </Link>
-            </div>
-          </GlassCard>
+          <Link
+            href={mapHref}
+            className={actionButtonClass({ variant: "fill", size: "md" })}
+          >
+            <Icon name="map" size={16} />
+            <span>지도에서 보기</span>
+          </Link>
         </header>
 
         {/* 이 지역 추천 제철음식 (산지 매칭이 있는 경우 SSR 표시) */}
@@ -255,7 +233,7 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
           <RegionDetailLiveSection region={regionItem} />
         </Suspense>
 
-        {/* 같은 시·도의 다른 여행지 내부 링크 (탐색 + 검색엔진 색인 연결) */}
+        {/* 같은 시·도의 다른 지역 내부 링크 (탐색 + 검색엔진 색인 연결) */}
         {siblings.length > 0 && (
           <section
             aria-labelledby="sibling-regions-heading"
@@ -263,7 +241,7 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
           >
             <div className="flex items-baseline justify-between gap-2">
               <h2 id="sibling-regions-heading" className="type-section">
-                {region.provinceName} 다른 여행지
+                {region.provinceName} 다른 지역
               </h2>
               <span className="type-caption text-muted tabular-nums">
                 {siblings.length}곳
@@ -276,15 +254,9 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
                   <li key={sibling.code}>
                     <Link
                       href={regionPath(sibling.code)}
-                      className="pressable inline-flex min-h-9 items-center gap-1 rounded-full border border-line bg-surface/80 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent hover:bg-accent-weak hover:text-accent-dark focus-ring"
+                      className="pressable inline-flex min-h-9 items-center rounded-full border border-line bg-surface/80 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent hover:bg-accent-weak hover:text-accent-dark focus-ring"
                     >
                       <span>{sibling.name}</span>
-                      {sibling.isPopular && (
-                        <span
-                          aria-label="인기 여행지"
-                          className="size-1.5 rounded-full bg-accent"
-                        />
-                      )}
                     </Link>
                   </li>
                 ))}
