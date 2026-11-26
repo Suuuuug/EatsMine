@@ -89,7 +89,7 @@ let kakaoSdkPromise: Promise<KakaoMapsNamespace> | null = null;
  * Kakao Maps JS SDK를 브라우저에 비동기 로드한다.
  * 키·도메인 오류나 네트워크 실패 시 상세 오류 메시지로 reject된다.
  */
-function loadKakaoMapsSdk(
+export function loadKakaoMapsSdk(
   appKey: string,
   forceReload = false,
 ): Promise<KakaoMapsNamespace> {
@@ -165,7 +165,7 @@ function loadKakaoMapsSdk(
     const script = document.createElement("script");
     script.id = KAKAO_SDK_SCRIPT_ID;
     script.async = true;
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&libraries=services&autoload=false`;
     script.onload = finishLoad;
     script.onerror = () => {
       window.clearTimeout(timeoutId);
