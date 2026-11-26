@@ -29,6 +29,7 @@ import {
   pagePlaces,
   toCardReview,
 } from "@/lib/map/map-data";
+import { genreIllustration } from "@/lib/map/genre-illustration";
 import { rememberSourceChannel, trackOutbound } from "@/lib/map/outbound";
 import {
   useMapRestaurants,
@@ -1186,10 +1187,15 @@ export function MapExplorerClient({
                               className="size-full object-cover"
                             />
                           ) : (
-                            <Icon
-                              name="restaurant"
-                              size={22}
-                              className="text-muted/35"
+                            // 잇플에는 가게 사진이 없어 업종에 맞는 도감 그림으로 대신한다(그 메뉴가 있다는 뜻은 아님).
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={genreIllustration(place.genre)}
+                              alt=""
+                              width={64}
+                              height={64}
+                              loading="lazy"
+                              className="size-16 object-contain"
                             />
                           );
                           // 키보드·스크린리더는 이름 링크 하나로 이동하고, 사진 링크는 마우스·터치용으로만 둔다.
