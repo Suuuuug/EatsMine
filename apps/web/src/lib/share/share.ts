@@ -72,3 +72,21 @@ export async function createShareLink(apiBase: string, token: string, type: Shar
   if (!response.ok) throw new Error(`POST /me/shares ${response.status}`);
   return (await response.json()) as { id: string };
 }
+
+/** 실제 공유 화면을 미리 읽어 누락된 기록이 없도록 한다. */
+export async function loadSharePreview(apiBase: string, id: string): Promise<SharedView> {
+  const view = await fetchSharedView(apiBase, id);
+  if (!view) throw new Error("공유 링크가 없어요");
+  return view;
+}
+
+export async function listShareLinks(apiBase: string, token: string): Promise<Record<ShareType, { id: string } | null>> {
+  const response = await fetch(`${apiBase}/me/shares`, { cache: "no-store", headers: { authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error("공유 상태를 불러오지 못했어요");
+  return response.json();
+}
+
+export async function removeShareLink(apiBase: string, token: string, type: ShareType): Promise<void> {
+  const response = await fetch(`${apiBase}/me/shares/${type}`, { method: "DELETE", headers: { authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error("공유를 중지하지 못했어요");
+}

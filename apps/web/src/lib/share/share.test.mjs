@@ -30,3 +30,26 @@ test("카드 안 문장은 제목의 이름을 반복하지 않는다", () => {
   assert.equal(recordLine({ type: "territory", count: 3, total: 230 }), "전국 230곳 중 3곳을 칠했어요");
   assert.equal(recordLine({ type: "collection", count: 0, total: 43 }), "아직 모은 음식이 없어요");
 });
+
+test("공유 미리보기는 생성된 링크의 실제 공개 데이터를 읽는다", async () => {
+  const { loadSharePreview } = await import("./share.ts");
+  const oldFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    return new Response(JSON.stringify({ type: "territory", nickname: "먹깨비", count: 1, total: 230, regionCodes: ["11140"] }), { status: 200 });
+  };
+  try {
+    const view = await loadSharePreview("https://api.example", "abcdefghij");
+    assert.equal(view.count, 1);
+    assert.deepEqual(calls, ["https://api.example/shares/abcdefghij"]);
+  } finally { globalThis.fetch = oldFetch; }
+});
+
+test("취소된 공유 링크는 미리보기 실패로 처리한다", async () => {
+  const { loadSharePreview } = await import("./share.ts");
+  const oldFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(null, { status: 404 });
+  try { await assert.rejects(loadSharePreview("https://api.example", "abcdefghij")); }
+  finally { globalThis.fetch = oldFetch; }
+});
