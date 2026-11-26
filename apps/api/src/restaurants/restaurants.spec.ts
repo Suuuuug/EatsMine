@@ -182,7 +182,7 @@ describe('GET /restaurants', () => {
     });
   });
 
-  it('매장마다 공개 후기 요약을 붙이고 없으면 null', async () => {
+  it('매장마다 공개 리뷰 요약을 붙이고 없으면 null', async () => {
     const server = await createApp([SEOUL_JUNG]);
     eatpl.search.mockResolvedValue([
       place('a', '서울 중구 1'),

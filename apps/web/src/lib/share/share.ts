@@ -1,11 +1,11 @@
-// 내 영토·내 도감 공유. 공유 화면(GET /shares/:id)은 공개 후기로 얻은 기록만 보여 주므로
+// 내 영토·내 도감 공유. 공유 화면(GET /shares/:id)은 공개 리뷰로 얻은 기록만 보여 주므로
 // 공유 시트의 미리보기도 같은 기준으로 만든다(보내는 사람이 본 것 = 받는 사람이 볼 것).
 
 export type ShareType = "territory" | "collection";
 
 type ReviewLike = { visibility: "private" | "public"; region_code?: string | null; food_name?: string | null };
 
-/** 공개 후기에서 칠한 지역 코드와 모은 음식 이름(중복 없이, 처음 나온 순서). */
+/** 공개 리뷰에서 칠한 지역 코드와 모은 음식 이름(중복 없이, 처음 나온 순서). */
 export function publicRecords(reviews: readonly ReviewLike[]): { regionCodes: string[]; foodNames: string[] } {
   const regions = new Set<string>();
   const foods = new Set<string>();

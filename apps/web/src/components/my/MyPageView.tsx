@@ -23,13 +23,13 @@ type MyPageViewProps = {
   member: boolean;
   /** 우리 API를 부를 때 쓰는 로그인 토큰. 미리보기·비로그인은 null. */
   token?: string | null;
-  /** 후기를 지운 뒤 영토·도감을 다시 읽는다. 예시 화면은 쓰지 않는다. */
+  /** 리뷰를 지운 뒤 영토·도감을 다시 읽는다. 예시 화면은 쓰지 않는다. */
   onReviewDeleted?: () => void;
 };
 
 /*
  * 두 열 격자. 같은 줄의 구역은 제목 줄 높이가 같고 카드가 늘어나 위·아래 선이 맞는다.
- * 줄: 프로필 | 화면 모드 · 내 영토 | 내 도감 · 후기 | 공유. 모바일은 order로 영토·도감을 먼저 둔다.
+ * 줄: 프로필 | 화면 모드 · 내 영토 | 내 도감 · 리뷰 | 공유. 모바일은 order로 영토·도감을 먼저 둔다.
  */
 export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPageViewProps) {
   const { profile, regionVisits, foodCollection, reviews } = data;
@@ -58,8 +58,8 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
                     <p className="truncate type-row font-semibold">{profile.nickname}</p>
                     <p className="type-caption text-foreground">
                       {profile.rank_label
-                        ? `후기 ${profile.review_count ?? reviews.length}개를 남긴 ${profile.rank_label}`
-                        : `후기 ${profile.review_count ?? reviews.length}개를 남겼어요`}
+                        ? `리뷰 ${profile.review_count ?? reviews.length}개를 남긴 ${profile.rank_label}`
+                        : `리뷰 ${profile.review_count ?? reviews.length}개를 남겼어요`}
                     </p>
                   </div>
                   {token && <SignOutButton />}

@@ -4,7 +4,7 @@ import { publicRecords, recordLine, shareMessage, shareTitle } from "./share.ts"
 
 const review = (visibility, region_code, food_name) => ({ visibility, region_code, food_name });
 
-test("공유 미리보기는 공개 후기로 얻은 지역·음식만 모은다(받는 사람이 보는 것과 같다)", () => {
+test("공유 미리보기는 공개 리뷰로 얻은 지역·음식만 모은다(받는 사람이 보는 것과 같다)", () => {
   const r = publicRecords([
     review("public", "11140", "굴"),
     review("private", "26350", "방어회"),

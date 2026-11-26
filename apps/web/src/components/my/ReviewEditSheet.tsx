@@ -12,11 +12,11 @@ import {
 import type { MyReview } from "@/types/my-page";
 
 type ReviewEditSheetProps = {
-  /** null이면 닫혀 있다. 후기가 바뀌면 key로 새로 만들어 입력값을 되돌린다. */
+  /** null이면 닫혀 있다. 리뷰가 바뀌면 key로 새로 만들어 입력값을 되돌린다. */
   review: MyReview | null;
   token: string;
   onClose: () => void;
-  /** 저장·삭제가 진행 중인지 알린다. 부모가 같은 후기를 다시 열지 못하게 막는 데 쓴다. */
+  /** 저장·삭제가 진행 중인지 알린다. 부모가 같은 리뷰를 다시 열지 못하게 막는 데 쓴다. */
   onBusy: (id: string, busy: boolean) => void;
   onSaved: (review: MyReview) => void;
   onDeleted: (id: string) => void;
@@ -26,7 +26,7 @@ function errorText(error: unknown) {
   if (error instanceof ApiError && error.status === 401)
     return "로그인이 만료됐어요. 다시 로그인해 주세요.";
   if (error instanceof ApiError && error.status === 404)
-    return "이미 지워진 후기예요. 목록을 새로고침해 주세요.";
+    return "이미 지워진 리뷰예요. 목록을 새로고침해 주세요.";
   if (error instanceof ApiError && error.status === 400)
     return "입력한 값을 저장할 수 없어요. 별점과 방문일을 확인해 주세요.";
   if (error instanceof ApiError && error.status === 429)
@@ -39,7 +39,7 @@ function todayKst() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
 }
 
-/** 내 후기를 고치거나 지운다. 저장은 버튼 하나, 지우기는 한 번 더 물어본다. */
+/** 내 리뷰를 고치거나 지운다. 저장은 버튼 하나, 지우기는 한 번 더 물어본다. */
 export function ReviewEditSheet({
   review,
   token,
@@ -116,13 +116,13 @@ export function ReviewEditSheet({
     <BottomSheet
       open={review !== null}
       onClose={onClose}
-      title={review ? `${review.restaurant_name} 후기` : ""}
+      title={review ? `${review.restaurant_name} 리뷰` : ""}
       actions={
         review &&
         (confirming ? (
           <div className="flex flex-col gap-2">
             <p className="type-body text-foreground">
-              이 후기를 지울까요? 이 식당으로 받은 영토와 도감 기록이 함께
+              이 리뷰를 지울까요? 이 식당으로 받은 영토와 도감 기록이 함께
               줄어들 수 있어요.
             </p>
             <div className="flex gap-2">
@@ -165,7 +165,7 @@ export function ReviewEditSheet({
               disabled={busy}
               onClick={() => setConfirming(true)}
             >
-              후기 지우기
+              리뷰 지우기
             </ActionButton>
           </div>
         ))
@@ -183,8 +183,8 @@ export function ReviewEditSheet({
             onContent={setContent}
             isPublic={isPublic}
             onPublic={setIsPublic}
-            placeholder="후기를 남겨 주세요."
-            contentLabel="후기 내용"
+            placeholder="리뷰를 남겨 주세요."
+            contentLabel="리뷰 내용"
           >
             {/* 내용 입력(별점·글·방문일)을 먼저, 공개 설정을 마지막에 */}
             <TextField

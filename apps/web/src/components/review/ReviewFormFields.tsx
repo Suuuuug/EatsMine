@@ -15,7 +15,7 @@ type ReviewFormFieldsProps = {
   children?: ReactNode;
 };
 
-/** 후기 쓰기·고치기가 같이 쓰는 입력: 별점, 글, 공개 여부. 한 곳에서 고치면 두 화면이 함께 바뀐다. */
+/** 리뷰 쓰기·고치기가 같이 쓰는 입력: 별점, 글, 공개 여부. 한 곳에서 고치면 두 화면이 함께 바뀐다. */
 export function ReviewFormFields({
   rating,
   onRating,
@@ -45,13 +45,15 @@ export function ReviewFormFields({
       {children}
       <ul className="list-group">
         <ListSwitchRow
-          label="후기 공개"
+          label="리뷰 공개"
           checked={isPublic}
           onChange={() => onPublic(!isPublic)}
         />
       </ul>
       <p className="-mt-2 type-caption text-muted">
-        {isPublic ? "다른 사람도 이 후기를 볼 수 있어요" : "나만 볼 수 있어요"}
+        {isPublic
+          ? "닉네임·프로필 사진과 함께 매장 리뷰와 지역 순위에 보여요"
+          : "나만 볼 수 있어요. 영토 주인·지역 순위에도 세지 않아요"}
       </p>
     </>
   );

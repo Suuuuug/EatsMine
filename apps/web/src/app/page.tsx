@@ -75,7 +75,8 @@ const homeJsonLd = {
 
 export default function HomePage() {
   return (
-    <div className="em-theme explore-backdrop min-h-dvh pb-16 md:pb-0 md:pl-[76px]">
+    // 모바일: 로고 줄 아래 ~ 하단 탭바 위를 지도 화면이 채우고 페이지 자체는 스크롤하지 않는다(목록만 안쪽 스크롤)
+    <div className="em-theme explore-backdrop relative min-h-dvh pb-16 md:pb-0 md:pl-[76px] max-lg:flex max-lg:h-dvh max-lg:flex-col max-lg:overflow-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd) }}

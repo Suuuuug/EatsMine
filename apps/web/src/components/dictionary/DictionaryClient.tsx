@@ -5,7 +5,7 @@ import { initialCollectionFilter } from "./collection-filter";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { RankSection, type RankSectionStatus } from "./RankSection";
 import { DUMMY_MY_REVIEW_COUNT } from "@/lib/territory/sample-data";
-import { ActionButton, EmptyState, FoodTile, ProgressBar } from "@/components/em";
+import { ActionButton, EmptyState, FoodTile, GlassSelect, type GlassSelectOption, ProgressBar } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import { useSession } from "@/lib/auth/session";
 import {
@@ -38,213 +38,11 @@ const serverMonth = () => 0;
 
 type CollectionFilter = "all" | "collected" | "uncollected";
 
-const COLLECTION_OPTIONS: { key: CollectionFilter; label: string }[] = [
-  { key: "all", label: "전체 상태" },
-  { key: "collected", label: "수집" },
-  { key: "uncollected", label: "미수집" },
+const COLLECTION_OPTIONS: GlassSelectOption<CollectionFilter>[] = [
+  { value: "all", label: "전체 상태" },
+  { value: "collected", label: "수집" },
+  { value: "uncollected", label: "미수집" },
 ];
-
-function ChevronDownIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-/** 투명 텍스트 트리거 + 유리 패널(material-thick) 기반 수집 상태 드롭다운 (키보드 ↑↓/Home/End/Enter/Esc 지원) */
-function CollectionFilterDropdown({
-  value,
-  onChange,
-}: {
-  value: CollectionFilter;
-  onChange: (next: CollectionFilter) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxRef = useRef<HTMLDivElement>(null);
-  const listboxId = useId();
-  const optionIdPrefix = useId();
-
-  const selectedIndex = Math.max(
-    0,
-    COLLECTION_OPTIONS.findIndex((option) => option.key === value),
-  );
-
-  const openMenu = (initialIndex = selectedIndex) => {
-    setActiveIndex(initialIndex);
-    setOpen(true);
-  };
-
-  const closeMenu = (restoreFocus: boolean) => {
-    setOpen(false);
-    if (restoreFocus) {
-      requestAnimationFrame(() => triggerRef.current?.focus());
-    }
-  };
-
-  const commitSelection = (index: number) => {
-    const target = COLLECTION_OPTIONS[index];
-    if (target) {
-      onChange(target.key);
-    }
-    closeMenu(true);
-  };
-
-  useEffect(() => {
-    if (!open) return;
-
-    listboxRef.current?.focus();
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    };
-  }, [open]);
-
-  const currentLabel =
-    COLLECTION_OPTIONS[selectedIndex]?.label ?? "전체 상태";
-  const activeOption = COLLECTION_OPTIONS[activeIndex] ?? COLLECTION_OPTIONS[0];
-
-  const handleTriggerKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-  ) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      openMenu(selectedIndex);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      openMenu(selectedIndex);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      openMenu(0);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      openMenu(COLLECTION_OPTIONS.length - 1);
-    }
-  };
-
-  const handleListboxKeyDown = (
-    event: React.KeyboardEvent<HTMLDivElement>,
-  ) => {
-    const count = COLLECTION_OPTIONS.length;
-
-    switch (event.key) {
-      case "ArrowDown":
-        event.preventDefault();
-        setActiveIndex((prev) => (prev + 1) % count);
-        break;
-      case "ArrowUp":
-        event.preventDefault();
-        setActiveIndex((prev) => (prev - 1 + count) % count);
-        break;
-      case "Home":
-        event.preventDefault();
-        setActiveIndex(0);
-        break;
-      case "End":
-        event.preventDefault();
-        setActiveIndex(count - 1);
-        break;
-      case "Enter":
-      case " ":
-        event.preventDefault();
-        commitSelection(activeIndex);
-        break;
-      case "Escape":
-        event.preventDefault();
-        closeMenu(true);
-        break;
-      case "Tab":
-        setOpen(false);
-        break;
-    }
-  };
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listboxId : undefined}
-        aria-label="수집 상태 필터 선택"
-        onClick={() => (open ? closeMenu(false) : openMenu(selectedIndex))}
-        onKeyDown={handleTriggerKeyDown}
-        className={
-          "pressable inline-flex h-11 items-center gap-1.5 rounded-input px-2.5 text-xs font-medium transition-colors " +
-          (open ? "bg-fill text-foreground" : "text-muted hover:text-foreground")
-        }
-      >
-        <Icon name="filter" size={13} className="shrink-0 opacity-75" />
-        <span>{currentLabel}</span>
-        <ChevronDownIcon open={open} />
-      </button>
-
-      {open && (
-        <div
-          ref={listboxRef}
-          id={listboxId}
-          role="listbox"
-          tabIndex={-1}
-          aria-label="수집 상태 목록"
-          aria-activedescendant={`${optionIdPrefix}-${activeOption.key}`}
-          onKeyDown={handleListboxKeyDown}
-          className="material-thick absolute right-0 z-30 mt-1.5 min-w-32 rounded-input p-1 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {COLLECTION_OPTIONS.map((option, index) => {
-            const selected = option.key === value;
-            const highlighted = index === activeIndex;
-            return (
-              <div
-                key={option.key}
-                id={`${optionIdPrefix}-${option.key}`}
-                role="option"
-                aria-selected={selected}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => commitSelection(index)}
-                className={
-                  "flex min-h-11 w-full cursor-pointer items-center justify-between rounded-[7px] px-2.5 py-1 text-left text-xs transition-colors " +
-                  (selected
-                    ? "bg-accent-weak font-semibold text-accent-dark"
-                    : highlighted
-                      ? "bg-fill text-foreground"
-                      : "text-muted hover:text-foreground")
-                }
-              >
-                <span>{option.label}</span>
-                {selected && <Icon name="check" size={13} />}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function DictionaryClient() {
   const searchParams = useSearchParams();
@@ -654,9 +452,13 @@ export function DictionaryClient() {
           </div>
 
           <div className="shrink-0 self-end sm:self-auto">
-            <CollectionFilterDropdown
+            <GlassSelect
+              options={COLLECTION_OPTIONS}
               value={collectionFilter}
               onChange={setCollectionFilter}
+              label="수집 상태 필터"
+              listLabel="수집 상태 목록"
+              icon="filter"
             />
           </div>
         </div>

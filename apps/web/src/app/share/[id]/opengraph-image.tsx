@@ -6,7 +6,7 @@ import { SEASONAL_FOODS } from "@/data/seasonal-foods";
 import { SITE_URL } from "@/lib/seo/site";
 import { fetchSharedView, recordLine, shareTitle } from "@/lib/share/share";
 
-// 공유 링크를 메신저에 붙이면 뜨는 미리보기 카드. 보낸 사람의 영토 지도(공개 후기로 칠한 곳)나
+// 공유 링크를 메신저에 붙이면 뜨는 미리보기 카드. 보낸 사람의 영토 지도(공개 리뷰로 칠한 곳)나
 // 모은 음식 그림을 사진처럼 보여 준다. 이미지 안은 CSS 변수를 못 쓰므로 tokens.css 라이트 값을 sRGB로 옮겨 적었다.
 const COLOR = {
   background: "#f2f6f2", // --color-background (light)

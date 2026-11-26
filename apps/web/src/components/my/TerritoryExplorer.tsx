@@ -23,8 +23,8 @@ const PRELOAD_LIMIT = 10;
 const CONCURRENCY = 3;
 
 /*
- * 내 영토 상세. 고르기 전에는 내 영토 요약(다녀온 곳, 1위인 지역, 남긴 후기)을,
- * 지역을 고르면 그 지역 최근 30일 순위와 1위까지 남은 후기 수를 보여 준다.
+ * 내 영토 상세. 고르기 전에는 내 영토 요약(다녀온 곳, 1위인 지역, 남긴 리뷰)을,
+ * 지역을 고르면 그 지역 최근 30일 순위와 1위까지 남은 리뷰 수를 보여 준다.
  * 데이터는 props로만 받는다. 순위는 loadRanking이 서버(또는 예시)에서 가져온다.
  */
 export function TerritoryExplorer({
@@ -33,7 +33,7 @@ export function TerritoryExplorer({
   loadRanking,
 }: {
   visited: readonly Visited[];
-  /** 내가 남긴 후기 수(공개·나만 보기 모두) */
+  /** 내가 남긴 리뷰 수(공개·나만 보기 모두) */
   reviewCount: number;
   loadRanking: (code: string) => Promise<NormalizedRegionRanking>;
 }) {
@@ -124,15 +124,15 @@ export function TerritoryExplorer({
             <GlassCard>
               <EmptyState
                 illustration="empty-visits"
-                message="후기를 남기면 그 지역이 내 영토로 칠해져요"
-                action={<Link href="/" className={actionButtonClass({ variant: "tinted" })}>후기 남길 식당 찾기</Link>}
+                message="리뷰를 남기면 그 지역이 내 영토로 칠해져요"
+                action={<Link href="/" className={actionButtonClass({ variant: "tinted" })}>리뷰 남길 식당 찾기</Link>}
               />
             </GlassCard>
           ) : !selected ? (
             <GlassCard className="px-4 py-2">
               <dl className="flex flex-col">
                 <StatRow label="1위인 지역" value={preloading ? "세는 중이에요" : leadingKnown ? `${leading}곳` : `${leading}곳 이상`} />
-                <StatRow label="남긴 후기" value={`${reviewCount}개`} last />
+                <StatRow label="남긴 리뷰" value={`${reviewCount}개`} last />
               </dl>
             </GlassCard>
           ) : (
@@ -233,7 +233,7 @@ function RankingBody({ state, onRetry }: { state: RankingState | undefined; onRe
                   {row.nickname}
                   {row.isMe && <span className="ml-1.5 text-accent-dark">나</span>}
                 </span>
-                <span className="shrink-0 tabular-nums">후기 {row.reviewCount}개</span>
+                <span className="shrink-0 tabular-nums">리뷰 {row.reviewCount}개</span>
               </li>
             ))}
           </ol>

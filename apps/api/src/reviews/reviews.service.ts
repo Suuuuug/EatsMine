@@ -65,7 +65,7 @@ export type ReviewDto = {
   updatedAt: string;
 };
 
-/** 매장 공개 후기 (GET /restaurants/:id/reviews). 작성자는 닉네임·등급·프로필 사진만 노출 */
+/** 매장 공개 리뷰 (GET /restaurants/:id/reviews). 작성자는 닉네임·등급·프로필 사진만 노출 */
 export type PublicReviewDto = {
   id: number;
   author: {
@@ -84,7 +84,7 @@ export type PublicReviewDto = {
 
 export type RestaurantReviewsDto = {
   restaurantId: string;
-  /** 공개 후기가 없으면 null (0점으로 표시하지 않도록) */
+  /** 공개 리뷰가 없으면 null (0점으로 표시하지 않도록) */
   summary: { average: number; count: number } | null;
   items: PublicReviewDto[];
 };
@@ -242,8 +242,8 @@ export class ReviewsService {
   }
 
   /**
-   * 매장의 공개(public) 후기 — 누구나 조회 (지도 카드·후기 시트).
-   * 집계는 공개 후기 전체, 목록은 최신순 PUBLIC_REVIEW_LIMIT개. 매장이 아직 저장되지 않았으면 빈 결과.
+   * 매장의 공개(public) 리뷰 — 누구나 조회 (지도 카드·리뷰 시트).
+   * 집계는 공개 리뷰 전체, 목록은 최신순 PUBLIC_REVIEW_LIMIT개. 매장이 아직 저장되지 않았으면 빈 결과.
    */
   async listPublicForRestaurant(
     restaurantId: string,
@@ -470,7 +470,7 @@ type PublicReviewRow = {
   foodName: string | null;
 };
 
-/** 평균은 소수 첫째 자리까지. 공개 후기가 없으면 summary는 null */
+/** 평균은 소수 첫째 자리까지. 공개 리뷰가 없으면 summary는 null */
 export function toRestaurantReviewsDto(
   restaurantId: string,
   agg: { n: number; avg: string | null } | undefined,

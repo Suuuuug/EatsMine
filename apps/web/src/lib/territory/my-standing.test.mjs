@@ -10,8 +10,8 @@ const ranking = (items, me = items.find((i) => i.isMe) ?? null) => ({
   standing: me ? (me.position === 1 ? { rank: 1, toFirst: 0 } : { rank: me.position, toFirst: items[0].reviewCount - me.reviewCount + 1 }) : null,
 });
 
-test('아무도 없으면 후기 하나로 1위가 된다고 말한다', () => {
-  assert.equal(standingLine(ranking([])), '공개 후기 1개면 1위예요');
+test('아무도 없으면 리뷰 하나로 1위가 된다고 말한다', () => {
+  assert.equal(standingLine(ranking([])), '공개 리뷰 1개면 1위예요');
 });
 
 test('내가 1위면 그렇게 말하고, 2위와의 차이를 붙인다', () => {
@@ -19,12 +19,12 @@ test('내가 1위면 그렇게 말하고, 2위와의 차이를 붙인다', () =>
   assert.equal(standingLine(ranking([entry(1, '나', 2, true)])), '내가 1위예요');
 });
 
-test('1위가 아니면 1위까지 남은 후기 수를 말한다', () => {
-  assert.equal(standingLine(ranking([entry(1, '너', 7), entry(2, '나', 3, true)])), '1위까지 후기 5개 남았어요');
+test('1위가 아니면 1위까지 남은 리뷰 수를 말한다', () => {
+  assert.equal(standingLine(ranking([entry(1, '너', 7), entry(2, '나', 3, true)])), '1위까지 리뷰 5개 남았어요');
 });
 
-test('순위에 없으면 1위 후기 수보다 하나 더 써야 한다', () => {
-  assert.equal(standingLine(ranking([entry(1, '너', 4)])), '1위까지 후기 5개 남았어요');
+test('순위에 없으면 1위 리뷰 수보다 하나 더 써야 한다', () => {
+  assert.equal(standingLine(ranking([entry(1, '너', 4)])), '1위까지 리뷰 5개 남았어요');
 });
 
 test('1위인 지역 수를 센다', () => {

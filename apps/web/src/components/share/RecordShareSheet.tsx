@@ -93,13 +93,13 @@ export function RecordShareSheet({ open, onClose, token }: Props) {
         id && selectedView && selectedView.count === 0 ?
           // 보낼 기록이 없으면 빈 카드를 공유하지 않고, 기록을 채우러 가는 행동 하나를 둔다.
           <Link href={type === "territory" ? "/" : "/dictionary"} onClick={onClose} className={actionButtonClass({ variant: "tinted", size: "lg", block: true })}>
-            {type === "territory" ? "후기 남길 식당 찾기" : "제철음식 모으러 가기"}
+            {type === "territory" ? "리뷰 남길 식당 찾기" : "제철음식 모으러 가기"}
           </Link> :
         id && selectedView ? <ActionButton variant="fill" size="lg" block disabled={busy} onClick={() => void share()}>공유하기</ActionButton> : undefined
       }>
         <div className="flex flex-col gap-4 break-keep">
           <SegmentedControl label="공유할 기록" options={OPTIONS} value={type} onValueChange={(value) => { if (!busy) { setType(value); setError(""); } }} />
-          <p className="type-caption text-muted">공개 후기로 얻은 기록만 보여요. 링크를 가진 사람은 이후 추가한 공개 기록도 볼 수 있어요.</p>
+          <p className="type-caption text-muted">공개 리뷰로 얻은 기록만 보여요. 링크를 가진 사람은 이후 추가한 공개 기록도 볼 수 있어요.</p>
           {id && selectedView ? (
             <section aria-label="공유 미리보기" className="flex flex-col gap-3 border-t border-line pt-4">
               <h3 className="type-row font-semibold">{shareTitle(selectedView!)}</h3>

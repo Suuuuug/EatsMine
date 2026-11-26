@@ -73,7 +73,7 @@ describe('리뷰·내 기록 API', () => {
   const server = () => app.getHttpServer();
 
   describe('POST /reviews', () => {
-    it('기본값(public)과 빈 후기 정리 후 서비스에 넘긴다', async () => {
+    it('기본값(public)과 빈 리뷰 정리 후 서비스에 넘긴다', async () => {
       reviews.create.mockResolvedValue({ id: 1 });
       await request(server())
         .post('/reviews')
@@ -129,7 +129,7 @@ describe('리뷰·내 기록 API', () => {
           rating: 5,
           content: '가'.repeat(501),
         },
-        '후기 501자',
+        '리뷰 501자',
       ],
       [
         {
@@ -182,7 +182,7 @@ describe('리뷰·내 기록 API', () => {
   });
 
   describe('PATCH·DELETE /reviews/:id', () => {
-    it('PATCH: 음식 지우기(null)와 빈 후기(null)를 넘긴다', async () => {
+    it('PATCH: 음식 지우기(null)와 빈 리뷰(null)를 넘긴다', async () => {
       reviews.update.mockResolvedValue({ id: 7 });
       await request(server())
         .patch('/reviews/7')
@@ -234,7 +234,7 @@ describe('리뷰·내 기록 API', () => {
   });
 
   describe('GET /restaurants/:id/reviews', () => {
-    it('로그인 없이 매장 공개 후기를 돌려준다', async () => {
+    it('로그인 없이 매장 공개 리뷰를 돌려준다', async () => {
       loggedIn = false;
       const body = {
         restaurantId: 'bQSyX0QU5duyTaDXVqWW5A',
@@ -295,7 +295,7 @@ describe('toRestaurantReviewsDto', () => {
     });
   });
 
-  it('공개 후기가 없으면 summary는 null', () => {
+  it('공개 리뷰가 없으면 summary는 null', () => {
     expect(toRestaurantReviewsDto('r1', { n: 0, avg: null }, [])).toEqual({
       restaurantId: 'r1',
       summary: null,

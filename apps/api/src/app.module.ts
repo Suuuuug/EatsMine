@@ -12,6 +12,7 @@ import * as schema from './db/schema.js';
 import { EventsModule } from './events/events.module.js';
 import { FoodsModule } from './foods/foods.module.js';
 import { GenresModule } from './genres/genres.module.js';
+import { InquiriesModule } from './inquiries/inquiries.module.js';
 import { RegionsModule } from './regions/regions.module.js';
 import { RestaurantsModule } from './restaurants/restaurants.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
@@ -37,6 +38,7 @@ import { TerritoriesModule } from './territories/territories.module.js';
     GenresModule,
     EventsModule,
     FoodsModule,
+    InquiriesModule,
     ReviewsModule,
     SharesModule,
     TerritoriesModule,
