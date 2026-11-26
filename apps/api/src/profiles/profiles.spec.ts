@@ -133,3 +133,33 @@ describe('닉네임·등급', () => {
     expect(rankLabel('master')).toBe('전국 미식왕');
   });
 });
+
+describe('ProfilesService.getOrCreate', () => {
+  it('탈퇴로 계정이 지워져 프로필 FK가 깨지면 401', async () => {
+    const fkError = Object.assign(new Error('Failed query'), {
+      cause: { code: '23503' },
+    });
+    const db = {
+      insert: () => ({
+        values: () => ({ onConflictDoNothing: () => Promise.reject(fkError) }),
+      }),
+    };
+    const svc = new ProfilesService(db as never);
+    await expect(svc.getOrCreate(user)).rejects.toMatchObject({
+      status: 401,
+      code: 'UNAUTHORIZED',
+    });
+  });
+
+  it('다른 DB 오류는 그대로 던진다', async () => {
+    const db = {
+      insert: () => ({
+        values: () => ({
+          onConflictDoNothing: () => Promise.reject(new Error('boom')),
+        }),
+      }),
+    };
+    const svc = new ProfilesService(db as never);
+    await expect(svc.getOrCreate(user)).rejects.toThrow('boom');
+  });
+});
