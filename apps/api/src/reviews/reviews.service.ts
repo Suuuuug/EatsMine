@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AppException } from '../common/app-exception.js';
@@ -9,6 +9,7 @@ import {
   profiles,
   regions,
   restaurants,
+  reviewPhotos,
   reviews,
   userFoodCollection,
   userRegionVisits,
@@ -22,6 +23,14 @@ import {
   rankLabel,
 } from '../profiles/ranks.js';
 import { AddressMatcher } from '../regions/address-matcher.js';
+import {
+  isOwnPhotoPath,
+  MAX_PHOTO_BYTES,
+  newPhotoPath,
+  PHOTO_CONTENT_TYPES,
+  type PhotoContentType,
+  PhotoStorage,
+} from './photo-storage.js';
 import { roundAverage } from './review-summary.service.js';
 
 type Db = NodePgDatabase;
@@ -36,6 +45,7 @@ export type CreateReviewInput = {
   visitedAt?: string;
   foodId?: number;
   visibility: 'private' | 'public';
+  photoPaths?: string[];
 };
 
 export type UpdateReviewInput = Partial<{
@@ -44,7 +54,11 @@ export type UpdateReviewInput = Partial<{
   visitedAt: string | null;
   foodId: number | null;
   visibility: 'private' | 'public';
+  photoPaths: string[];
 }>;
+
+/** 리뷰 사진: path는 수정할 때 다시 보내는 값(본인 리뷰에서만), url은 1시간 유효한 서명 URL */
+export type ReviewPhotoDto = { path: string; url: string };
 
 export type ReviewDto = {
   id: number;
@@ -61,6 +75,7 @@ export type ReviewDto = {
   content: string | null;
   visitedAt: string | null;
   visibility: 'private' | 'public';
+  photos: ReviewPhotoDto[];
   createdAt: string;
   updatedAt: string;
 };
@@ -78,6 +93,8 @@ export type PublicReviewDto = {
   rating: number;
   content: string | null;
   visitedAt: string | null;
+  /** 서명된 사진 URL(1시간 유효). 저장 경로는 남의 리뷰라 내보내지 않는다 */
+  photos: { url: string }[];
   createdAt: string;
   updatedAt: string;
 };
@@ -90,6 +107,7 @@ export type RestaurantReviewsDto = {
 };
 
 export const PUBLIC_REVIEW_LIMIT = 50;
+export const MAX_REVIEW_PHOTOS = 4;
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -100,7 +118,15 @@ export class ReviewsService {
     private readonly eatpl: EatplClient,
     private readonly addressMatcher: AddressMatcher,
     private readonly profiles: ProfilesService,
+    private readonly photoStorage: PhotoStorage,
   ) {}
+
+  /** 리뷰 사진 업로드용 서명 URL과 경로(브라우저가 uploadUrl로 직접 올린다) */
+  async createPhotoUpload(user: AuthUser, contentType: PhotoContentType) {
+    const path = newPhotoPath(user.id, contentType);
+    const uploadUrl = await this.photoStorage.createUploadUrl(path);
+    return { path, uploadUrl, contentType, maxBytes: MAX_PHOTO_BYTES };
+  }
 
   /**
    * 리뷰 작성 (D8). 한 트랜잭션: 매장 저장/갱신 → 리뷰 → 영토 → (음식 선택 시) 도감 → 등급 재계산
@@ -118,6 +144,10 @@ export class ReviewsService {
     await this.profiles.getOrCreate(user); // reviews.user_id FK
     if (input.foodId !== undefined) await this.assertFoodExists(input.foodId);
     await this.assertNotReviewed(user.id, restaurantId);
+    const photoPaths = await this.validatePhotos(
+      user.id,
+      input.photoPaths ?? [],
+    );
 
     const candidates = await this.eatpl.search({
       merchantName: input.restaurantName,
@@ -165,6 +195,7 @@ export class ReviewsService {
           })
           .returning({ id: reviews.id });
 
+        await this.insertPhotos(tx, user.id, review.id, photoPaths);
         if (regionCode) {
           await tx
             .insert(userRegionVisits)
@@ -199,12 +230,22 @@ export class ReviewsService {
   ): Promise<ReviewDto> {
     const current = await this.getOwned(user, id);
     if (input.foodId != null) await this.assertFoodExists(input.foodId);
+    const { photoPaths: nextPaths, ...fields } = input;
+    const before = nextPaths !== undefined ? await this.photoPathsOf(id) : [];
+    const photoPaths =
+      nextPaths !== undefined
+        ? await this.validatePhotos(user.id, nextPaths, id)
+        : undefined;
 
     await this.db.transaction(async (tx) => {
       await tx
         .update(reviews)
-        .set({ ...input, updatedAt: sql`now()` })
+        .set({ ...fields, updatedAt: sql`now()` })
         .where(eq(reviews.id, id));
+      if (photoPaths !== undefined) {
+        await tx.delete(reviewPhotos).where(eq(reviewPhotos.reviewId, id));
+        await this.insertPhotos(tx, user.id, id, photoPaths);
+      }
 
       const foodChanged =
         input.foodId !== undefined && input.foodId !== current.foodId;
@@ -217,20 +258,27 @@ export class ReviewsService {
       if (foodChanged && current.foodId != null)
         await this.reclaimFood(tx, user.id, current.foodId);
     });
+    // 목록에서 빠진 사진은 저장소에서도 지운다(실패해도 수정은 끝난 상태)
+    if (photoPaths !== undefined)
+      await this.photoStorage.remove(
+        before.filter((p) => !photoPaths.includes(p)),
+      );
     return this.getDto(id);
   }
 
   /** 본인 리뷰 삭제. 그 지역·음식을 뒷받침하는 다른 리뷰가 없으면 영토·도감 회수, 등급 재계산 */
   async remove(user: AuthUser, id: number): Promise<void> {
     const current = await this.getOwned(user, id);
+    const paths = await this.photoPathsOf(id);
     await this.db.transaction(async (tx) => {
-      await tx.delete(reviews).where(eq(reviews.id, id));
+      await tx.delete(reviews).where(eq(reviews.id, id)); // review_photos 행은 함께 지워진다
       if (current.regionCode)
         await this.reclaimRegion(tx, user.id, current.regionCode);
       if (current.foodId != null)
         await this.reclaimFood(tx, user.id, current.foodId);
       await this.recomputeRank(tx, user.id);
     });
+    await this.photoStorage.remove(paths);
   }
 
   async listMine(userId: string): Promise<ReviewDto[]> {
@@ -238,7 +286,8 @@ export class ReviewsService {
       .where(eq(reviews.userId, userId))
       .orderBy(desc(reviews.createdAt))
       .limit(200);
-    return rows.map(toDto);
+    const photos = await this.signedPhotos(rows.map((r) => r.id));
+    return rows.map((r) => toDto(r, photos.get(r.id) ?? []));
   }
 
   /**
@@ -278,14 +327,124 @@ export class ReviewsService {
         .from(reviews)
         .where(isPublic),
     ]);
-    return toRestaurantReviewsDto(restaurantId, agg, rows);
+    const photos = await this.signedPhotos(rows.map((r) => r.id));
+    return toRestaurantReviewsDto(restaurantId, agg, rows, photos);
   }
 
   // ---- 내부 ----
 
+  /**
+   * 리뷰에 붙일 사진 경로 확인: 최대 4장·중복 없음·본인 폴더({userId}/…)·실제 업로드됨·형식과 크기.
+   * reviewId(수정)면 이미 그 리뷰에 붙은 사진은 다시 확인하지 않는다. 다른 리뷰에 쓰인 사진은 거부.
+   */
+  private async validatePhotos(
+    userId: string,
+    paths: readonly string[],
+    reviewId?: number,
+  ): Promise<string[]> {
+    if (paths.length === 0) return [];
+    if (
+      paths.length > MAX_REVIEW_PHOTOS ||
+      new Set(paths).size !== paths.length
+    )
+      throw badPhotos(
+        `사진은 서로 다른 ${MAX_REVIEW_PHOTOS}장까지 올릴 수 있어요.`,
+      );
+    if (!paths.every((p) => isOwnPhotoPath(p, userId)))
+      throw badPhotos('올린 사진 정보가 올바르지 않아요. 다시 올려 주세요.');
+
+    const used = await this.db
+      .select({
+        path: reviewPhotos.storagePath,
+        reviewId: reviewPhotos.reviewId,
+      })
+      .from(reviewPhotos)
+      .where(
+        and(
+          inArray(reviewPhotos.storagePath, [...paths]),
+          ...(reviewId !== undefined
+            ? [ne(reviewPhotos.reviewId, reviewId)]
+            : []),
+        ),
+      );
+    if (used.length)
+      throw badPhotos('다른 리뷰에 쓰인 사진이에요. 다시 올려 주세요.');
+
+    const attached = new Set(
+      reviewId !== undefined ? await this.photoPathsOf(reviewId) : [],
+    );
+    const fresh = paths.filter((p) => !attached.has(p));
+    const infos = await Promise.all(
+      fresh.map((p) => this.photoStorage.info(p)),
+    );
+    infos.forEach((info) => {
+      if (!info)
+        throw badPhotos('사진 업로드가 끝나지 않았어요. 다시 올려 주세요.');
+      if (
+        !(info.contentType in PHOTO_CONTENT_TYPES) ||
+        info.size > MAX_PHOTO_BYTES
+      )
+        throw badPhotos('사진은 5MB 이하의 JPG·PNG·WEBP만 올릴 수 있어요.');
+    });
+    return [...paths];
+  }
+
+  private async insertPhotos(
+    tx: Tx,
+    userId: string,
+    reviewId: number,
+    paths: string[],
+  ) {
+    if (!paths.length) return;
+    await tx.insert(reviewPhotos).values(
+      paths.map((storagePath, position) => ({
+        reviewId,
+        userId,
+        storagePath,
+        position,
+      })),
+    );
+  }
+
+  private async photoPathsOf(reviewId: number): Promise<string[]> {
+    const rows = await this.db
+      .select({ path: reviewPhotos.storagePath })
+      .from(reviewPhotos)
+      .where(eq(reviewPhotos.reviewId, reviewId))
+      .orderBy(asc(reviewPhotos.position));
+    return rows.map((r) => r.path);
+  }
+
+  /** 리뷰별 사진(순서대로)과 서명 URL. 서명에 실패한 사진은 빠진다 */
+  private async signedPhotos(
+    reviewIds: number[],
+  ): Promise<Map<number, ReviewPhotoDto[]>> {
+    const result = new Map<number, ReviewPhotoDto[]>();
+    if (!reviewIds.length) return result;
+    const rows = await this.db
+      .select({
+        reviewId: reviewPhotos.reviewId,
+        path: reviewPhotos.storagePath,
+      })
+      .from(reviewPhotos)
+      .where(inArray(reviewPhotos.reviewId, reviewIds))
+      .orderBy(asc(reviewPhotos.reviewId), asc(reviewPhotos.position));
+    if (!rows.length) return result;
+    const urls = await this.photoStorage.signedUrls(rows.map((r) => r.path));
+    for (const r of rows) {
+      const url = urls.get(r.path);
+      if (!url) continue;
+      const list = result.get(r.reviewId) ?? [];
+      list.push({ path: r.path, url });
+      result.set(r.reviewId, list);
+    }
+    return result;
+  }
+
   private async getDto(id: number): Promise<ReviewDto> {
     const [row] = await this.dtoQuery().where(eq(reviews.id, id)).limit(1);
-    return toDto(row);
+    const photos = await this.signedPhotos([id]);
+    return toDto(row, photos.get(id) ?? []);
   }
 
   private dtoQuery() {
@@ -398,6 +557,10 @@ export class ReviewsService {
   }
 }
 
+function badPhotos(message: string) {
+  return new AppException('BAD_REQUEST', message, HttpStatus.BAD_REQUEST);
+}
+
 function alreadyReviewed() {
   return new AppException(
     'CONFLICT',
@@ -432,7 +595,7 @@ type DtoRow = {
   foodName: string | null;
 };
 
-export function toDto(r: DtoRow): ReviewDto {
+export function toDto(r: DtoRow, photos: ReviewPhotoDto[] = []): ReviewDto {
   return {
     id: r.id,
     restaurant: {
@@ -451,6 +614,7 @@ export function toDto(r: DtoRow): ReviewDto {
     content: r.content,
     visitedAt: r.visitedAt,
     visibility: r.visibility,
+    photos,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -475,6 +639,7 @@ export function toRestaurantReviewsDto(
   restaurantId: string,
   agg: { n: number; avg: string | null } | undefined,
   rows: PublicReviewRow[],
+  photos: Map<number, ReviewPhotoDto[]> = new Map(),
 ): RestaurantReviewsDto {
   const total = Number(agg?.n ?? 0);
   const average = agg?.avg == null ? NaN : Number(agg.avg);
@@ -499,6 +664,7 @@ export function toRestaurantReviewsDto(
       rating: r.rating,
       content: r.content,
       visitedAt: r.visitedAt,
+      photos: (photos.get(r.id) ?? []).map(({ url }) => ({ url })),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     })),

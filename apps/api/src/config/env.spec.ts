@@ -16,6 +16,7 @@ describe('validateEnv', () => {
       EATPL_TIMEOUT_MS: 8000,
       INQUIRY_FROM_EMAIL: 'EatsMine <onboarding@resend.dev>',
       INQUIRY_TIMEOUT_MS: 8000,
+      REVIEW_PHOTO_BUCKET: 'review-photos',
     });
   });
 

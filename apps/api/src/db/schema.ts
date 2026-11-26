@@ -238,6 +238,34 @@ export const reviews = pgTable.withRLS(
   ],
 );
 
+/**
+ * 리뷰 사진 (최대 4장). 파일은 Supabase Storage 비공개 버킷({userId}/{uuid}.확장자)에 있고 여기에는 경로만 둔다.
+ * 리뷰를 지우면 행도 함께 지워진다(파일 삭제는 api가 따로 한다).
+ */
+export const reviewPhotos = pgTable.withRLS(
+  'review_photos',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    reviewId: bigint('review_id', { mode: 'number' })
+      .notNull()
+      .references(() => reviews.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    storagePath: text('storage_path').notNull(),
+    /** 0부터, 리뷰 안 순서 */
+    position: smallint().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique('review_photos_storage_path_unique').on(t.storagePath),
+    unique('review_photos_review_position_unique').on(t.reviewId, t.position),
+    check('review_photos_position_check', sql`${t.position} BETWEEN 0 AND 3`),
+  ],
+);
+
 /** 내 영토 (D8). 리뷰로만 획득, 뒷받침하는 리뷰가 없어지면 회수 */
 export const userRegionVisits = pgTable.withRLS(
   'user_region_visits',

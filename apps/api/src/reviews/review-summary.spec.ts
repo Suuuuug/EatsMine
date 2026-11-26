@@ -26,9 +26,15 @@ describe('buildSummaries', () => {
         rating: 5,
         content: '국물이 진해요',
       },
+      photoUrl: null,
     });
     // 별점만 남긴 공개 리뷰: 요약은 있고 대표 리뷰는 null
-    expect(map.get('b')).toEqual({ average: 3, count: 1, featured: null });
+    expect(map.get('b')).toEqual({
+      average: 3,
+      count: 1,
+      featured: null,
+      photoUrl: null,
+    });
     expect(map.has('c')).toBe(false);
   });
 
@@ -36,6 +42,23 @@ describe('buildSummaries', () => {
     expect(
       buildSummaries([{ restaurantId: 'a', n: 0, avg: null }], []).size,
     ).toBe(0);
+  });
+
+  it('대표 사진이 있는 매장에만 photoUrl을 붙인다', () => {
+    const map = buildSummaries(
+      [
+        { restaurantId: 'a', n: 1, avg: '5' },
+        { restaurantId: 'b', n: 1, avg: '4' },
+      ],
+      [],
+      new Map([
+        ['a', 'https://x.supabase.co/storage/v1/object/sign/p?token=t'],
+      ]),
+    );
+    expect(map.get('a')?.photoUrl).toBe(
+      'https://x.supabase.co/storage/v1/object/sign/p?token=t',
+    );
+    expect(map.get('b')?.photoUrl).toBeNull();
   });
 
   it('roundAverage', () => {
