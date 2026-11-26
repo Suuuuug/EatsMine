@@ -99,16 +99,19 @@ export function RecordShareSheet({ open, onClose, token }: Props) {
       }>
         <div className="flex flex-col gap-4 break-keep">
           <SegmentedControl label="공유할 기록" options={OPTIONS} value={type} onValueChange={(value) => { if (!busy) { setType(value); setError(""); } }} />
-          <p className="type-caption text-muted">공개 리뷰로 얻은 기록만 보여요. 링크를 가진 사람은 이후 추가한 공개 기록도 볼 수 있어요.</p>
+          <p className="type-caption text-muted">공개 리뷰만 보여요. 링크를 가진 사람은 새 공개 기록도 봐요.</p>
           {id && selectedView ? (
             <section aria-label="공유 미리보기" className="flex flex-col gap-3 border-t border-line pt-4">
-              <h3 className="type-row font-semibold">{shareTitle(selectedView!)}</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="type-row font-semibold">{shareTitle(selectedView!)}</h3>
+                {/* 중지는 보조 동작이라 제목 줄 오른쪽 글자 버튼으로, 아래에는 주 행동 하나만 둔다 */}
+                <ActionButton variant="plain" size="sm" className="-mr-3.5 shrink-0 text-danger" disabled={busy} onClick={() => void remove()}>공유 중지하기</ActionButton>
+              </div>
               <p className="type-body">{recordLine(selectedView!)}</p>
               {selectedView?.type === "territory" ? <TerritoryPreview visited={selectedView.regionCodes} stacked mapHeightClass="h-44 sm:h-52" /> :
                 <ul className="grid grid-cols-5 gap-x-1 gap-y-3">{foods.slice(0, 10).map((food) => <li key={food.id} className="min-w-0 text-center"><FoodTile name={food.name} src={food.src} collected imageSize={44} /></li>)}</ul>}
             </section>
-          ) : links && !id ? <p className="type-body">링크를 만들면 공유할 기록을 미리 볼 수 있어요.</p> : !error ? <p role="status" className="type-body">불러오는 중이에요</p> : null}
-          {id && <ActionButton variant="plain" size="md" disabled={busy} onClick={() => void remove()}>공유 중지하기</ActionButton>}
+          ) : links && !id ? null : !error ? <p role="status" className="type-body">불러오는 중이에요</p> : null}
           {error && <p role="alert" className="type-caption text-danger">{error}</p>}
         </div>
       </BottomSheet>
