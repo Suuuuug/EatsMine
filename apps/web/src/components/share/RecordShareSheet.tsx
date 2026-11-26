@@ -7,7 +7,6 @@ import { shareOrCopy } from "@/components/layout/ShareAction";
 import { TerritoryPreview } from "@/components/my/TerritoryPreview";
 import { SEASONAL_FOODS } from "@/data/seasonal-foods";
 import { createShareLink, listShareLinks, loadSharePreview, recordLine, removeShareLink, shareMessage, shareTitle, type SharedView, type ShareType } from "@/lib/share/share";
-import type { MyReview } from "@/types/my-page";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
 const OPTIONS = [
@@ -15,7 +14,7 @@ const OPTIONS = [
   { value: "collection", label: "내 도감" },
 ] as const satisfies readonly { value: ShareType; label: string }[];
 
-type Props = { open: boolean; onClose: () => void; nickname: string; reviews: readonly MyReview[]; token: string };
+type Props = { open: boolean; onClose: () => void; token: string };
 type Links = Record<ShareType, { id: string } | null>;
 
 export function RecordShareSheet({ open, onClose, token }: Props) {
@@ -99,7 +98,7 @@ export function RecordShareSheet({ open, onClose, token }: Props) {
         id && selectedView ? <ActionButton variant="fill" size="lg" block disabled={busy} onClick={() => void share()}>공유하기</ActionButton> : undefined
       }>
         <div className="flex flex-col gap-4 break-keep">
-          <SegmentedControl label="공유할 기록" options={OPTIONS} value={type} onValueChange={(value) => { if (!busy) setType(value); }} />
+          <SegmentedControl label="공유할 기록" options={OPTIONS} value={type} onValueChange={(value) => { if (!busy) { setType(value); setError(""); } }} />
           <p className="type-caption text-muted">공개 후기로 얻은 기록만 보여요. 링크를 가진 사람은 이후 추가한 공개 기록도 볼 수 있어요.</p>
           {id && selectedView ? (
             <section aria-label="공유 미리보기" className="flex flex-col gap-3 border-t border-line pt-4">

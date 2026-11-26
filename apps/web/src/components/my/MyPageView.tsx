@@ -43,7 +43,7 @@ export function MyPageView({ data, member, token = null, onReviewDeleted }: MyPa
   return (
     <div className="em-theme my-backdrop min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[76px]">
       <ScrollActivity />
-      <MySidebar token={member ? token : null} nickname={profile.nickname} reviews={reviews} />
+      <MySidebar token={member ? token : null} />
       <main className="my-page mx-auto flex min-w-0 w-full max-w-2xl flex-1 flex-col break-keep text-foreground lg:max-w-6xl">
         <h1 className="sr-only">마이페이지</h1>
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 px-4 pt-4 pb-8 lg:grid-cols-2 lg:px-8 lg:pt-8 2xl:gap-x-12">
