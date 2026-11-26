@@ -1042,6 +1042,13 @@ export function MapExplorerClient({
               }
             />
           ) : (
+            <>
+            {/* 정렬 기준: 잇플 결제 매출 순위(여러 업종이면 지역 내 업종 순위). 예시 데이터는 순위가 아니라 숨긴다 */}
+            {!isPreview && (
+              <p className="px-1 pb-1 type-caption font-semibold text-foreground">
+                결제 매출 순위
+              </p>
+            )}
             <ul
               aria-label={isPreview ? "식당 목록(예시)" : "식당 목록"}
               className="divide-y divide-line"
@@ -1244,6 +1251,7 @@ export function MapExplorerClient({
                 );
               })}
             </ul>
+            </>
           )}
 
           {selectedRegion &&
