@@ -62,7 +62,10 @@ test("getRegionByCode가 유효한 코드와 없는 코드를 정확히 구분�
 
 test("지역별 추천 제철음식과 같은 시·도 인접 여행지 링크를 반환한다", () => {
   const pohangFoods = getFoodsForRegion("47110");
-  assert.ok(pohangFoods.some((f) => f.name === "과메기"));
+  const gwamegi = pohangFoods.find((f) => f.name === "과메기");
+  assert.ok(gwamegi);
+  assert.equal(gwamegi.slug, "gwamegi");
+  assert.equal(gwamegi.seasonLabel, "12월, 1월");
 
   const tongyeongFoods = getFoodsForRegion("48220");
   assert.ok(tongyeongFoods.some((f) => f.name === "굴"));

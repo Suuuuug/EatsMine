@@ -1,5 +1,7 @@
 import rawRegionCodes from "../../../public/images/maps/region-codes.json" with { type: "json" };
 import rawDictionaryFoods from "../../data/dictionary-foods.json" with { type: "json" };
+import { FOOD_ILLUSTRATIONS } from "../../data/food-illustrations.ts";
+import { formatFoodMonths } from "../../data/food-seasons.ts";
 import type { RegionItem } from "../../types/map.ts";
 import {
   POPULAR_TRAVEL_DESTINATIONS,
@@ -54,7 +56,10 @@ export type RegionSeoEntry = {
 
 export type RegionSeasonalFood = {
   name: string;
+  /** 도감 일러스트 파일 슬러그 (`/images/foods/${slug}.svg`) */
+  slug: string;
   months: readonly number[];
+  seasonLabel: string;
   description: string;
   reason: string;
 };
@@ -110,11 +115,16 @@ const REGION_BY_CODE = new Map(ALL_REGIONS.map((r) => [r.code, r]));
 const FOODS_BY_REGION = (() => {
   const map = new Map<string, RegionSeasonalFood[]>();
   for (const food of foodData) {
+    const slug =
+      FOOD_ILLUSTRATIONS[food.name as keyof typeof FOOD_ILLUSTRATIONS] ?? "";
+    const seasonLabel = formatFoodMonths(food.months);
     for (const region of food.regions) {
       const list = map.get(region.code) ?? [];
       list.push({
         name: food.name,
+        slug,
         months: food.months,
+        seasonLabel,
         description: food.description,
         reason: region.reason,
       });

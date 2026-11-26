@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { SkeletonRow, actionButtonClass } from "@/components/em";
+import { Icon } from "@/components/icon/Icon";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { MapExplorerClient } from "@/components/map/MapExplorerClient";
+import { RegionDetailLiveSection } from "@/components/regions/RegionDetailLiveSection";
 import { ScrollActivity } from "@/components/scroll/ScrollActivity";
+import { GlassCard } from "@/components/ui";
 import {
   ALL_REGIONS,
   buildRegionJsonLd,
@@ -74,12 +77,16 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
 
   const foods = getFoodsForRegion(region.code);
   const siblings = getSiblingRegions(region.code);
-  const meta = getRegionSeoMeta(region);
   const jsonLd = buildRegionJsonLd(region, foods);
-  const initialRegion = toRegionItem(region);
+  const regionItem = toRegionItem(region);
+  const mapHref = `/?region=${encodeURIComponent(region.code)}`;
+  const provinceMapHref =
+    siblings.length > 0
+      ? `/?province=${encodeURIComponent(region.parentCode)}`
+      : "/";
 
   return (
-    <div className="em-theme explore-backdrop relative min-h-dvh pb-16 md:pb-0 md:pl-[76px] max-lg:flex max-lg:h-dvh max-lg:flex-col max-lg:overflow-clip">
+    <div className="em-theme explore-backdrop relative min-h-dvh pb-20 md:pb-12 md:pl-[76px]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
@@ -88,35 +95,140 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
       <Suspense fallback={null}>
         <Sidebar />
       </Suspense>
-      <Suspense
-        fallback={
-          <main className="flex h-dvh items-center justify-center text-sm text-muted">
-            {region.fullName} 지도를 불러오고 있어요…
-          </main>
-        }
-      >
-        <MapExplorerClient key={region.code} initialRegion={initialRegion} />
-      </Suspense>
 
-      {/* 검색엔진 크롤러 및 스크린리더용 지역 상세 시맨틱 콘텐츠와 내부 링크 */}
-      <article
-        aria-label={`${region.fullName} 여행 맛집 안내`}
-        className="sr-only"
-      >
-        <h2>{region.fullName} 여행 맛집 지도</h2>
-        <p>{meta.description}</p>
-        <p>
-          행정구역: {region.provinceOfficialName} {region.name}
-        </p>
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-5 md:px-8 md:py-9">
+        {/* 브레드크럼 */}
+        <nav
+          aria-label="현재 위치"
+          className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted"
+        >
+          <Link
+            href="/"
+            className="rounded-input hover:text-foreground hover:underline underline-offset-4 focus-ring"
+          >
+            전국 맛집 지도
+          </Link>
+          <Icon name="chevron-right" size={13} className="shrink-0 opacity-60" />
+          <Link
+            href={provinceMapHref}
+            className="rounded-input hover:text-foreground hover:underline underline-offset-4 focus-ring"
+          >
+            {region.provinceName}
+          </Link>
+          {region.parentCode !== "36" && (
+            <>
+              <Icon
+                name="chevron-right"
+                size={13}
+                className="shrink-0 opacity-60"
+              />
+              <span aria-current="page" className="font-semibold text-foreground">
+                {region.name}
+              </span>
+            </>
+          )}
+        </nav>
 
+        {/* 지역 히어로 섹션 */}
+        <header className="flex flex-col gap-5">
+          <GlassCard className="flex flex-col gap-5 p-6 md:p-8">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent-weak px-2.5 py-0.5 text-xs font-semibold text-accent-dark">
+                  <Icon name="pin" size={12} />
+                  <span>{region.provinceOfficialName}</span>
+                </span>
+                {region.isPopular && (
+                  <span className="inline-flex items-center rounded-full border border-line bg-surface/80 px-2.5 py-0.5 text-xs font-medium text-muted">
+                    인기 국내 여행지
+                  </span>
+                )}
+              </div>
+
+              <h1 className="type-title text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {region.fullName} 여행 맛집 가이드
+              </h1>
+              <p className="type-body max-w-2xl text-muted">
+                {region.summary}. {region.fullName}의 추천 식당, 업종별 맛집,
+                공유 영토 순위를 한눈에 살펴보고 지도에서 바로 탐색해 보세요.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link
+                href={mapHref}
+                className={actionButtonClass({ variant: "fill", size: "md" })}
+              >
+                <Icon name="map" size={16} />
+                <span>지도에서 바로 보기</span>
+              </Link>
+              <Link
+                href="/dictionary"
+                className={actionButtonClass({ variant: "tinted", size: "md" })}
+              >
+                <Icon name="dex" size={16} />
+                <span>제철음식 도감</span>
+              </Link>
+            </div>
+          </GlassCard>
+        </header>
+
+        {/* 이 지역 추천 제철음식 (산지 매칭이 있는 경우 SSR 표시) */}
         {foods.length > 0 && (
-          <section aria-label={`${region.fullName} 추천 제철음식`}>
-            <h3>{region.fullName} 추천 제철음식</h3>
-            <ul>
+          <section
+            aria-labelledby="region-foods-heading"
+            className="flex flex-col gap-3"
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 id="region-foods-heading" className="type-section">
+                {region.name} 추천 제철음식
+              </h2>
+              <Link
+                href="/dictionary"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-accent-dark hover:underline underline-offset-4 focus-ring"
+              >
+                <span>도감 전체 보기</span>
+                <Icon name="chevron-right" size={14} />
+              </Link>
+            </div>
+
+            <ul className="grid gap-3 sm:grid-cols-2">
               {foods.map((food) => (
                 <li key={food.name}>
-                  <Link href="/dictionary">
-                    {food.name} ({food.reason}) — {food.description}
+                  <Link
+                    href="/dictionary"
+                    className="pressable block h-full rounded-card focus-ring"
+                  >
+                    <GlassCard className="flex h-full items-start gap-3.5 p-4 transition-colors hover:border-accent/40">
+                      {food.slug ? (
+                        <div className="flex size-14 shrink-0 items-center justify-center rounded-[12px] bg-fill">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/images/foods/${food.slug}.svg`}
+                            alt=""
+                            width={44}
+                            height={44}
+                            className="size-11 object-contain"
+                          />
+                        </div>
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-[15px] font-semibold text-foreground">
+                            {food.name}
+                          </h3>
+                          <span className="rounded-full bg-accent-weak px-2 py-0.5 text-[11px] font-medium text-accent-dark">
+                            {food.seasonLabel}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-accent-dark">
+                          {food.reason}
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted">
+                          {food.description}
+                        </p>
+                      </div>
+                    </GlassCard>
                   </Link>
                 </li>
               ))}
@@ -124,25 +236,57 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
           </section>
         )}
 
-        {siblings.length > 0 && (
-          <nav aria-label={`${region.provinceName} 다른 여행지 바로가기`}>
-            <h3>{region.provinceName} 다른 여행지 맛집 지도</h3>
-            <ul>
-              {siblings.map((sibling) => (
-                <li key={sibling.code}>
-                  <Link href={regionPath(sibling.code)}>
-                    {sibling.fullName} 여행 맛집 지도
-                  </Link>
-                </li>
+        {/* 실시간 인기 맛집 목록 & 공유 영토 현황 */}
+        <Suspense
+          fallback={
+            <GlassCard className="p-4">
+              {Array.from({ length: 3 }, (_, idx) => (
+                <SkeletonRow key={idx} />
               ))}
-            </ul>
-          </nav>
-        )}
+            </GlassCard>
+          }
+        >
+          <RegionDetailLiveSection region={regionItem} />
+        </Suspense>
 
-        <p>
-          <Link href="/">전국 국내 여행지 맛집 지도 홈으로 돌아가기</Link>
-        </p>
-      </article>
+        {/* 같은 시·도의 다른 여행지 내부 링크 (탐색 + 검색엔진 색인 연결) */}
+        {siblings.length > 0 && (
+          <section
+            aria-labelledby="sibling-regions-heading"
+            className="flex flex-col gap-3"
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 id="sibling-regions-heading" className="type-section">
+                {region.provinceName} 다른 여행지
+              </h2>
+              <span className="type-caption text-muted tabular-nums">
+                {siblings.length}곳
+              </span>
+            </div>
+
+            <GlassCard className="p-4 md:p-5">
+              <ul className="flex flex-wrap gap-2">
+                {siblings.map((sibling) => (
+                  <li key={sibling.code}>
+                    <Link
+                      href={regionPath(sibling.code)}
+                      className="pressable inline-flex min-h-9 items-center gap-1 rounded-full border border-line bg-surface/80 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent hover:bg-accent-weak hover:text-accent-dark focus-ring"
+                    >
+                      <span>{sibling.name}</span>
+                      {sibling.isPopular && (
+                        <span
+                          aria-label="인기 여행지"
+                          className="size-1.5 rounded-full bg-accent"
+                        />
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
