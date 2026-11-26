@@ -1276,15 +1276,8 @@ export function MapExplorerClient({
                         </div>
                       </div>
 
-                      {/* 중단: 평점 · 대표 리뷰(최대 2줄) */}
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openReviewSheet(place);
-                        }}
-                        className="pressable block w-full rounded-input px-1 py-1 text-left focus-ring"
-                      >
+                      {/* 중단: 평점 · 대표 리뷰(최대 2줄). 보여 주기만 하고, 리뷰 창은 아래 '리뷰 보기'로만 연다 */}
+                      <div className="px-1 py-1">
                         {cardReview ? (
                           <>
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground tabular-nums">
@@ -1310,7 +1303,7 @@ export function MapExplorerClient({
                             아직 공개된 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
                           </span>
                         )}
-                      </button>
+                      </div>
 
                       {/* 하단 액션 줄: 리뷰 보기 */}
                       <div className="flex items-center gap-3 px-1">
