@@ -36,7 +36,7 @@ export function ButtonDemo() {
           setTimeout(() => setSaving(false), 1500);
         }}
       >
-        {saving ? "저장하고 있어요" : "후기 남기기"}
+        {saving ? "저장하고 있어요" : "리뷰 남기기"}
       </ActionButton>
       <ActionButton variant="tinted">지도에서 보기</ActionButton>
       <ActionButton variant="gray">나중에</ActionButton>
@@ -140,11 +140,11 @@ export function ListDemo() {
       <ListGroup>
         <ListLinkRow href="#lists" label="칠한 영토" value="12곳" icon="territory" />
         <ListLinkRow href="#lists" label="모은 음식" value="7종" icon="dex" />
-        <ListLinkRow href="#lists" label="남긴 후기" value="3개" />
+        <ListLinkRow href="#lists" label="남긴 리뷰" value="3개" />
       </ListGroup>
       <ListGroup>
         <ListSwitchRow label="영토 지도 공개" checked={visitsPublic} onChange={() => setVisitsPublic((v) => !v)} />
-        <ListSwitchRow label="후기 공개" checked={reviewsPublic} onChange={() => setReviewsPublic((v) => !v)} />
+        <ListSwitchRow label="리뷰 공개" checked={reviewsPublic} onChange={() => setReviewsPublic((v) => !v)} />
       </ListGroup>
     </div>
   );
@@ -185,7 +185,7 @@ export function FeedbackDemo() {
           </>
         }
       >
-        해운대구에 남긴 후기 1개와 칠한 영토가 함께 지워져요. 지운 기록은 되돌릴 수 없어요.
+        해운대구에 남긴 리뷰 1개와 칠한 영토가 함께 지워져요. 지운 기록은 되돌릴 수 없어요.
       </BottomSheet>
     </div>
   );
@@ -338,7 +338,7 @@ export function DictionaryDemo({ collected }: { collected: readonly string[] }) 
             />
             <p className="[word-break:keep-all]">
               {seasonNames[opened.season]} 음식이에요(예시 분류).{" "}
-              {owned.has(opened.id) ? "이미 모았어요." : "이 음식을 먹고 후기를 남기면 도감에 색이 칠해져요."}
+              {owned.has(opened.id) ? "이미 모았어요." : "이 음식을 먹고 리뷰를 남기면 도감에 색이 칠해져요."}
             </p>
           </div>
         )}

@@ -47,8 +47,18 @@ export type EatplPlace = {
   lat: number | null;
   lng: number | null;
   merUrl: string;
+  /** 우리 서비스의 공개 리뷰 요약. 예시 데이터에는 없다 */
+  reviewSummary?: PlaceReviewSummaryDto | null;
   /** 식당 대표 이미지 (추후 연동 시 사용, 미제공 시 빈 이미지 슬롯 표시) */
   imageUrl?: string | null;
+};
+
+/** 백엔드 GET /restaurants 항목의 공개 리뷰 요약 (공개 리뷰가 없으면 null) */
+export type PlaceReviewSummaryDto = {
+  average: number;
+  count: number;
+  /** 내용이 있는 공개 리뷰 중 가장 최근 것. 별점만 있으면 null */
+  featured: { id: number; nickname: string; rating: number; content: string } | null;
 };
 
 export type MatchedBy = "keyword" | "genre";

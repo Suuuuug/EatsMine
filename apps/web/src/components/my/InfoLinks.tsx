@@ -8,7 +8,7 @@ const LINKS = [
   { href: "/contact", label: "문의하기" },
 ] as const;
 
-/** 후기 아래 안내 묶음. 모두 다른 화면으로 이동하는 줄이다. */
+/** 리뷰 아래 안내 묶음. 모두 다른 화면으로 이동하는 줄이다. */
 export function InfoLinks({ className }: { className?: string }) {
   return (
     <MySection id="my-info" title="안내" className={className}>

@@ -51,7 +51,7 @@ function toLiveTerritoryOwner(
 
 /**
  * 선택한 지역의 영토 주인 및 상위 3명 순위.
- * - 1순위: GET /territories/:regionCode/ranking (최근 30일 공개 후기 기준 Top 3 + 로그인 시 내 순위)
+ * - 1순위: GET /territories/:regionCode/ranking (최근 30일 공개 리뷰 기준 Top 3 + 로그인 시 내 순위)
  * - 2순위(로딩/폴백): GET /territories 1위 영토 주인
  * - 3순위(백엔드 미연결 개발 모드): 예시 순위
  */
@@ -98,7 +98,7 @@ export function RegionLeaderboard({
             </span>
           </h5>
           <p className="mt-1.5 type-caption text-muted">
-            최근 {liveRanking.windowDays}일 공개 후기 기준 영토 주인이 아직 없어요. 첫 후기를 남겨 보세요.
+            최근 {liveRanking.windowDays}일 공개 리뷰 기준 영토 주인이 아직 없어요. 첫 리뷰를 남겨 보세요.
           </p>
         </div>
       );
@@ -154,7 +154,7 @@ export function RegionLeaderboard({
             이 지역 영토 주인
           </h5>
           <p className="mt-1.5 type-caption text-muted">
-            최근 {windowDays}일 공개 후기 기준 영토 주인이 아직 없어요. 첫 후기를 남겨 보세요.
+            최근 {windowDays}일 공개 리뷰 기준 영토 주인이 아직 없어요. 첫 리뷰를 남겨 보세요.
           </p>
         </div>
       );
