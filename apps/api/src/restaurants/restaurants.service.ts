@@ -24,7 +24,7 @@ import {
  */
 export type MatchedBy = 'keyword' | 'genre';
 
-/** 잇플 매장 + 우리 서비스의 공개 후기 요약 (후기 없으면 null) */
+/** 잇플 매장 + 우리 서비스의 공개 리뷰 요약 (리뷰 없으면 null) */
 export type RestaurantListItem = EatplPlace & {
   reviewSummary: ReviewSummaryDto | null;
 };

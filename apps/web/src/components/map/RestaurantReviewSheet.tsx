@@ -4,17 +4,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionButton,
   BottomSheet,
+  GlassSelect,
+  Skeleton,
   RatingStars,
   actionButtonClass,
 } from "@/components/em";
 import { Icon } from "@/components/icon/Icon";
 import { ReviewFormFields } from "@/components/review/ReviewFormFields";
 import { getSamplePlaceReviews, type PlaceReviewItem } from "@/data/map-mock";
+import { signInWithGoogle } from "@/lib/auth/google";
 import { useSession } from "@/lib/auth/session";
 import { validEatplUrl } from "@/lib/map/home-contract";
+import { trackOutbound } from "@/lib/map/outbound";
 import {
+  ApiError,
   createReview,
+  createReviewErrorMessage,
+  fetchFoodCandidates,
   fetchRestaurantReviews,
+  type FoodCandidate,
   type RestaurantReviewsDto,
 } from "@/lib/my-page/api";
 import type { EatplPlace } from "@/types/map";
@@ -60,18 +68,25 @@ export function RestaurantReviewSheet({
   const [writing, setWriting] = useState(false);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
-  // 후기를 공개할지는 쓸 때마다 정한다. 처음에는 나만 본다.
-  const [isPublic, setIsPublic] = useState(false);
+  // 리뷰를 공개할지는 쓸 때마다 정한다. 처음에는 공개(공개 리뷰만 영토·순위·매장 리뷰에 반영된다).
+  const [isPublic, setIsPublic] = useState(true);
+  // 먹은 음식(선택). 고르면 도감에 모인다. 후보는 매장 업종에 연결된 도감 음식이다.
+  const [foodId, setFoodId] = useState<number | null>(null);
+  const [foodCandidates, setFoodCandidates] = useState<{
+    genre: string;
+    items: FoodCandidate[];
+  } | null>(null);
   const session = useSession();
   const token =
     session.status === "ready" ? (session.session?.accessToken ?? null) : null;
   const userId =
     session.status === "ready" ? (session.session?.user.id ?? null) : null;
-  // 서버에서 읽은 공개 후기. null이면 아직 없거나 읽을 수 없는 매장이라 예시 후기를 쓴다.
-  const [remote, setRemote] = useState<{
-    id: string;
-    data: RestaurantReviewsDto;
-  } | null>(null);
+  // 서버에서 읽은 공개 리뷰(매장별). 이 매장 값이 없으면 불러오는 중이다.
+  const [remote, setRemote] = useState<
+    | { id: string; status: "ok"; data: RestaurantReviewsDto }
+    | { id: string; status: "error" }
+    | null
+  >(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   // 저장 요청이 끝났을 때 폼이 그대로인지 확인한다(취소·닫기·새로 쓰기가 있었으면 이 값이 바뀐다).
@@ -99,25 +114,68 @@ export function RestaurantReviewSheet({
   const placeMerchantId = merchantId(safeEatplUrl);
   const canSave = Boolean(token && safeEatplUrl && placeMerchantId);
 
+  // 이미 읽은 목록을 다시 읽을 때(리뷰 저장 뒤)는 이전 목록을 그대로 두고 바꿔 끼운다.
   const loadRemote = useCallback((id: string) => {
     fetchRestaurantReviews(id).then(
-      (data) => setRemote({ id, data }),
-      () => setRemote(null),
+      (data) => setRemote({ id, status: "ok", data }),
+      () =>
+        setRemote((prev) =>
+          prev?.id === id && prev.status === "ok" ? prev : { id, status: "error" },
+        ),
     );
   }, []);
+  const retryRemote = () => {
+    if (!placeMerchantId) return;
+    setRemote(null);
+    loadRemote(placeMerchantId);
+  };
   useEffect(() => {
     if (!placeMerchantId) return;
     loadRemote(placeMerchantId);
   }, [placeMerchantId, loadRemote]);
 
+  // 쓰기를 열면 매장 업종의 음식 후보를 한 번 읽는다(실패하면 음식 선택 없이 저장).
+  const placeGenre = place?.genre ?? null;
+  useEffect(() => {
+    if (!writing || !placeGenre || foodCandidates?.genre === placeGenre) return;
+    let cancelled = false;
+    fetchFoodCandidates(placeGenre).then(
+      (items) => {
+        if (!cancelled) setFoodCandidates({ genre: placeGenre, items });
+      },
+      () => {
+        if (!cancelled) setFoodCandidates({ genre: placeGenre, items: [] });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [writing, placeGenre, foodCandidates?.genre]);
+  const foods =
+    foodCandidates && foodCandidates.genre === placeGenre
+      ? foodCandidates.items
+      : [];
+
+  // 예시 리뷰는 API 없이 보는 예시 매장(잇플 링크가 없는 매장)에서만 쓴다.
+  const usesSample = !placeMerchantId || !process.env.NEXT_PUBLIC_API_URL;
+  const remoteForPlace =
+    remote && remote.id === placeMerchantId ? remote : null;
+  const reviewState: "ready" | "loading" | "error" = usesSample
+    ? "ready"
+    : !remoteForPlace
+      ? "loading"
+      : remoteForPlace.status === "ok"
+        ? "ready"
+        : "error";
   const serverData =
-    remote && remote.id === placeMerchantId ? remote.data : null;
-  // 저장한 후기는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
+    remoteForPlace?.status === "ok" ? remoteForPlace.data : null;
+  // 저장한 리뷰는 쓴 계정에게만 보인다. 로그아웃하거나 계정이 바뀌면 서버 조회 결과와 상관없이 숨긴다.
   const ownReviews = userReviews.filter(
     (r) => !r.saved || r.ownerId === userId,
   );
-  const sample = place ? getSamplePlaceReviews(place, ownReviews) : null;
-  // 서버 후기가 있으면 그것을, 없으면 예시를 보여 준다. 내가 방금 쓴 나만 보기 후기는 목록 맨 위에 둔다.
+  const sample =
+    place && usesSample ? getSamplePlaceReviews(place, ownReviews) : null;
+  // 실제 매장은 서버 리뷰, 예시 매장은 예시 리뷰. 내가 방금 쓴 나만 보기 리뷰는 목록 맨 위에 둔다.
   const summary = serverData
     ? {
         averageRating: serverData.summary?.average ?? null,
@@ -154,7 +212,8 @@ export function RestaurantReviewSheet({
     setWriting(false);
     setContent("");
     setRating(5);
-    setIsPublic(false);
+    setIsPublic(true);
+    setFoodId(null);
     onClose();
   };
 
@@ -192,9 +251,24 @@ export function RestaurantReviewSheet({
     clearDraftPhotos(revokeUrls);
     setContent("");
     setRating(5);
-    setIsPublic(false);
+    setIsPublic(true);
+    setFoodId(null);
     setSubmitError("");
     setWriting(false);
+  };
+
+  // 구글 로그인 뒤 지금 지도 화면(지역 포함)으로 돌아온다. 쓰던 글은 이동하면서 사라지므로 다시 써야 한다.
+  const handleLogin = async () => {
+    const result = await signInWithGoogle(
+      `${window.location.pathname}${window.location.search}`,
+    );
+    if (!result.ok) {
+      setSubmitError(
+        result.reason === "not-configured"
+          ? "지금은 로그인을 쓸 수 없어요."
+          : "로그인을 시작하지 못했어요. 다시 시도해 주세요.",
+      );
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -232,21 +306,26 @@ export function RestaurantReviewSheet({
           rating,
           content: trimmed,
           visibility,
+          ...(foodId != null && foods.some((f) => f.id === foodId)
+            ? { foodId }
+            : {}),
         });
-      } catch {
+      } catch (e) {
         if (draftId === draftIdRef.current) {
-          setSubmitError("후기를 저장하지 못했어요. 다시 시도해 주세요.");
+          setSubmitError(
+            createReviewErrorMessage(e instanceof ApiError ? e.status : 0),
+          );
           setSubmitting(false);
         }
         return;
       }
       if (draftId !== draftIdRef.current) {
-        // 저장 중에 폼을 닫았거나 취소했다. 새 입력은 건드리지 않고 공개 후기 목록만 갱신한다.
+        // 저장 중에 폼을 닫았거나 취소했다. 새 입력은 건드리지 않고 공개 리뷰 목록만 갱신한다.
         if (visibility === "public") loadRemote(placeMerchantId);
         return;
       }
       setSubmitting(false);
-      // 공개 후기는 서버 목록에서 다시 읽고, 나만 보기 후기는 이 화면에 보여 준다.
+      // 공개 리뷰는 서버 목록에서 다시 읽고, 나만 보기 리뷰는 이 화면에 보여 준다.
       if (visibility === "public") loadRemote(placeMerchantId);
       else onAddReview(place.id, local(true));
       resetDraft();
@@ -280,7 +359,8 @@ export function RestaurantReviewSheet({
               <a
                 href={safeEatplUrl}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="noopener"
+                onClick={() => trackOutbound(safeEatplUrl, "list")}
                 className={actionButtonClass({
                   variant: writing ? "gray" : "tinted",
                   size: "md",
@@ -309,15 +389,8 @@ export function RestaurantReviewSheet({
         )
       }
     >
-      {place && summary && (
-        <div
-          className="flex flex-col gap-4"
-          // 시트 안쪽에 옅은 빛번짐만 깐다(DESIGN.md §1: 카드·글자에는 그라데이션 금지)
-          style={{
-            backgroundImage:
-              "radial-gradient(90% 180px at 50% 0%, color-mix(in oklab, var(--color-accent) 14%, transparent), transparent 75%)",
-          }}
-        >
+      {place && (
+        <div className="flex flex-col gap-4">
           {/* 식당 주소 + 평균 평점 요약 */}
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-1.5 type-caption text-muted">
@@ -325,19 +398,32 @@ export function RestaurantReviewSheet({
               <span className="min-w-0 flex-1 truncate">{place.address}</span>
               {place.genre && <span className="shrink-0">{place.genre}</span>}
             </p>
-            {summary.averageRating != null ? (
+            {reviewState === "loading" ? (
+              <p role="status" className="type-caption text-muted">
+                리뷰를 불러오고 있어요…
+              </p>
+            ) : reviewState === "error" || !summary ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="type-caption text-muted">
+                  리뷰를 불러오지 못했어요.
+                </p>
+                <ActionButton variant="gray" size="sm" onClick={retryRemote}>
+                  다시 시도
+                </ActionButton>
+              </div>
+            ) : summary.averageRating != null ? (
               <div className="flex items-center gap-2">
                 <span className="type-row tabular-nums">
                   {summary.averageRating.toFixed(1)}
                 </span>
                 <RatingStars value={summary.averageRating} size={20} />
                 <span className="type-caption text-muted tabular-nums">
-                  후기 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
+                  리뷰 {summary.reviewCount}개{summary.isSample ? "(예시)" : ""}
                 </span>
               </div>
             ) : (
               <p className="type-caption text-muted">
-                아직 공개된 후기가 없어요
+                아직 공개된 리뷰가 없어요
               </p>
             )}
           </div>
@@ -357,8 +443,8 @@ export function RestaurantReviewSheet({
                   onContent={setContent}
                   isPublic={isPublic}
                   onPublic={setIsPublic}
-                  placeholder="여행 중 다녀온 후기를 남겨 주세요."
-                  contentLabel="여행 후기 입력"
+                  placeholder="여행 중 다녀온 리뷰를 남겨 주세요."
+                  contentLabel="여행 리뷰 입력"
                 >
                   {/* 사진 첨부 영역 (최대 4장). 화면은 만들어 두었고 사진 저장소가 없어 서버에는 보내지 않는다 */}
                   {
@@ -415,12 +501,48 @@ export function RestaurantReviewSheet({
                       )}
                     </div>
                   }
+                  {canSave && foods.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="type-caption text-foreground">
+                        먹은 음식 <span className="text-muted">(선택)</span>
+                      </span>
+                      {/* 도감 수집 필터와 같은 유리 패널 드롭다운 */}
+                      <GlassSelect
+                        trigger="field"
+                        options={[
+                          { value: "", label: "고르지 않기" },
+                          ...foods.map((food) => ({
+                            value: String(food.id),
+                            label: food.name,
+                          })),
+                        ]}
+                        value={foodId == null ? "" : String(foodId)}
+                        onChange={(next) => setFoodId(next ? Number(next) : null)}
+                        placeholderValue=""
+                        label="먹은 음식"
+                        listLabel="먹은 음식 목록"
+                      />
+                      <span className="type-caption text-muted">
+                        고른 음식은 도감에 모여요.
+                      </span>
+                    </div>
+                  )}
                 </ReviewFormFields>
 
                 {!token && (
-                  <p className="type-caption text-muted">
-                    로그인하면 후기가 저장돼요. 지금은 이 화면에서만 보여요.
-                  </p>
+                  <div className="flex items-center justify-between gap-3 rounded-input bg-fill/60 px-3 py-2.5">
+                    <p className="min-w-0 type-caption text-muted">
+                      로그인하면 리뷰가 저장돼요. 지금은 이 화면에서만 보여요.
+                    </p>
+                    <ActionButton
+                      variant="tinted"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleLogin}
+                    >
+                      로그인하고 저장하기
+                    </ActionButton>
+                  </div>
                 )}
                 {submitError && (
                   <p role="alert" className="type-caption text-danger">
@@ -449,9 +571,15 @@ export function RestaurantReviewSheet({
             </form>
           )}
 
-          {/* 리뷰 목록 */}
-          {summary.reviews.length === 0 ? (
-            <p className="py-2 type-body text-muted">첫 후기를 남겨 보세요.</p>
+          {/* 리뷰 목록 (불러오는 중·실패는 위 요약 줄에서 안내) */}
+          {reviewState === "loading" ? (
+            // 리뷰가 없을 때의 "첫 리뷰를 남겨 보세요." 문단과 같은 크기라, 불러온 뒤 시트 높이가 바뀌지 않는다.
+            <p aria-hidden="true" className="relative py-2 type-body">
+              <span className="invisible">첫 리뷰를 남겨 보세요.</span>
+              <Skeleton className="absolute inset-y-2.5 left-0 w-44" />
+            </p>
+          ) : !summary ? null : summary.reviews.length === 0 ? (
+            <p className="py-2 type-body text-muted">첫 리뷰를 남겨 보세요.</p>
           ) : (
             <ul aria-label="식당 리뷰 목록" className="list-divided">
               {summary.reviews.map((review) => (

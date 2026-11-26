@@ -17,6 +17,9 @@ import {
  */
 
 type Region = { code: string; name: string; parentCode?: string };
+
+/** 미리보기에서 위치 점을 함께 찍는 칠한 지역 수의 상한. 많으면 칠한 면만으로 충분히 보인다. */
+const FEW_MARKED = 5;
 type RegionMeta = {
   sourceDate: string;
   provinces: Region[];
@@ -172,6 +175,8 @@ type TerritoryMapProps = {
   province?: string;
   onProvinceChange?: (code: string) => void;
   compact?: boolean;
+  /** compact일 때 지도 칸 높이(기본 h-64 sm:h-80). 시트처럼 좁은 곳에서 줄인다. */
+  compactHeightClass?: string;
   territoryView?: boolean;
   className?: string;
 };
@@ -184,6 +189,7 @@ export function TerritoryMap({
   province: provinceProp,
   onProvinceChange,
   compact = false,
+  compactHeightClass = "h-64 sm:h-80",
   territoryView = false,
   className = "",
 }: TerritoryMapProps) {
@@ -370,7 +376,7 @@ export function TerritoryMap({
         </h3>
       </div>}
 
-      <div className={`relative flex w-full items-center justify-center overflow-hidden ${compact ? "h-64 sm:h-80" : "rounded-card border border-line bg-surface/45 p-4"} ${compact ? "" : "aspect-[4/5] max-h-[320px] sm:max-h-[min(65vh,560px)]"}`}>
+      <div className={`relative flex w-full items-center justify-center overflow-hidden ${compact ? compactHeightClass : "rounded-card border border-line bg-surface/45 p-4"} ${compact ? "" : "aspect-[4/5] max-h-[320px] sm:max-h-[min(65vh,560px)]"}`}>
         {loadError ? (
           <div
             role="alert"
@@ -434,7 +440,11 @@ export function TerritoryMap({
                     strokeWidth={isSelected ? 2.2 : isHovered ? 1.5 : compact ? (ratio === 1 ? 1.4 : 0.5) : 1}
                     strokeOpacity={isSelected || isHovered ? 1 : 0.85}
                     strokeLinejoin="round"
-                    onMouseEnter={() => setHoveredCode(path.code)}
+                    onMouseEnter={() => {
+                      // 터치 기기는 누르면 mouseenter가 함께 와서 말풍선·강조가 남는다. 마우스일 때만 쓴다.
+                      if (!window.matchMedia("(hover: hover)").matches) return;
+                      setHoveredCode(path.code);
+                    }}
                     onMouseLeave={() =>
                       setHoveredCode((prev) =>
                         prev === path.code ? null : prev,
@@ -452,6 +462,23 @@ export function TerritoryMap({
                   />
                 );
               })}
+              {/* 미리보기에서 칠한 곳이 몇 곳뿐이면 작은 시·군·구는 점보다 작게 보인다. 위치 점을 함께 찍는다. */}
+              {compact &&
+                owned.size > 0 &&
+                owned.size <= FEW_MARKED &&
+                shape.paths
+                  .filter((path) => owned.has(path.code))
+                  .map((path) => (
+                    <circle
+                      key={`dot-${path.code}`}
+                      cx={path.labelX}
+                      cy={path.labelY}
+                      r={shape.width * 0.014}
+                      vectorEffect="non-scaling-stroke"
+                      strokeWidth={2}
+                      className="pointer-events-none fill-accent-dark stroke-surface"
+                    />
+                  ))}
             </svg>
 
             {/* 호버/선택 지역 위 하얀 말풍선 */}
@@ -497,7 +524,7 @@ export function TerritoryMap({
                   className={
                     "inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-button px-3 text-sm font-medium focus-ring transition-colors duration-150 " +
                     (isSelected
-                      ? "bg-foreground text-background"
+                      ? "bg-accent-weak font-semibold text-accent-dark shadow-[inset_0_0_0_1px_var(--color-accent-dark)]"
                       : "bg-fill text-foreground hover:bg-foreground/10")
                   }
                 >
@@ -523,9 +550,9 @@ export function TerritoryMap({
 
       {!compact && markedText && <p className="sr-only">추천 지역: {markedText}</p>}
       {!compact && meta && (
-        <p className="truncate text-right text-[clamp(9px,2.5vw,12px)] leading-tight font-normal tracking-tight whitespace-nowrap text-muted sm:text-xs sm:tracking-normal">
-          통계청 SGIS({meta.sourceDate}) · krmap · admdongkor (CC BY 4.0) 행정구역
-          경계 기준
+        // 라이선스 표기(CC BY 4.0). 최소 12px을 지키고 좁으면 줄을 바꾼다.
+        <p className="text-right text-xs leading-snug font-normal text-muted">
+          행정구역 경계 출처: 통계청 SGIS({meta.sourceDate}), krmap, admdongkor(CC BY 4.0)
         </p>
       )}
     </section>

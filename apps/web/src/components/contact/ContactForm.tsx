@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ActionButton, Checkbox, FilterChip, TextField } from "@/components/em";
+import { useSession } from "@/lib/auth/session";
 import {
   CONTENT_MAX,
   INQUIRY_TYPES,
@@ -25,7 +26,9 @@ const FAILURE_TEXT = {
 } as const;
 
 /** 문의 입력 폼. 입력을 건드리기 전에는 오류를 보이지 않고, 모두 맞아야 보내기가 켜진다. */
-export function ContactForm({ send = sendInquiry }: ContactFormProps) {
+export function ContactForm({ send }: ContactFormProps) {
+  const session = useSession();
+  const token = session.status === "ready" ? (session.session?.accessToken ?? null) : null;
   const [type, setType] = useState<InquiryType>("service");
   const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
@@ -52,7 +55,8 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
     }
     setStatus("sending");
     setFailure(null);
-    const result = await send({ type, email: email.trim(), content: content.trim() });
+    const payload = { type, email: email.trim(), content: content.trim() };
+    const result = await (send ?? ((input) => sendInquiry(input, { token })))(payload);
     if (result.ok) {
       setStatus("sent");
     } else {
@@ -77,9 +81,9 @@ export function ContactForm({ send = sendInquiry }: ContactFormProps) {
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-2 type-caption text-foreground">문의 종류</legend>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {INQUIRY_TYPES.map((item) => (
-            <FilterChip key={item.value} selected={type === item.value} onSelectedChange={() => setType(item.value)}>
+            <FilterChip key={item.value} className="justify-center" selected={type === item.value} onSelectedChange={() => setType(item.value)}>
               {item.label}
             </FilterChip>
           ))}

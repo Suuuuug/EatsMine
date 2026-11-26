@@ -5,11 +5,11 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { profiles, reviewPhotos, reviews } from '../db/schema.js';
 import { PhotoStorage } from './photo-storage.js';
 
-/** 검색 결과 카드용 공개 후기 요약 (공개 후기가 없으면 null) */
+/** 검색 결과 카드용 공개 리뷰 요약 (공개 리뷰가 없으면 null) */
 export type ReviewSummaryDto = {
   average: number;
   count: number;
-  /** 대표 후기 — 내용이 있는 공개 후기 중 가장 최근 것. 내용 있는 후기가 없으면 null */
+  /** 대표 리뷰 — 내용이 있는 공개 리뷰 중 가장 최근 것. 내용 있는 리뷰가 없으면 null */
   featured: {
     id: number;
     nickname: string;
@@ -67,7 +67,7 @@ export class ReviewSummaryService {
     private readonly photoStorage: PhotoStorage,
   ) {}
 
-  /** 매장 ID 목록의 공개 후기 요약을 한 번에 계산한다 (쿼리 3번 + 대표 사진 서명 1번). 후기 없는 매장은 결과에 없다 */
+  /** 매장 ID 목록의 공개 리뷰 요약을 한 번에 계산한다 (쿼리 3번 + 대표 사진 서명 1번). 리뷰 없는 매장은 결과에 없다 */
   async forRestaurants(
     restaurantIds: readonly string[],
   ): Promise<Map<string, ReviewSummaryDto>> {

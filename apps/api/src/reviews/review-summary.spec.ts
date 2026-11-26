@@ -1,7 +1,7 @@
 import { buildSummaries, roundAverage } from './review-summary.service.js';
 
 describe('buildSummaries', () => {
-  it('매장별 평균(소수 첫째 자리)·개수·대표 후기를 묶는다', () => {
+  it('매장별 평균(소수 첫째 자리)·개수·대표 리뷰를 묶는다', () => {
     const map = buildSummaries(
       [
         { restaurantId: 'a', n: 3, avg: '4.6667' },
@@ -28,7 +28,7 @@ describe('buildSummaries', () => {
       },
       photoUrl: null,
     });
-    // 별점만 남긴 공개 후기: 요약은 있고 대표 후기는 null
+    // 별점만 남긴 공개 리뷰: 요약은 있고 대표 리뷰는 null
     expect(map.get('b')).toEqual({
       average: 3,
       count: 1,

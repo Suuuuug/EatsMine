@@ -14,12 +14,12 @@ test('숫자가 아닌 도감 ID는 버리지 않고 미연결 상태로 표시'
   assert.deepEqual(parseSearch('?food=strawberry&regionCode=11140'), { regionCode: '11140', foodId: null, unsupportedFood: true });
   assert.deepEqual(parseSearch('?foodId=3&regionCode=11140'), { regionCode: '11140', foodId: '3', unsupportedFood: false });
 });
-test('후기 경로는 안전한 식별자와 조건만 포함', () => {
+test('리뷰 경로는 안전한 식별자와 조건만 포함', () => {
   assert.equal(reviewUrl('abc-123','11140','3'), '/restaurants/abc-123/reviews?regionCode=11140&foodId=3');
   assert.equal(reviewUrl('../evil','11140',null), null);
 });
 
-test('후기 링크에 실제 식당명만 안전하게 전달하며 과도한 길이는 생략한다', () => {
+test('리뷰 링크에 실제 식당명만 안전하게 전달하며 과도한 길이는 생략한다', () => {
   const result = reviewUrl('abc', '11140', '3', ' 가상 & 식당 ');
   assert.equal(result, '/restaurants/abc/reviews?regionCode=11140&foodId=3&name=%EA%B0%80%EC%83%81+%26+%EC%8B%9D%EB%8B%B9');
   assert.equal(reviewUrl('abc', '11140', null, 'x'.repeat(101)), '/restaurants/abc/reviews?regionCode=11140');
@@ -29,14 +29,14 @@ test('지역 목록은 화면에 표시되는 이름 기준 가나다순', () =>
   assert.deepEqual(sortRegions(regions).map(r => regionLabel(r)), ['강원특별자치도','서울특별시','전남광주통합특별시']);
 });
 
-test('사용자 후기 집계가 있을 때만 평균과 건수를 표시한다', () => {
+test('사용자 리뷰 집계가 있을 때만 평균과 건수를 표시한다', () => {
   assert.equal(formatReviewSummary(null), null);
-  assert.equal(formatReviewSummary({ average: 4.36, count: 2 }), '사용자 평점 4.4점 · 후기 2개');
+  assert.equal(formatReviewSummary({ average: 4.36, count: 2 }), '사용자 평점 4.4점 · 리뷰 2개');
   assert.equal(formatReviewSummary({ average: 0, count: 0 }), null);
   assert.equal(formatReviewSummary({ average: 9, count: 3 }), null);
 });
 
-test('예시 후기 평균과 건수는 제공된 후기 목록에서 계산한다', () => {
+test('예시 리뷰 평균과 건수는 제공된 리뷰 목록에서 계산한다', () => {
   assert.deepEqual(summarizeReviews([{rating:5,text:'좋아요'}, {rating:4,text:'맛있어요'}]), {average:4.5,count:2,excerpt:'좋아요'});
   assert.equal(summarizeReviews([]), null);
   assert.equal(summarizeReviews([{rating:8,text:'잘못된 점수'}]), null);

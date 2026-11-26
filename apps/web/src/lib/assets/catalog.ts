@@ -22,7 +22,7 @@ export type BadgeId = "first-visit" | "first-food" | "reviewer" | "regional-mast
 export const badges: { id: BadgeId; name: string }[] = [
   { id: "first-visit", name: "첫 방문" },
   { id: "first-food", name: "첫 음식" },
-  { id: "reviewer", name: "후기 남기기" },
+  { id: "reviewer", name: "리뷰 남기기" },
   { id: "regional-master", name: "지역 다 칠하기" },
   { id: "seasonal-master", name: "제철 다 모으기" },
   { id: "all-korea", name: "전국 한 바퀴" },
