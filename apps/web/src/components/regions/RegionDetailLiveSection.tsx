@@ -76,75 +76,56 @@ export function RegionDetailLiveSection({
     <div className="flex flex-col gap-6">
       {/* 공유 영토 현황 카드 */}
       <section aria-labelledby="region-territory-heading">
-        <GlassCard className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-weak text-accent-dark"
-            >
-              <Icon name="crown" size={18} />
-            </span>
-            <div className="flex flex-col gap-0.5">
-              <h2
-                id="region-territory-heading"
-                className="text-sm font-semibold text-foreground"
-              >
-                {region.fullName} 공유 영토
-              </h2>
-              {currentOwner ? (
-                <p className="text-sm text-muted">
-                  현재 땅 주인{" "}
-                  <strong className="font-semibold text-foreground">
-                    {currentOwner.ownerNickname}
-                  </strong>
-                  {" · "}리뷰{" "}
-                  <span className="font-semibold text-foreground tabular-nums">
-                    {currentOwner.reviewCount}개
-                  </span>
-                  {isPreview ? " (예시)" : ""}
-                </p>
-              ) : (
-                <p className="text-sm text-muted">
-                  아직 땅 주인이 없는 지역이에요. 지도에서 식당 리뷰를 남겨 첫
-                  땅 주인이 되어 보세요.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <Link
-            href={mapHref}
-            className={actionButtonClass({ variant: "tinted", size: "sm" })}
+        <GlassCard className="flex items-start gap-3 p-5">
+          <span
+            aria-hidden="true"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-weak text-accent-dark"
           >
-            <Icon name="territory" size={14} />
-            <span>지도에서 탐색</span>
-          </Link>
+            <Icon name="crown" size={18} />
+          </span>
+          <div className="flex flex-col gap-0.5">
+            <h2
+              id="region-territory-heading"
+              className="text-sm font-semibold text-foreground"
+            >
+              {region.fullName} 공유 영토
+            </h2>
+            {currentOwner ? (
+              <p className="text-sm text-muted">
+                현재 땅 주인{" "}
+                <strong className="font-semibold text-foreground">
+                  {currentOwner.ownerNickname}
+                </strong>
+                {" · "}리뷰{" "}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {currentOwner.reviewCount}개
+                </span>
+                {isPreview ? " (예시)" : ""}
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                아직 땅 주인이 없는 지역이에요. 식당 리뷰를 남겨 첫 땅 주인이
+                되어 보세요.
+              </p>
+            )}
+          </div>
         </GlassCard>
       </section>
 
-      {/* 이 지역 인기 맛집 목록 */}
+      {/* 이 지역 추천 맛집 목록 */}
       <section
         aria-labelledby="region-places-heading"
         className="flex flex-col gap-3"
       >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <h2 id="region-places-heading" className="type-section">
-              {region.name} 추천 맛집
-            </h2>
-            {!loading && !error && allPlaces.length > 0 && (
-              <span className="type-caption font-medium text-muted tabular-nums">
-                {allPlaces.length}곳{isPreview ? " (예시)" : ""}
-              </span>
-            )}
-          </div>
-          <Link
-            href={mapHref}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-accent-dark hover:underline underline-offset-4 focus-ring"
-          >
-            <span>지도에서 전체 보기</span>
-            <Icon name="chevron-right" size={14} />
-          </Link>
+        <div className="flex items-baseline gap-2">
+          <h2 id="region-places-heading" className="type-section">
+            {region.name} 추천 맛집
+          </h2>
+          {!loading && !error && allPlaces.length > 0 && (
+            <span className="type-caption font-medium text-muted tabular-nums">
+              {allPlaces.length}곳{isPreview ? " (예시)" : ""}
+            </span>
+          )}
         </div>
 
         {loading ? (
@@ -344,18 +325,17 @@ export function RegionDetailLiveSection({
             </ul>
 
             <div className="flex flex-col items-center gap-2 pt-2">
-              <Link
-                href={mapHref}
-                className={actionButtonClass({ variant: "fill", size: "md" })}
-              >
-                <Icon name="map" size={16} />
-                <span>
-                  지도에서 {region.name} 맛집 전체 보기
-                  {allPlaces.length > visiblePlaces.length
-                    ? ` (${allPlaces.length}곳)`
-                    : ""}
-                </span>
-              </Link>
+              {allPlaces.length > visiblePlaces.length && (
+                <Link
+                  href={mapHref}
+                  className={actionButtonClass({ variant: "tinted", size: "sm" })}
+                >
+                  <span>
+                    나머지 {allPlaces.length - visiblePlaces.length}곳 더 보기
+                  </span>
+                  <Icon name="chevron-right" size={14} />
+                </Link>
+              )}
               {result?.source && (
                 <p className="text-[11px] text-muted">{result.source}</p>
               )}
