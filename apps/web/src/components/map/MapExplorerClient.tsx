@@ -1375,7 +1375,7 @@ export function MapExplorerClient({
       {/* 오른쪽: 둥근 EatsMine 지도 카드 프레임 (실제 좌표 식당 지도 ↔ 연속 영토 땅따먹기) */}
       <section
         aria-label="지도 영역"
-        className="relative order-3 h-[38dvh] min-h-[240px] w-full shrink-0 overflow-hidden rounded-card border border-line bg-surface/45 shadow-card lg:order-2 lg:h-full lg:min-h-0"
+        className="relative order-3 h-[38dvh] min-h-[240px] w-full shrink-0 overflow-hidden rounded-card border border-line bg-surface/45 lg:order-2 lg:h-full lg:min-h-0 lg:shadow-card"
       >
         {/* 우상단 컨트롤: 내 위치 버튼 + 슬라이드 모드 전환 (모바일에서 좌상단 '← 전국'과 겹치지 않도록 컴팩트 반응형) */}
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-30 flex items-center justify-end gap-1.5 sm:top-4 sm:right-4 sm:gap-2">
