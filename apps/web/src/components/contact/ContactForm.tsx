@@ -81,9 +81,9 @@ export function ContactForm({ send }: ContactFormProps) {
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-2 type-caption text-foreground">문의 종류</legend>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {INQUIRY_TYPES.map((item) => (
-            <FilterChip key={item.value} selected={type === item.value} onSelectedChange={() => setType(item.value)}>
+            <FilterChip key={item.value} className="justify-center" selected={type === item.value} onSelectedChange={() => setType(item.value)}>
               {item.label}
             </FilterChip>
           ))}
