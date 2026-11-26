@@ -32,3 +32,10 @@ test("이번 계절 제철음식을 먼저, 모은 것을 앞에 두고 limit개
   const p = seasonProgress(foods, ["d"], "winter", 2, 11);
   assert.deepEqual(p.preview.map((t) => [t.food.id, t.collected]), [["d", true], ["b", false]]);
 });
+
+import { foodDetailHref } from "./summary.ts";
+
+test("음식 칸과 다음 음식 버튼은 같은 상세 주소로 간다(식당 찾기가 있는 곳)", () => {
+  assert.equal(foodDetailHref("fresh-oysters"), "/dictionary?food=fresh-oysters");
+  assert.equal(foodDetailHref("a b"), "/dictionary?food=a%20b");
+});
