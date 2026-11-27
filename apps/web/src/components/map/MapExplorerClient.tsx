@@ -717,17 +717,26 @@ export function MapExplorerClient({
       setSelectedPlaceId(place.id);
       const index = allPlaces.findIndex((p) => p.id === place.id);
       const needed = shownCountToInclude(index, shownCount);
-      if (needed !== shownCount) setShownState({ key: listKey, count: needed });
-      pendingScrollIdRef.current = place.id;
+      if (needed !== shownCount) {
+        // 새로 펼치는 중: 카드가 그려진 뒤 아래 효과에서만 스크롤한다.
+        pendingScrollIdRef.current = place.id;
+        setShownState({ key: listKey, count: needed });
+        return;
+      }
+      // 이미 목록에 보이는 카드: 바로 스크롤한다.
+      pendingScrollIdRef.current = null;
       requestAnimationFrame(() => {
-        const cardEl = listCardRefs.current.get(place.id);
-        if (!cardEl) return; // 아직 안 그려졌으면 아래 효과가 펼친 뒤에 스크롤한다
-        pendingScrollIdRef.current = null;
-        cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        listCardRefs.current
+          .get(place.id)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     },
     [allPlaces, shownCount, listKey],
   );
+  // 지역·업종이 바뀌면 이전에 기다리던 스크롤은 버린다.
+  useEffect(() => {
+    pendingScrollIdRef.current = null;
+  }, [listKey]);
   useEffect(() => {
     const id = pendingScrollIdRef.current;
     if (!id) return;
