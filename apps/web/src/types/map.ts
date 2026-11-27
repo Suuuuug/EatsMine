@@ -59,6 +59,8 @@ export type PlaceReviewSummaryDto = {
   count: number;
   /** 내용이 있는 공개 리뷰 중 가장 최근 것. 별점만 있으면 null */
   featured: { id: number; nickname: string; rating: number; content: string } | null;
+  /** 대표 사진: 가장 최근 공개 리뷰의 첫 사진(1시간 유효 서명 URL). 없으면 null */
+  photoUrl?: string | null;
 };
 
 export type MatchedBy = "keyword" | "genre";

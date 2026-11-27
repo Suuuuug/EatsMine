@@ -101,6 +101,27 @@ export class PhotoStorage {
     return result;
   }
 
+  /**
+   * 한 사용자 폴더({userId}/)의 모든 파일 경로. 리뷰에 붙지 않은 업로드까지 포함한다(회원 탈퇴 정리용).
+   * Storage 목록 API는 한 번에 최대 1000개라 끝까지 넘겨 가며 모은다.
+   */
+  async listUserFolder(userId: string): Promise<string[]> {
+    const folder = userId.toLowerCase();
+    const paths: string[] = [];
+    const limit = 1000;
+    for (let offset = 0; ; offset += limit) {
+      const rows = await this.request<{ name: string; id: string | null }[]>(
+        'POST',
+        `/object/list/${this.bucket}`,
+        { prefix: folder, limit, offset },
+      );
+      // id가 없는 항목은 하위 폴더(우리 경로 규칙에는 없음)
+      for (const row of rows ?? [])
+        if (row.id) paths.push(`${folder}/${row.name}`);
+      if (!rows || rows.length < limit) return paths;
+    }
+  }
+
   /** 파일 삭제. 실패해도 리뷰 처리는 막지 않는다(남은 파일은 나중에 정리) */
   async remove(paths: readonly string[]): Promise<void> {
     if (!paths.length || !this.key) return;

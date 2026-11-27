@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview, pagePlaces, PLACE_PAGE_SIZE } from './map-data.ts';
+import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview, pagePlaces, PLACE_PAGE_SIZE, cardPhotoUrl } from './map-data.ts';
 
 const place = (id, merUrl = `https://web.paybooc.ai/mer/web/profile/${id}`) => ({ id, merUrl });
 
@@ -44,3 +44,13 @@ test('목록은 한 페이지씩 보여주고 남은 개수를 센다', () => {
   assert.deepEqual(pagePlaces(items, 60), { visible: items, remaining: 0 });
   assert.deepEqual(pagePlaces([1, 2], 20), { visible: [1, 2], remaining: 0 });
 });
+
+test('카드 사진: 매장 사진 → 공개 리뷰 대표 사진 → 없음, https만', () => {
+  const summary = (photoUrl) => ({ average: 4, count: 1, featured: null, photoUrl });
+  assert.equal(cardPhotoUrl({ imageUrl: 'https://a/shop.jpg', reviewSummary: summary('https://b/r.jpg') }), 'https://a/shop.jpg');
+  assert.equal(cardPhotoUrl({ reviewSummary: summary('https://b/r.jpg') }), 'https://b/r.jpg');
+  assert.equal(cardPhotoUrl({ reviewSummary: summary(null) }), null);
+  assert.equal(cardPhotoUrl({ reviewSummary: null }), null);
+  assert.equal(cardPhotoUrl({ reviewSummary: summary('javascript:alert(1)') }), null);
+});
+
