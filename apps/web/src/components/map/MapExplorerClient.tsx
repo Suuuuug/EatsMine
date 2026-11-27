@@ -211,7 +211,7 @@ export function MapExplorerClient({
   const [locating, setLocating] = useState(false);
   const geoInitializedRef = useRef(false);
 
-  // 업종 필터 패널 열림 여부 (기본 숨김 — '필터' 버튼 클릭 시 열림)
+  // 업종 선택 패널 열림 여부 (기본 숨김 — '업종' 버튼 클릭 시 열림)
   const [filterOpen, setFilterOpen] = useState(false);
   const [showAllGenres, setShowAllGenres] = useState(false);
 
@@ -925,7 +925,7 @@ export function MapExplorerClient({
               <Icon name="filter" size={14} />
               <span>
                 {selectedGenres.length === 0
-                  ? "필터"
+                  ? "업종"
                   : selectedGenres.length === 1
                     ? selectedGenres[0]
                     : `${selectedGenres[0]} 외 ${selectedGenres.length - 1}`}
@@ -939,7 +939,7 @@ export function MapExplorerClient({
             </p>
           )}
 
-          {/* 숨겨진 업종 필터 패널 ('필터' 버튼 클릭 시에만 표시 · 중복 선택 지원) */}
+          {/* 숨겨진 업종 선택 패널 ('업종' 버튼 클릭 시에만 표시, 여러 개 선택 가능) */}
           {filterOpen && (
             <div
               id="genre-filter-panel"
@@ -964,7 +964,7 @@ export function MapExplorerClient({
                   </button>
                   <button
                     type="button"
-                    aria-label="업종 필터 닫기"
+                    aria-label="업종 선택 닫기"
                     onClick={() => setFilterOpen(false)}
                     className="cursor-pointer text-muted hover:text-foreground focus-ring"
                   >
@@ -974,7 +974,7 @@ export function MapExplorerClient({
               </div>
               <div
                 role="group"
-                aria-label="업종 필터 (중복 선택 가능)"
+                aria-label="업종 (여러 개 선택 가능)"
                 className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto py-0.5"
               >
                 <FilterChip
