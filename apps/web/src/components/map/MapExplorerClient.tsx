@@ -29,6 +29,7 @@ import {
   cardPhotoUrl,
   isPreviewMode,
   pagePlaces,
+  shownCountToInclude,
   toCardReview,
 } from "@/lib/map/map-data";
 import { genreIllustration } from "@/lib/map/genre-illustration";
@@ -133,7 +134,8 @@ function resolveInitialState(
     }
   }
 
-  return { region: DEFAULT_REGION, genres: [], food: null };
+  // 지정한 지역·음식이 없으면 아무 지역도 고르지 않고 '어디로 떠나볼까요?'(시·도 목록)에서 시작한다.
+  return { region: null, genres: [], food: null };
 }
 
 function syncBrowserUrl(nextPath: string, nextTitle?: string) {
@@ -208,9 +210,8 @@ export function MapExplorerClient({
     lng: number;
   } | null>(null);
   const [locating, setLocating] = useState(false);
-  const geoInitializedRef = useRef(false);
 
-  // 업종 필터 패널 열림 여부 (기본 숨김 — '필터' 버튼 클릭 시 열림)
+  // 업종 선택 패널 열림 여부 (기본 숨김 — '업종' 버튼 클릭 시 열림)
   const [filterOpen, setFilterOpen] = useState(false);
   const [showAllGenres, setShowAllGenres] = useState(false);
 
@@ -389,35 +390,8 @@ export function MapExplorerClient({
     [showToast, syncSelectedRegionUrl],
   );
 
-  // URL 쿼리(/?food=, /?region=, /?province=) 및 /regions/[regionCode] 지정 진입이 없을 때만 현재 위치 기준 자동 선택
-  useEffect(() => {
-    if (geoInitializedRef.current) return;
-    if (
-      foodParam ||
-      regionParam ||
-      provinceParam ||
-      initialProvinceCode ||
-      initialRegion
-    ) {
-      geoInitializedRef.current = true;
-      return;
-    }
-    if (allRegions.length <= 1) return;
-
-    geoInitializedRef.current = true;
-    const id = requestAnimationFrame(() => {
-      locateCurrentRegion(allRegions, false);
-    });
-    return () => cancelAnimationFrame(id);
-  }, [
-    allRegions,
-    foodParam,
-    regionParam,
-    provinceParam,
-    initialProvinceCode,
-    initialRegion,
-    locateCurrentRegion,
-  ]);
+  // 처음 들어왔을 때 현재 위치로 지역을 자동으로 고르지 않는다(위치 권한도 묻지 않음).
+  // 사용자가 '어디로 떠나볼까요?'에서 고르거나, 지도 위 '내 위치' 버튼을 눌렀을 때만 위치를 쓴다.
 
   // 검색어 기반 시·군·구 즉시 필터링 (친숙한 여행지명 + 공식 행정명 별칭 모두 지원, 최대 10개)
   const regionSuggestions = useMemo(() => {
@@ -475,8 +449,10 @@ export function MapExplorerClient({
   const searchLoading = !isPreview && apiSearch.loading;
   const searchError = isPreview ? "" : apiSearch.error;
 
-  const allPlaces = result?.items ?? [];
-  // 목록·지도 핀은 한 페이지씩 그린다. 지역·업종·재시도가 바뀌면 첫 페이지부터 다시 보여 준다.
+  // 지도 마커가 이 배열이 바뀔 때마다 다시 그려지므로, 결과가 바뀔 때만 새 배열이 되게 한다.
+  const allPlaces = useMemo(() => result?.items ?? [], [result]);
+  // 목록은 한 페이지(20곳)씩 그리고, 지도 핀은 받아온 가게를 모두 찍는다.
+  // 지역·업종·재시도가 바뀌면 목록은 첫 페이지부터 다시 보여 준다.
   const listKey = `${selectedRegion?.code ?? ""}|${selectedGenres.join(",")}|${searchAttempt}|${isPreview}`;
   const [shownState, setShownState] = useState({
     key: listKey,
@@ -734,13 +710,41 @@ export function MapExplorerClient({
     }
   };
 
-  const handleSelectPlaceFromMap = useCallback((place: EatplPlace) => {
-    setSelectedPlaceId(place.id);
-    requestAnimationFrame(() => {
-      const cardEl = listCardRefs.current.get(place.id);
-      cardEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }, []);
+  // 핀을 누르면 그 가게가 목록에 보이도록 필요한 만큼 펼치고(더 보기를 눌러 둔 것과 같음), 그려진 뒤 그 카드로 스크롤한다.
+  const pendingScrollIdRef = useRef<string | null>(null);
+  const handleSelectPlaceFromMap = useCallback(
+    (place: EatplPlace) => {
+      setSelectedPlaceId(place.id);
+      const index = allPlaces.findIndex((p) => p.id === place.id);
+      const needed = shownCountToInclude(index, shownCount);
+      if (needed !== shownCount) {
+        // 새로 펼치는 중: 카드가 그려진 뒤 아래 효과에서만 스크롤한다.
+        pendingScrollIdRef.current = place.id;
+        setShownState({ key: listKey, count: needed });
+        return;
+      }
+      // 이미 목록에 보이는 카드: 바로 스크롤한다.
+      pendingScrollIdRef.current = null;
+      requestAnimationFrame(() => {
+        listCardRefs.current
+          .get(place.id)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    },
+    [allPlaces, shownCount, listKey],
+  );
+  // 지역·업종이 바뀌면 이전에 기다리던 스크롤은 버린다.
+  useEffect(() => {
+    pendingScrollIdRef.current = null;
+  }, [listKey]);
+  useEffect(() => {
+    const id = pendingScrollIdRef.current;
+    if (!id) return;
+    const cardEl = listCardRefs.current.get(id);
+    if (!cardEl) return;
+    pendingScrollIdRef.current = null;
+    cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [places.length]);
 
   const openReviewSheet = (place: EatplPlace) => {
     setSelectedPlaceId(place.id);
@@ -903,7 +907,7 @@ export function MapExplorerClient({
               <Icon name="filter" size={14} />
               <span>
                 {selectedGenres.length === 0
-                  ? "필터"
+                  ? "업종"
                   : selectedGenres.length === 1
                     ? selectedGenres[0]
                     : `${selectedGenres[0]} 외 ${selectedGenres.length - 1}`}
@@ -917,7 +921,7 @@ export function MapExplorerClient({
             </p>
           )}
 
-          {/* 숨겨진 업종 필터 패널 ('필터' 버튼 클릭 시에만 표시 · 중복 선택 지원) */}
+          {/* 숨겨진 업종 선택 패널 ('업종' 버튼 클릭 시에만 표시, 여러 개 선택 가능) */}
           {filterOpen && (
             <div
               id="genre-filter-panel"
@@ -942,7 +946,7 @@ export function MapExplorerClient({
                   </button>
                   <button
                     type="button"
-                    aria-label="업종 필터 닫기"
+                    aria-label="업종 선택 닫기"
                     onClick={() => setFilterOpen(false)}
                     className="cursor-pointer text-muted hover:text-foreground focus-ring"
                   >
@@ -952,7 +956,7 @@ export function MapExplorerClient({
               </div>
               <div
                 role="group"
-                aria-label="업종 필터 (중복 선택 가능)"
+                aria-label="업종 (여러 개 선택 가능)"
                 className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto py-0.5"
               >
                 <FilterChip
@@ -1397,7 +1401,7 @@ export function MapExplorerClient({
         {/* 통합 지도 */}
         <InteractiveTileMap
           mode={mapMode}
-          places={places}
+          places={allPlaces}
           selectedPlaceId={selectedPlaceId}
           onSelectPlace={handleSelectPlaceFromMap}
           regionCenter={regionCenter}

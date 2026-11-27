@@ -39,13 +39,20 @@ export function toCardReview(summary: PlaceReviewSummaryDto | null | undefined):
   return { average: summary.average, count: summary.count, excerpt: summary.featured?.content?.trim() || null };
 }
 
-/** 식당 목록·지도 핀을 한 번에 그리는 개수. '더 보기'를 누를 때마다 이만큼 늘린다. */
+/** 식당 목록을 한 번에 그리는 개수. '더 보기'를 누를 때마다 이만큼 늘린다. 지도 핀은 이 개수와 상관없이 모두 찍는다. */
 export const PLACE_PAGE_SIZE = 20;
 
 /** 지금 보여줄 개수(최소 한 페이지, 전체를 넘지 않음)와 남은 개수 */
 export function pagePlaces<T>(items: readonly T[], shown: number): { visible: T[]; remaining: number } {
   const count = Math.min(items.length, Math.max(PLACE_PAGE_SIZE, shown));
   return { visible: items.slice(0, count), remaining: items.length - count };
+}
+
+/** index번째(0부터) 가게가 목록에 보이도록 펼칠 개수. 이미 보이면 그대로, 아니면 그 가게가 든 페이지 끝까지 */
+export function shownCountToInclude(index: number, shown: number): number {
+  if (index < 0) return shown;
+  const needed = Math.ceil((index + 1) / PLACE_PAGE_SIZE) * PLACE_PAGE_SIZE;
+  return Math.max(shown, PLACE_PAGE_SIZE, needed);
 }
 
 /** 카드 사진: 매장 사진(있으면) → 공개 리뷰 대표 사진 → 없으면 null(업종 그림을 쓴다). https 주소만 */
