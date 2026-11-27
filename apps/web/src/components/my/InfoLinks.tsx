@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WithdrawRow } from "@/components/my/WithdrawRow";
 import { MySection } from "@/components/my/MySection";
 import { GlassCard } from "@/components/ui";
 
@@ -9,7 +10,7 @@ const LINKS = [
 ] as const;
 
 /** 리뷰 아래 안내 묶음. 모두 다른 화면으로 이동하는 줄이다. */
-export function InfoLinks({ className }: { className?: string }) {
+export function InfoLinks({ className, token }: { className?: string; token?: string | null }) {
   return (
     <MySection id="my-info" title="안내" className={className}>
       <GlassCard className="overflow-hidden">
@@ -27,6 +28,11 @@ export function InfoLinks({ className }: { className?: string }) {
               </Link>
             </li>
           ))}
+          {token && (
+            <li>
+              <WithdrawRow token={token} />
+            </li>
+          )}
         </ul>
       </GlassCard>
     </MySection>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionButton, BottomSheet, TextField } from "@/components/em";
+import { PhotoField } from "@/components/review/PhotoField";
 import { ReviewFormFields } from "@/components/review/ReviewFormFields";
 import {
   ApiError,
@@ -9,6 +10,7 @@ import {
   toMyReview,
   updateReview,
 } from "@/lib/my-page/api";
+import { MAX_PHOTOS, PhotoUploadError, finalPhotoPaths, photoProblem, photosChanged, uploadPhotos } from "@/lib/my-page/photos";
 import type { MyReview } from "@/types/my-page";
 
 type ReviewEditSheetProps = {
@@ -52,9 +54,51 @@ export function ReviewEditSheet({
   const [content, setContent] = useState(review?.content ?? "");
   const [isPublic, setIsPublic] = useState(review?.visibility === "public");
   const [visitedAt, setVisitedAt] = useState(review?.visited_at ?? "");
+  // 사진: 원래 붙어 있던 것(kept, 지울 수 있음)과 이번에 새로 고른 것(added, 저장할 때 올림)
+  const [kept, setKept] = useState(review?.photos ?? []);
+  const [added, setAdded] = useState<{ id: string; file: File; url: string }[]>([]);
+  const [photoError, setPhotoError] = useState("");
+  const [photoNotice, setPhotoNotice] = useState("");
+  const previews = useRef<string[]>([]);
+  const uploadedRef = useRef(new Map<File, string>());
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+
+  // 고른 사진의 미리보기 주소는 시트가 사라질 때 한꺼번에 풀어 준다
+  useEffect(() => () => previews.current.forEach((url) => URL.revokeObjectURL(url)), []);
+
+  function addPhotos(files: File[]) {
+    let room = MAX_PHOTOS - kept.length - added.length;
+    const next: typeof added = [];
+    let problem = "";
+    let full = false; // 4장이 이미 찬 경우는 잘못이 아니라 안내라서 오류색을 쓰지 않는다
+    for (const file of files) {
+      const issue = photoProblem(file);
+      if (issue) { problem ||= issue; continue; }
+      if (room <= 0) { full = true; continue; }
+      const url = URL.createObjectURL(file);
+      previews.current.push(url);
+      next.push({ id: `n:${crypto.randomUUID()}`, file, url });
+      room -= 1;
+    }
+    setPhotoError(problem);
+    setPhotoNotice(!problem && full ? "사진은 4장까지 올릴 수 있어요" : "");
+    if (next.length > 0) setAdded((current) => [...current, ...next]);
+  }
+
+  function removePhoto(id: string) {
+    setPhotoError("");
+    setPhotoNotice("");
+    if (id.startsWith("k:")) setKept((current) => current.filter((photo) => `k:${photo.path}` !== id));
+    else setAdded((current) => current.filter((photo) => photo.id !== id));
+  }
+
+  const photoItems = [
+    ...kept.map((photo) => ({ id: `k:${photo.path}`, url: photo.url })),
+    ...added.map((photo) => ({ id: photo.id, url: photo.url })),
+  ];
+  const photosDirty = review != null && photosChanged((review.photos ?? []).map((p) => p.path), kept.map((p) => p.path), added.length);
 
   const today = todayKst();
   // 날짜 칸에 직접 쓰면 max를 넘길 수 있다. 서버도 거절하므로 여기서 이유를 먼저 보여 준다.
@@ -64,7 +108,8 @@ export function ReviewEditSheet({
     (rating !== review.rating ||
       content.trim() !== review.content ||
       (visitedAt !== "" && visitedAt !== review.visited_at) ||
-      isPublic !== (review.visibility === "public"));
+      isPublic !== (review.visibility === "public") ||
+      photosDirty);
 
   async function save() {
     if (!review || busy) return;
@@ -80,15 +125,34 @@ export function ReviewEditSheet({
     setBusy(true);
     setError("");
     onBusy(review.id, true);
+    let uploading = false;
     try {
+      // 새 사진은 저장할 때 올리고, 서버에는 남길 사진과 새 사진의 최종 목록을 보낸다
+      let photoPaths: string[] | undefined;
+      if (photosDirty) {
+        uploading = true;
+        const uploaded = await uploadPhotos(token, added.map((photo) => photo.file), { uploaded: uploadedRef.current });
+        uploading = false;
+        photoPaths = finalPhotoPaths(kept.map((photo) => photo.path), uploaded);
+      }
       const updated = await updateReview(token, review.id, {
         rating,
         content: content.trim(),
         ...(visitedAt && visitedAt !== review.visited_at ? { visitedAt } : {}),
         visibility: isPublic ? "public" : "private",
+        ...(photoPaths ? { photoPaths } : {}),
       });
       onSaved(toMyReview(updated));
     } catch (e) {
+      if (uploading) {
+        setError(
+          e instanceof PhotoUploadError && e.status === 401
+            ? "로그인이 만료됐어요. 다시 로그인해 주세요."
+            : "사진을 올리지 못했어요. 다시 눌러 주세요.",
+        );
+        setBusy(false);
+        return;
+      }
       setError(errorText(e));
       setBusy(false);
     } finally {
@@ -196,7 +260,8 @@ export function ReviewEditSheet({
             placeholder="리뷰를 남겨 주세요."
             contentLabel="리뷰 내용"
           >
-            {/* 내용 입력(별점·글·방문일)을 먼저, 공개 설정을 마지막에 */}
+            {/* 내용 입력(별점·글·사진·방문일)을 먼저, 공개 설정을 마지막에 */}
+            <PhotoField items={photoItems} onAdd={addPhotos} onRemove={removePhoto} error={photoError} notice={photoNotice} disabled={busy} />
             <TextField
               id="review-visited-at"
               label="방문일"

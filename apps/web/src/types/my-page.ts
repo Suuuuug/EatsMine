@@ -46,6 +46,8 @@ export type MyReview = {
   region_code?: string | null;
   /** 후기에 고른 제철음식 이름 */
   food_name?: string | null;
+  /** 리뷰에 붙인 사진. url은 잠깐 유효한 서명 주소라 저장하지 않고 보여 주는 데만 쓴다. */
+  photos?: { path: string; url: string }[];
 };
 
 export type MyPageData = {
