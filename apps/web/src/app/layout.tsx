@@ -17,10 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// 구글 Search Console 소유 확인(URL 접두어 속성, 공개되는 메타 태그 값). 환경변수가 있으면 그 값을 쓴다.
 const googleVerification =
-  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() ||
+  "wCNsBGLft7rs7b-wLHvpDCjUwgJ_N1O0WFuc1abWrAU";
+// 네이버 서치어드바이저 소유 확인(공개되는 메타 태그 값). 환경변수가 있으면 그 값을 쓴다.
 const naverVerification =
-  process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION?.trim();
+  process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION?.trim() ||
+  "1a882006ae27e0d8eed567b10d914c78b2f7026b";
 
 export const viewport: Viewport = {
   themeColor: "#287c42",
