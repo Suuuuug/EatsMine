@@ -10,7 +10,7 @@ import {
   toMyReview,
   updateReview,
 } from "@/lib/my-page/api";
-import { MAX_PHOTOS, finalPhotoPaths, photoProblem, photosChanged, uploadPhotos } from "@/lib/my-page/photos";
+import { MAX_PHOTOS, PhotoUploadError, finalPhotoPaths, photoProblem, photosChanged, uploadPhotos } from "@/lib/my-page/photos";
 import type { MyReview } from "@/types/my-page";
 
 type ReviewEditSheetProps = {
@@ -60,6 +60,7 @@ export function ReviewEditSheet({
   const [photoError, setPhotoError] = useState("");
   const [photoNotice, setPhotoNotice] = useState("");
   const previews = useRef<string[]>([]);
+  const uploadedRef = useRef(new Map<File, string>());
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -130,7 +131,7 @@ export function ReviewEditSheet({
       let photoPaths: string[] | undefined;
       if (photosDirty) {
         uploading = true;
-        const uploaded = await uploadPhotos(token, added.map((photo) => photo.file));
+        const uploaded = await uploadPhotos(token, added.map((photo) => photo.file), { uploaded: uploadedRef.current });
         uploading = false;
         photoPaths = finalPhotoPaths(kept.map((photo) => photo.path), uploaded);
       }
@@ -144,7 +145,11 @@ export function ReviewEditSheet({
       onSaved(toMyReview(updated));
     } catch (e) {
       if (uploading) {
-        setError("사진을 올리지 못했어요. 다시 눌러 주세요.");
+        setError(
+          e instanceof PhotoUploadError && e.status === 401
+            ? "로그인이 만료됐어요. 다시 로그인해 주세요."
+            : "사진을 올리지 못했어요. 다시 눌러 주세요.",
+        );
         setBusy(false);
         return;
       }

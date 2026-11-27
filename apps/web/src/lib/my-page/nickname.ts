@@ -13,9 +13,11 @@ export function normalizeNickname(value: string): string {
  * 입력하는 동안 쓸 수 없는 글자는 걸러 내고 12자를 넘으면 더 쓰이지 않게 한다.
  * 쓰고 나서 오류로 알리지 않고 처음부터 못 쓰게 하면, 남는 오류는 "너무 짧음"뿐이다.
  * 붙여 넣은 글도 같은 규칙으로 정리한다.
+ * 한글 키보드는 글자를 완성하기 전에 자음·모음(ㄱ, ㅏ)이 먼저 들어오므로 입력 중에는 허용하고,
+ * 완성형만 쓸 수 있다는 검사는 저장할 때(nicknameProblem) 한다.
  */
 export function sanitizeNicknameInput(value: string): string {
-  return value.replace(/[^가-힣a-zA-Z0-9 ]/g, "").replace(/\s{2,}/g, " ").slice(0, NICKNAME_MAX);
+  return value.replace(/[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9 ]/g, "").replace(/\s{2,}/g, " ").slice(0, NICKNAME_MAX);
 }
 
 /** 쓸 수 없는 닉네임이면 무엇을 고칠지 한 문장, 괜찮으면 null. */

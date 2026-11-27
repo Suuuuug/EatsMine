@@ -46,4 +46,8 @@ test("입력 중에는 쓸 수 없는 글자를 걸러 내고 12자에서 멈춘
   assert.equal(sanitizeNicknameInput("가나다라마바사아자차카타파하"), "가나다라마바사아자차카타");
   assert.equal(sanitizeNicknameInput("먹  깨비 🍜"), "먹 깨비 ");
   assert.equal(sanitizeNicknameInput("abc 12"), "abc 12");
+  // 한글 키보드는 완성 전에 자음·모음이 먼저 들어온다
+  assert.equal(sanitizeNicknameInput("ㄱ"), "ㄱ");
+  assert.equal(sanitizeNicknameInput("먹ㄱ"), "먹ㄱ");
+  assert.notEqual(nicknameProblem("먹ㄱ"), null);
 });

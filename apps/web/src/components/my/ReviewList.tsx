@@ -23,6 +23,22 @@ type ReviewListProps = {
   className?: string;
 };
 
+/** 서명 주소가 만료돼 사진이 깨지면 빈 칸(회색 상자)으로 보여 준다. */
+function ReviewThumb({ url, alt }: { url: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <li className="size-14 shrink-0">
+      {failed ? (
+        <div role="img" aria-label={`${alt}을 불러오지 못했어요`} className="size-full rounded-input bg-foreground/5 shadow-[inset_0_0_0_1px_var(--color-line)]" />
+      ) : (
+        // 잠깐 유효한 서명 주소라 next/image 최적화를 쓰지 않는다
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} className="size-full rounded-input object-cover shadow-[inset_0_0_0_1px_var(--color-line)]" />
+      )}
+    </li>
+  );
+}
+
 export function ReviewList({
   reviews: initial,
   token = null,
@@ -106,11 +122,7 @@ export function ReviewList({
                   {review.photos && review.photos.length > 0 && (
                     <ul aria-label={`${review.restaurant_name} 리뷰 사진`} className="mt-1 flex gap-2">
                       {review.photos.map((photo, index) => (
-                        <li key={photo.path} className="size-14 shrink-0">
-                          {/* 잠깐 유효한 서명 주소라 next/image 최적화를 쓰지 않는다 */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photo.url} alt={`리뷰 사진 ${index + 1}`} loading="lazy" className="size-full rounded-input object-cover shadow-[inset_0_0_0_1px_var(--color-line)]" />
-                        </li>
+                        <ReviewThumb key={photo.path} url={photo.url} alt={`리뷰 사진 ${index + 1}`} />
                       ))}
                     </ul>
                   )}

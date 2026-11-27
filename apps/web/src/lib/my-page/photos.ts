@@ -26,24 +26,59 @@ export function photosChanged(original: readonly string[], kept: readonly string
   return addedCount > 0 || original.length !== kept.length || original.some((path, i) => path !== kept[i]);
 }
 
-type UploadOptions = { apiBase?: string; fetcher?: typeof fetch };
+export class PhotoUploadError extends Error {
+  status: number;
+  constructor(message: string, status = 0) {
+    super(message);
+    this.status = status;
+  }
+}
+
+type PhotoFile = File | (FileLike & { name?: string });
+type UploadOptions = {
+  apiBase?: string;
+  fetcher?: typeof fetch;
+  /** 올리기 전에 파일을 고친다. 기본은 위치(GPS) 같은 메타데이터를 없애는 다시 그리기. 실패하면 원본을 올리지 않는다. */
+  prepare?: (file: PhotoFile) => Promise<PhotoFile>;
+  /** 이미 올린 파일의 경로. 저장이 실패해 다시 누를 때 같은 사진을 또 올리지 않는다. */
+  uploaded?: Map<PhotoFile, string>;
+};
+
+async function defaultPrepare(file: PhotoFile): Promise<PhotoFile> {
+  if (typeof File === "undefined" || !(file instanceof File)) return file;
+  const { stripPhotoMetadata } = await import("./review-photo-process");
+  return stripPhotoMetadata(file);
+}
 
 /** 새 사진을 순서대로 올리고 경로를 돌려준다. 하나라도 실패하면 거기서 멈추고 오류를 던진다. */
-export async function uploadPhotos(token: string, files: readonly (File | (FileLike & { name?: string }))[], options: UploadOptions = {}): Promise<string[]> {
+export async function uploadPhotos(token: string, files: readonly PhotoFile[], options: UploadOptions = {}): Promise<string[]> {
   const apiBase = options.apiBase ?? process.env.NEXT_PUBLIC_API_URL ?? "";
   const fetcher = options.fetcher ?? fetch;
+  const prepare = options.prepare ?? defaultPrepare;
   const paths: string[] = [];
-  for (const file of files) {
+  for (const original of files) {
+    const done = options.uploaded?.get(original);
+    if (done) {
+      paths.push(done);
+      continue;
+    }
+    let file: PhotoFile;
+    try {
+      file = await prepare(original);
+    } catch {
+      throw new PhotoUploadError("photo prepare failed");
+    }
     const issued = await fetcher(`${apiBase}/reviews/photos/uploads`, {
       method: "POST",
       cache: "no-store",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ contentType: file.type, size: file.size }),
     });
-    if (!issued.ok) throw new Error(`photo upload url ${issued.status}`);
+    if (!issued.ok) throw new PhotoUploadError(`photo upload url ${issued.status}`, issued.status);
     const { path, uploadUrl } = (await issued.json()) as { path: string; uploadUrl: string };
     const put = await fetcher(uploadUrl, { method: "PUT", headers: { "content-type": file.type }, body: file as Blob });
-    if (!put.ok) throw new Error(`photo put ${put.status}`);
+    if (!put.ok) throw new PhotoUploadError(`photo put ${put.status}`, put.status);
+    options.uploaded?.set(original, path);
     paths.push(path);
   }
   return paths;

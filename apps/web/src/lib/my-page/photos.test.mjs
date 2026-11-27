@@ -61,3 +61,39 @@ test("하나라도 실패하면 거기서 멈추고 오류를 던진다", async 
   await assert.rejects(uploadPhotos("tkn", [file("image/png", 5), file("image/png", 5)], { apiBase: "http://api.test", fetcher }));
   assert.equal(n, 1);
 });
+
+test("올리기 전에 사진을 다시 그려 메타데이터를 없앤 파일을 올린다(원본은 보내지 않는다)", async () => {
+  const bodies = [];
+  const fetcher = async (url, init) => {
+    if (url.endsWith("/uploads")) return new Response(JSON.stringify({ path: "u/p.jpg", uploadUrl: "https://store.test/x" }), { status: 201 });
+    bodies.push(init.body);
+    return new Response("", { status: 200 });
+  };
+  const cleaned = file("image/jpeg", 3, "clean");
+  await uploadPhotos("tkn", [file("image/png", 9, "gps")], { apiBase: "http://api.test", fetcher, prepare: async () => cleaned });
+  assert.deepEqual(bodies, [cleaned]);
+});
+
+test("다시 그리지 못하면 원본을 올리지 않고 실패한다", async () => {
+  let n = 0;
+  const fetcher = async () => { n += 1; return new Response("{}", { status: 200 }); };
+  await assert.rejects(uploadPhotos("tkn", [file("image/png", 5)], { fetcher, prepare: async () => { throw new Error("x"); } }), (e) => e.status === 0);
+  assert.equal(n, 0);
+});
+
+test("이미 올린 사진은 다시 올리지 않고, 로그인 만료(401)는 상태로 구분된다", async () => {
+  const uploaded = new Map();
+  const a = file("image/png", 5, "a");
+  const b = file("image/png", 5, "b");
+  let n = 0;
+  const ok = async (url) => {
+    n += 1;
+    return url.endsWith("/uploads") ? new Response(JSON.stringify({ path: `u/${n}.png`, uploadUrl: "https://store.test/x" }), { status: 201 }) : new Response("", { status: 200 });
+  };
+  const first = await uploadPhotos("t", [a], { fetcher: ok, prepare: async (f) => f, uploaded });
+  const calls = n;
+  const again = await uploadPhotos("t", [a], { fetcher: ok, prepare: async (f) => f, uploaded });
+  assert.deepEqual(again, first);
+  assert.equal(n, calls);
+  await assert.rejects(uploadPhotos("t", [b], { fetcher: async () => new Response("{}", { status: 401 }), prepare: async (f) => f, uploaded }), (e) => e.status === 401);
+});

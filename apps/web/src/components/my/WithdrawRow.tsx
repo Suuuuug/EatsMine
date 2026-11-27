@@ -25,7 +25,10 @@ export function WithdrawRow({ token }: { token: string }) {
     setError("");
     try {
       await withdrawAccount(token);
-      await signOut();
+      // 계정은 이미 지워졌다. 로그아웃이 실패해도 탈퇴 실패로 보이지 않게 홈으로 보낸다.
+      try {
+        await signOut();
+      } catch {}
       router.replace("/");
     } catch (e) {
       setError(withdrawErrorText(e));
