@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview, pagePlaces, PLACE_PAGE_SIZE, cardPhotoUrl } from './map-data.ts';
+import { buildRegionSearchUrl, isPreviewMode, keepValidPlaces, MAX_GENRES, territoriesUrl, toCardReview, pagePlaces, PLACE_PAGE_SIZE, cardPhotoUrl, shownCountToInclude } from './map-data.ts';
 
 const place = (id, merUrl = `https://web.paybooc.ai/mer/web/profile/${id}`) => ({ id, merUrl });
 
@@ -36,13 +36,24 @@ test('카드 리뷰 요약: 공개 리뷰가 없으면 null, 대표 리뷰가 �
   assert.deepEqual(toCardReview({ average: 3, count: 1, featured: null }), { average: 3, count: 1, excerpt: null });
 });
 
-test('목록은 한 페이지씩 보여주고 남은 개수를 센다', () => {
-  const items = Array.from({ length: 45 }, (_, i) => i);
-  assert.deepEqual(pagePlaces(items, 0).visible.length, PLACE_PAGE_SIZE);
-  assert.equal(pagePlaces(items, 0).remaining, 45 - PLACE_PAGE_SIZE);
-  assert.equal(pagePlaces(items, 40).visible.length, 40);
-  assert.deepEqual(pagePlaces(items, 60), { visible: items, remaining: 0 });
-  assert.deepEqual(pagePlaces([1, 2], 20), { visible: [1, 2], remaining: 0 });
+test('목록은 한 페이지(20곳)씩 보여주고 남은 개수를 센다', () => {
+  const P = PLACE_PAGE_SIZE;
+  assert.equal(P, 20);
+  const items = Array.from({ length: P * 2 + 50 }, (_, i) => i);
+  assert.equal(pagePlaces(items, 0).visible.length, P);
+  assert.equal(pagePlaces(items, 0).remaining, P + 50);
+  assert.equal(pagePlaces(items, P * 2).visible.length, P * 2);
+  assert.deepEqual(pagePlaces(items, P * 5), { visible: items, remaining: 0 });
+  assert.deepEqual(pagePlaces([1, 2], 0), { visible: [1, 2], remaining: 0 });
+});
+
+test('핀으로 고른 가게가 목록에 보이도록 펼칠 개수', () => {
+  const P = PLACE_PAGE_SIZE;
+  assert.equal(shownCountToInclude(5, P), P); // 이미 보임
+  assert.equal(shownCountToInclude(P, P), P * 2); // 다음 페이지 첫 가게
+  assert.equal(shownCountToInclude(P * 2 + 10, P), P * 3);
+  assert.equal(shownCountToInclude(3, P * 3), P * 3); // 더 펼쳐 둔 상태는 줄이지 않음
+  assert.equal(shownCountToInclude(-1, P), P); // 목록에 없는 가게
 });
 
 test('카드 사진: 매장 사진 → 공개 리뷰 대표 사진 → 없음, https만', () => {

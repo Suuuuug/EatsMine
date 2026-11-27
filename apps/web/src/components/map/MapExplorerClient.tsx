@@ -29,6 +29,7 @@ import {
   cardPhotoUrl,
   isPreviewMode,
   pagePlaces,
+  shownCountToInclude,
   toCardReview,
 } from "@/lib/map/map-data";
 import { genreIllustration } from "@/lib/map/genre-illustration";
@@ -475,8 +476,10 @@ export function MapExplorerClient({
   const searchLoading = !isPreview && apiSearch.loading;
   const searchError = isPreview ? "" : apiSearch.error;
 
-  const allPlaces = result?.items ?? [];
-  // 목록·지도 핀은 한 페이지씩 그린다. 지역·업종·재시도가 바뀌면 첫 페이지부터 다시 보여 준다.
+  // 지도 마커가 이 배열이 바뀔 때마다 다시 그려지므로, 결과가 바뀔 때만 새 배열이 되게 한다.
+  const allPlaces = useMemo(() => result?.items ?? [], [result]);
+  // 목록은 한 페이지(20곳)씩 그리고, 지도 핀은 받아온 가게를 모두 찍는다.
+  // 지역·업종·재시도가 바뀌면 목록은 첫 페이지부터 다시 보여 준다.
   const listKey = `${selectedRegion?.code ?? ""}|${selectedGenres.join(",")}|${searchAttempt}|${isPreview}`;
   const [shownState, setShownState] = useState({
     key: listKey,
@@ -734,13 +737,32 @@ export function MapExplorerClient({
     }
   };
 
-  const handleSelectPlaceFromMap = useCallback((place: EatplPlace) => {
-    setSelectedPlaceId(place.id);
-    requestAnimationFrame(() => {
-      const cardEl = listCardRefs.current.get(place.id);
-      cardEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }, []);
+  // 핀을 누르면 그 가게가 목록에 보이도록 필요한 만큼 펼치고(더 보기를 눌러 둔 것과 같음), 그려진 뒤 그 카드로 스크롤한다.
+  const pendingScrollIdRef = useRef<string | null>(null);
+  const handleSelectPlaceFromMap = useCallback(
+    (place: EatplPlace) => {
+      setSelectedPlaceId(place.id);
+      const index = allPlaces.findIndex((p) => p.id === place.id);
+      const needed = shownCountToInclude(index, shownCount);
+      if (needed !== shownCount) setShownState({ key: listKey, count: needed });
+      pendingScrollIdRef.current = place.id;
+      requestAnimationFrame(() => {
+        const cardEl = listCardRefs.current.get(place.id);
+        if (!cardEl) return; // 아직 안 그려졌으면 아래 효과가 펼친 뒤에 스크롤한다
+        pendingScrollIdRef.current = null;
+        cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    },
+    [allPlaces, shownCount, listKey],
+  );
+  useEffect(() => {
+    const id = pendingScrollIdRef.current;
+    if (!id) return;
+    const cardEl = listCardRefs.current.get(id);
+    if (!cardEl) return;
+    pendingScrollIdRef.current = null;
+    cardEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [places.length]);
 
   const openReviewSheet = (place: EatplPlace) => {
     setSelectedPlaceId(place.id);
@@ -1397,7 +1419,7 @@ export function MapExplorerClient({
         {/* 통합 지도 */}
         <InteractiveTileMap
           mode={mapMode}
-          places={places}
+          places={allPlaces}
           selectedPlaceId={selectedPlaceId}
           onSelectPlace={handleSelectPlaceFromMap}
           regionCenter={regionCenter}
