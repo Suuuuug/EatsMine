@@ -134,7 +134,8 @@ function resolveInitialState(
     }
   }
 
-  return { region: DEFAULT_REGION, genres: [], food: null };
+  // 지정한 지역·음식이 없으면 아무 지역도 고르지 않고 '어디로 떠나볼까요?'(시·도 목록)에서 시작한다.
+  return { region: null, genres: [], food: null };
 }
 
 function syncBrowserUrl(nextPath: string, nextTitle?: string) {
@@ -209,7 +210,6 @@ export function MapExplorerClient({
     lng: number;
   } | null>(null);
   const [locating, setLocating] = useState(false);
-  const geoInitializedRef = useRef(false);
 
   // 업종 선택 패널 열림 여부 (기본 숨김 — '업종' 버튼 클릭 시 열림)
   const [filterOpen, setFilterOpen] = useState(false);
@@ -390,35 +390,8 @@ export function MapExplorerClient({
     [showToast, syncSelectedRegionUrl],
   );
 
-  // URL 쿼리(/?food=, /?region=, /?province=) 및 /regions/[regionCode] 지정 진입이 없을 때만 현재 위치 기준 자동 선택
-  useEffect(() => {
-    if (geoInitializedRef.current) return;
-    if (
-      foodParam ||
-      regionParam ||
-      provinceParam ||
-      initialProvinceCode ||
-      initialRegion
-    ) {
-      geoInitializedRef.current = true;
-      return;
-    }
-    if (allRegions.length <= 1) return;
-
-    geoInitializedRef.current = true;
-    const id = requestAnimationFrame(() => {
-      locateCurrentRegion(allRegions, false);
-    });
-    return () => cancelAnimationFrame(id);
-  }, [
-    allRegions,
-    foodParam,
-    regionParam,
-    provinceParam,
-    initialProvinceCode,
-    initialRegion,
-    locateCurrentRegion,
-  ]);
+  // 처음 들어왔을 때 현재 위치로 지역을 자동으로 고르지 않는다(위치 권한도 묻지 않음).
+  // 사용자가 '어디로 떠나볼까요?'에서 고르거나, 지도 위 '내 위치' 버튼을 눌렀을 때만 위치를 쓴다.
 
   // 검색어 기반 시·군·구 즉시 필터링 (친숙한 여행지명 + 공식 행정명 별칭 모두 지원, 최대 10개)
   const regionSuggestions = useMemo(() => {
