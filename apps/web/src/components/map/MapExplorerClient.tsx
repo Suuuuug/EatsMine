@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   useCallback,
@@ -43,6 +44,7 @@ import {
   getTravelProvinceName,
   sortProvincesByTravelName,
 } from "@/lib/seo/site";
+import { regionHref } from "@/lib/seo/regions";
 import {
   DEFAULT_REGION,
   FOOD_SLUG_PRESETS,
@@ -146,9 +148,9 @@ function syncBrowserUrl(nextPath: string, nextTitle?: string) {
 }
 
 type MapExplorerClientProps = {
-  /** /travel/[provinceSlug] 진입 시 처음 열어 둘 시·도 코드 (예: "51" 강원도) */
+  /** 시·도 진입 시 처음 열어 둘 시·도 코드 (예: "51" 강원도) */
   initialProvinceCode?: string | null;
-  /** /travel/[destinationSlug] 진입 시 처음 선택해 둘 여행지 정보 */
+  /** /regions/[regionCode] 진입 시 처음 선택해 둘 여행지 정보 */
   initialRegion?: RegionItem | null;
 };
 
@@ -158,6 +160,7 @@ export function MapExplorerClient({
 }: MapExplorerClientProps = {}) {
   const searchParams = useSearchParams();
   const { show: showToast, toast } = useToast();
+  const preservePreviewQuery = searchParams.get("preview") === "1";
 
   // 예시 모드(API 주소 미설정 또는 /?preview=1). 지역 선택 시 URL에서 preview가 빠져도 유지되도록 진입 시 한 번만 정한다.
   const [isPreview] = useState(() =>
@@ -189,13 +192,14 @@ export function MapExplorerClient({
   const [mapMode, setMapMode] = useState<MapMode>("restaurants");
   const foodParam = searchParams.get("food")?.trim() || null;
   const regionParam = searchParams.get("region")?.trim() || null;
+  const provinceParam = searchParams.get("province")?.trim() || null;
 
   /** 지역 미선택 상태에서 왼쪽 목록으로 둘러보고 있는 시·도 코드 (null이면 전국 16개 시·도 목록) */
   const [browsingProvinceCode, setBrowsingProvinceCode] = useState<
     string | null
   >(() =>
     !foodParam && !regionParam && !initialRegion
-      ? (initialProvinceCode ?? null)
+      ? (provinceParam ?? initialProvinceCode ?? null)
       : null,
   );
   const [focusProvinceTrigger, setFocusProvinceTrigger] = useState(0);
@@ -219,7 +223,7 @@ export function MapExplorerClient({
   const [selectedRegion, setSelectedRegion] = useState<RegionItem | null>(() => {
     if (!foodParam && !regionParam) {
       if (initialRegion) return initialRegion;
-      if (initialProvinceCode) return null;
+      if (provinceParam || initialProvinceCode) return null;
     }
     return resolveInitialState(foodParam, regionParam, new Map()).region;
   });
@@ -282,20 +286,33 @@ export function MapExplorerClient({
     return map;
   }, [allRegions]);
 
-  // URL 쿼리(/?food=... 또는 /?region=...) 외부 진입 동기화
+  // URL 쿼리(/?food=..., /?region=..., /?province=...) 외부 진입 동기화
   // 쿼리가 비어 있는('/') 상태로 돌아갈 때는 이전 버튼 탐색을 방해하지 않도록 서울로 리셋하지 않는다.
   const lastSyncedSignatureRef = useRef(
-    `${foodParam ?? ""}|${regionParam ?? ""}`,
+    `${foodParam ?? ""}|${regionParam ?? ""}|${provinceParam ?? ""}`,
   );
   useEffect(() => {
-    if (!foodParam && !regionParam) {
-      lastSyncedSignatureRef.current = "|";
+    if (!foodParam && !regionParam && !provinceParam) {
+      lastSyncedSignatureRef.current = "||";
       return;
     }
 
-    const signature = `${foodParam ?? ""}|${regionParam ?? ""}`;
+    const signature = `${foodParam ?? ""}|${regionParam ?? ""}|${provinceParam ?? ""}`;
     if (lastSyncedSignatureRef.current === signature) {
       return;
+    }
+    if (!foodParam && !regionParam && provinceParam) {
+      lastSyncedSignatureRef.current = signature;
+      const id = requestAnimationFrame(() => {
+        setSelectedRegion(null);
+        setSelectedGenres([]);
+        setActiveFood(null);
+        setFilterOpen(false);
+        setSelectedPlaceId(null);
+        setBrowsingProvinceCode(provinceParam);
+        setFocusProvinceTrigger((n) => n + 1);
+      });
+      return () => cancelAnimationFrame(id);
     }
     if (regionParam && !regionByCode.has(regionParam)) {
       return;
@@ -313,7 +330,21 @@ export function MapExplorerClient({
       setFitTrigger((n) => n + 1);
     });
     return () => cancelAnimationFrame(id);
-  }, [foodParam, regionParam, regionByCode]);
+  }, [foodParam, regionParam, provinceParam, regionByCode]);
+
+  const syncSelectedRegionUrl = useCallback(
+    (region: RegionItem) => {
+      const params = new URLSearchParams();
+      params.set("region", region.code);
+      if (preservePreviewQuery) params.set("preview", "1");
+      lastSyncedSignatureRef.current = `|${region.code}|`;
+      syncBrowserUrl(
+        `/?${params.toString()}`,
+        `${region.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
+      );
+    },
+    [preservePreviewQuery],
+  );
 
   // 현재 위치 기준 시·군·구 선택 (초기 진입 자동 실행 + 지도 상단 '내 위치' 버튼 공용)
   const locateCurrentRegion = useCallback(
@@ -340,11 +371,7 @@ export function MapExplorerClient({
             if (byUserClick) setMapMode("restaurants");
             setFitTrigger((n) => n + 1);
             if (byUserClick) {
-              lastSyncedSignatureRef.current = `|${nearest.code}`;
-              syncBrowserUrl(
-                `/?region=${nearest.code}`,
-                `${nearest.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
-              );
+              syncSelectedRegionUrl(nearest);
             }
           } else if (byUserClick) {
             showToast("현재 위치가 한국 지역 범위를 벗어나 있어요");
@@ -359,13 +386,19 @@ export function MapExplorerClient({
         { enableHighAccuracy: false, timeout: 6000, maximumAge: 300_000 },
       );
     },
-    [showToast],
+    [showToast, syncSelectedRegionUrl],
   );
 
-  // URL 쿼리(/?food=, /?region=) 및 /travel/[slug] 지정 진입이 없을 때만 현재 위치 기준 자동 선택
+  // URL 쿼리(/?food=, /?region=, /?province=) 및 /regions/[regionCode] 지정 진입이 없을 때만 현재 위치 기준 자동 선택
   useEffect(() => {
     if (geoInitializedRef.current) return;
-    if (foodParam || regionParam || initialProvinceCode || initialRegion) {
+    if (
+      foodParam ||
+      regionParam ||
+      provinceParam ||
+      initialProvinceCode ||
+      initialRegion
+    ) {
       geoInitializedRef.current = true;
       return;
     }
@@ -380,6 +413,7 @@ export function MapExplorerClient({
     allRegions,
     foodParam,
     regionParam,
+    provinceParam,
     initialProvinceCode,
     initialRegion,
     locateCurrentRegion,
@@ -509,6 +543,11 @@ export function MapExplorerClient({
 
   const clearRegionSelection = useCallback(
     (nextProvinceCode: string | null = null) => {
+      const params = new URLSearchParams();
+      if (nextProvinceCode) params.set("province", nextProvinceCode);
+      if (preservePreviewQuery) params.set("preview", "1");
+      const nextUrl = params.size > 0 ? `/?${params.toString()}` : "/";
+
       setSelectedRegion(null);
       setBrowsingProvinceCode(nextProvinceCode);
       setSelectedGenres([]);
@@ -516,18 +555,18 @@ export function MapExplorerClient({
       setFilterOpen(false);
       setSelectedPlaceId(null);
       setFocusProvinceTrigger((n) => n + 1);
-      lastSyncedSignatureRef.current = "|";
+      lastSyncedSignatureRef.current = `||${nextProvinceCode ?? ""}`;
       const label = nextProvinceCode
         ? getTravelProvinceName(nextProvinceCode)
         : "";
       syncBrowserUrl(
-        "/",
+        nextUrl,
         label
           ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}`
           : `전국 국내 여행지 맛집 지도 · 미식 여행 | ${SITE_NAME}`,
       );
     },
-    [],
+    [preservePreviewQuery],
   );
 
   const handleSelectProvinceFromList = useCallback(
@@ -545,23 +584,23 @@ export function MapExplorerClient({
         setSelectedRegion(children[0]);
         setSelectedPlaceId(null);
         setFitTrigger((n) => n + 1);
-        lastSyncedSignatureRef.current = `|${children[0].code}`;
-        syncBrowserUrl(
-          `/?region=${children[0].code}`,
-          `${children[0].fullName} 여행 맛집 지도 | ${SITE_NAME}`,
-        );
+        syncSelectedRegionUrl(children[0]);
         return;
       }
 
       setBrowsingProvinceCode(provinceCode);
       setFocusProvinceTrigger((n) => n + 1);
       const label = getTravelProvinceName(provinceCode);
+      const params = new URLSearchParams();
+      params.set("province", provinceCode);
+      if (preservePreviewQuery) params.set("preview", "1");
+      lastSyncedSignatureRef.current = `||${provinceCode}`;
       syncBrowserUrl(
-        "/",
+        `/?${params.toString()}`,
         label ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}` : undefined,
       );
     },
-    [allRegions, parentCodeByRegion],
+    [allRegions, parentCodeByRegion, syncSelectedRegionUrl, preservePreviewQuery],
   );
 
   const handleSelectProvinceFromMap = useCallback(
@@ -577,11 +616,7 @@ export function MapExplorerClient({
         setSelectedRegion(children[0]);
         setSelectedPlaceId(null);
         setFitTrigger((n) => n + 1);
-        lastSyncedSignatureRef.current = `|${children[0].code}`;
-        syncBrowserUrl(
-          `/?region=${children[0].code}`,
-          `${children[0].fullName} 여행 맛집 지도 | ${SITE_NAME}`,
-        );
+        syncSelectedRegionUrl(children[0]);
         return;
       }
 
@@ -591,30 +626,32 @@ export function MapExplorerClient({
       setFilterOpen(false);
       setSelectedPlaceId(null);
       setBrowsingProvinceCode(provinceCode);
-      lastSyncedSignatureRef.current = "|";
       const label = getTravelProvinceName(provinceCode);
+      const params = new URLSearchParams();
+      params.set("province", provinceCode);
+      if (preservePreviewQuery) params.set("preview", "1");
+      lastSyncedSignatureRef.current = `||${provinceCode}`;
       syncBrowserUrl(
-        "/",
+        `/?${params.toString()}`,
         label ? `${label} 여행지 · 맛집 지도 | ${SITE_NAME}` : undefined,
       );
     },
-    [allRegions, parentCodeByRegion],
+    [allRegions, parentCodeByRegion, syncSelectedRegionUrl, preservePreviewQuery],
   );
 
-  const handleSelectRegion = useCallback((region: RegionItem) => {
-    setRegionQuery("");
-    setPlaceNoteState(null);
-    setActiveFood(null);
-    setBrowsingProvinceCode(null);
-    setSelectedRegion(region);
-    setSelectedPlaceId(null);
-    setFitTrigger((n) => n + 1);
-    lastSyncedSignatureRef.current = `|${region.code}`;
-    syncBrowserUrl(
-      `/?region=${region.code}`,
-      `${region.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
-    );
-  }, []);
+  const handleSelectRegion = useCallback(
+    (region: RegionItem) => {
+      setRegionQuery("");
+      setPlaceNoteState(null);
+      setActiveFood(null);
+      setBrowsingProvinceCode(null);
+      setSelectedRegion(region);
+      setSelectedPlaceId(null);
+      setFitTrigger((n) => n + 1);
+      syncSelectedRegionUrl(region);
+    },
+    [syncSelectedRegionUrl],
+  );
 
   const handleSelectPlace = useCallback(
     (place: PlaceResult) => {
@@ -641,8 +678,9 @@ export function MapExplorerClient({
     if (browsingProvinceCode) {
       setBrowsingProvinceCode(null);
       setFocusProvinceTrigger((n) => n + 1);
+      lastSyncedSignatureRef.current = "||";
       syncBrowserUrl(
-        "/",
+        preservePreviewQuery ? "/?preview=1" : "/",
         `전국 국내 여행지 맛집 지도 · 미식 여행 | ${SITE_NAME}`,
       );
     }
@@ -652,6 +690,7 @@ export function MapExplorerClient({
     parentCodeByRegion,
     allRegions,
     clearRegionSelection,
+    preservePreviewQuery,
   ]);
 
   // 업종 필터 다중 선택 토글 (여러 개 연속 선택 가능하도록 패널 유지)
@@ -688,11 +727,7 @@ export function MapExplorerClient({
     setSelectedGenres([]);
     setSelectedPlaceId(null);
     if (selectedRegion) {
-      lastSyncedSignatureRef.current = `|${selectedRegion.code}`;
-      syncBrowserUrl(
-        `/?region=${selectedRegion.code}`,
-        `${selectedRegion.fullName} 여행 맛집 지도 | ${SITE_NAME}`,
-      );
+      syncSelectedRegionUrl(selectedRegion);
       setFitTrigger((n) => n + 1);
     } else {
       clearRegionSelection();
@@ -805,7 +840,7 @@ export function MapExplorerClient({
             ) : null}
           </div>
 
-          {selectedRegion && (currentOwner || selectedGenres.length > 0) && (
+          {selectedRegion && (
             <div className="flex flex-wrap items-center gap-1.5 lg:mt-0.5">
               {currentOwner && (
                 <p className="type-caption mr-1 text-muted">
@@ -829,6 +864,13 @@ export function MapExplorerClient({
                   <Icon name="close" size={11} />
                 </button>
               ))}
+              <Link
+                href={regionHref(selectedRegion.code, preservePreviewQuery)}
+                className="pressable ml-auto inline-flex min-h-8 shrink-0 items-center gap-0.5 rounded-full border border-accent/25 bg-accent-weak px-3 py-1 text-xs font-semibold text-accent-dark transition-opacity hover:opacity-85 focus-ring"
+              >
+                <span>지역 상세</span>
+                <Icon name="chevron-right" size={14} />
+              </Link>
             </div>
           )}
         </header>
